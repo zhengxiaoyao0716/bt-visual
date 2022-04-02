@@ -1,0 +1,45 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"files.exclude": {
+			"**/node_modules": true
+		},
+		"npm.packageManager": "yarn"
+	},
+	"launch": {
+		"version": "0.2.0",
+		"configurations": [
+			// 启动开发服务器
+			{
+				"name": "vite dev",
+				"type": "pwa-node",
+				"request": "launch",
+				"cwd": "${workspaceFolder}",
+				"runtimeExecutable": "yarn",
+				"runtimeArgs": [
+					"dev"
+				],
+				"skipFiles": [
+					"<node_internals>/**"
+				]
+			},
+			// 打开浏览器页面
+			{
+				"name": "Launch Edge",
+				"request": "launch",
+				"type": "pwa-msedge",
+				"url": "http://localhost:3000",
+				"webRoot": "${workspaceFolder}"
+			}
+		]
+	},
+	"extensions": {
+		"recommendations": [
+			"AnthonyCJW.vscode-styled-components-cre-edition"
+		]
+	}
+}
