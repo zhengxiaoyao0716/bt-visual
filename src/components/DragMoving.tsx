@@ -4,8 +4,8 @@ import styled from '@emotion/styled'
 export interface DragEvent {
     movementX: number
     movementY: number
-    stopPropagation: () => void
-    preventDefault: () => void
+    stopPropagation(): void
+    preventDefault(): void
 }
 export type DragListeners<E extends DragEvent> = {
     [event in | 'onMouseDown' | 'onMouseMove' | 'onMouseUp' | 'onMouseLeave']: (event: E) => void

@@ -1,4 +1,4 @@
-import { createContext, MouseEventHandler, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { MouseEventHandler, useEffect, useMemo, useRef, useState } from 'react'
 import rough from 'roughjs'
 import styled from '@emotion/styled'
 
@@ -12,21 +12,8 @@ interface Props<N extends Node> {
 }
 
 export default function NodeRender<N extends Node>(props: Props<N>) {
-    const element = AutoRender(props)
-    const [contextValue, setContextValue] = useState(defaultContext)
-    return (
-        <NodeRenderContext.Provider value={contextValue}>
-            {element}
-        </NodeRenderContext.Provider>
-    )
+    return AutoRender(props)
 }
-
-const defaultContext = {
-    marginHorizontal: 200,
-    marginVertical: 100,
-    fillNodeColor: '#FFFFFF',
-}
-const NodeRenderContext = createContext(defaultContext)
 
 const statusMapper = {
     success: { color: '#00FF00' },
@@ -114,12 +101,10 @@ function NodeSvgRender({ type, size, status: statusKey, children }: BaseProps & 
     const status = statusMapper[statusKey || '']
     const color = statusKey ? status.color : nodeTypeColor[nodeType]
     const ref = useRef<SVGSVGElement>(null)
-    const context = useContext(NodeRenderContext)
     useEffect(() => {
         const svg = ref.current
         if (svg == null) return
         const options = {
-            fill: context.fillNodeColor,
             stroke: color,
             strokeLineDash: nodeType === 'Decorator' ? [16, 8] : undefined,
             strokeWidth: 2,
@@ -132,7 +117,7 @@ function NodeSvgRender({ type, size, status: statusKey, children }: BaseProps & 
             : rough.svg(svg).rectangle(0, 0, size.width, size.height, options)
         svg.prepend(shape)
         return () => { svg.removeChild(shape) }
-    }, [ref.current, size.width, size.height, color, context.fillNodeColor])
+    }, [ref.current, size.width, size.height, color])
     return (
         <NodeSvg ref={ref} xmlns="http://www.w3.org/2000/svg" version="1.1"
             width={size.width}

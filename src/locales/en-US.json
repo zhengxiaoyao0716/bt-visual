@@ -1,0 +1,21 @@
+{
+    "// common": "",
+    "other": "other",
+    "SAVE": "SAVE",
+    "CANCEL": "CANCEL",
+    "SUBMIT": "SUBMIT",
+    "APPEND": "APPEND",
+    "REMOVE": "REMOVE",
+
+    "// menu items": "",
+    "HomePage": "HOME",
+    "EditorPage": "EDITOR",
+    "AboutPage": "ABOUT",
+
+    "// translator page": "",
+    "TranslatorPage": "TRANSLATOR",
+    "No modifications": "No modifications",
+    "Modification has been saved": "Modification has been saved",
+
+    "// other": ""
+}

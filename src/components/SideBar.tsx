@@ -21,6 +21,6 @@ export function useSideBar(icon: (open: boolean) => JSX.Element, context: JSX.El
     const [open, setOpen] = useState(false)
     const toggle = () => setOpen(!open)
     const handler = <IconButton color="inherit" onClick={toggle} >{icon(open)}</IconButton>
-    const drawer = <Drawer variant='temporary' open={open}>{context}</Drawer>
+    const drawer = <Drawer variant="temporary" open={open}>{context}</Drawer>
     return { handler, drawer }
 }

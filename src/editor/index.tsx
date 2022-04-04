@@ -6,7 +6,7 @@ import DraftPaper from './DraftPaper'
 import GrabPaper from './GrabPaper'
 import NodeRender from './NodeRender'
 
-function Editor() {
+export default function Editor() {
     const forest = example      // TODO: load from storage
 
     const { tab, tabs } = useTabs(forest.trees.map(({ name }) => name))
@@ -25,7 +25,7 @@ function Editor() {
                 m: 2,
                 overflow: 'hidden',
             }}>
-                <DraftPaper>
+                <DraftPaper key={tree.name}>
                     <GrabPaper>
                         <NodeRender node={tree.root} />
                     </GrabPaper>
@@ -38,4 +38,3 @@ function Editor() {
     )
 }
 Editor.route = '/editor'
-export default Editor
