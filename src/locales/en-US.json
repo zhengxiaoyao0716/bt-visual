@@ -1,21 +1,29 @@
 {
-    "// common": "",
-    "other": "other",
-    "SAVE": "SAVE",
-    "CANCEL": "CANCEL",
-    "SUBMIT": "SUBMIT",
-    "APPEND": "APPEND",
-    "REMOVE": "REMOVE",
+  "// common": "",
+  "other": "other",
+  "SAVE": "SAVE",
+  "CANCEL": "CANCEL",
+  "SUBMIT": "SUBMIT",
+  "APPEND": "APPEND",
+  "REMOVE": "REMOVE",
 
-    "// menu items": "",
-    "HomePage": "HOME",
-    "EditorPage": "EDITOR",
-    "AboutPage": "ABOUT",
+  "// menu items": "",
+  "HomePage": "HOME",
+  "EditorPage": "EDITOR",
+  "AboutPage": "ABOUT",
 
-    "// translator page": "",
-    "TranslatorPage": "TRANSLATOR",
-    "No modifications": "No modifications",
-    "Modification has been saved": "Modification has been saved",
+  "// translator page": "",
+  "TranslatorPage": "TRANSLATOR",
+  "No modifications": "No modifications",
+  "Modification has been saved": "Modification has been saved",
 
-    "// other": ""
+  "// editor page": "",
+  "Node.Composite.name": "Composite",
+  "Node.Decorator.name": "Decorator",
+  "Node.Action.name": "Action",
+  "Node.Composite.desc": "composite nodes",
+  "Node.Decorator.desc": "decorator nodes",
+  "Node.Action.desc": "action nodes",
+
+  "// other": ""
 }

@@ -8,7 +8,25 @@
 		"files.exclude": {
 			"**/node_modules": true
 		},
-		"npm.packageManager": "yarn"
+		"npm.packageManager": "yarn",
+		"[javascript]": {
+			"editor.defaultFormatter": "esbenp.prettier-vscode"
+		},
+		"[typescript]": {
+			"editor.defaultFormatter": "esbenp.prettier-vscode"
+		},
+		"[javascriptreact]": {
+			"editor.defaultFormatter": "esbenp.prettier-vscode"
+		},
+		"[typescriptreact]": {
+			"editor.defaultFormatter": "esbenp.prettier-vscode"
+		},
+		"[jsonc]": {
+			"editor.defaultFormatter": "esbenp.prettier-vscode"
+		},
+		"[html]": {
+			"editor.defaultFormatter": "esbenp.prettier-vscode"
+		}
 	},
 	"launch": {
 		"version": "0.2.0",
@@ -39,7 +57,8 @@
 	},
 	"extensions": {
 		"recommendations": [
-			"AnthonyCJW.vscode-styled-components-cre-edition"
+			"anthonycjw.vscode-styled-components-cre-edition",
+			"esbenp.prettier-vscode"
 		]
 	}
 }
