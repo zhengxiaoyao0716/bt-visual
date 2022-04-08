@@ -1,4 +1,5 @@
 import {
+  DragEventHandler,
   MouseEventHandler,
   ReactNode,
   useEffect,
@@ -11,15 +12,24 @@ import styled from "@emotion/styled";
 
 import { Node, Composite, Decorator, Action } from "../behavior-tree/define";
 import LineRender, {
+  disableDropClass,
+  DraggingData,
+  LineDropArea,
   lineToParentClass,
   triggerRedrawLiens,
 } from "./LineRender";
 import { getNodeType } from "../behavior-tree/utils";
-import { useTrans } from "../storage/Locale";
+import Config from "../storage/Config";
+import { TransFunction } from "../storage/Locale";
+import { createAnchorDropProps, createNodeDropProps } from "./NodeDrop";
+import { useNodePropsEditor } from "./Properties";
+import { useRefresh } from "../components/Refresh";
 
 interface Props<N extends Node> {
   node: N;
-  trans: ReturnType<typeof useTrans>;
+  config: ReturnType<typeof Config.use>;
+  trans: TransFunction;
+  prependDecorator(type: string): void;
   children?: JSX.Element;
 }
 
@@ -79,24 +89,28 @@ const CompositeCard = styled.div`
 const CompositeNodes = styled.div`
   display: flex;
   justify-content: center;
-  margin: 32px 8px;
+  position: relative;
+  & > div.${disableDropClass} div * {
+    pointer-events: none;
+  }
 `;
 const DecoratorContainer = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
   position: relative;
-  padding: 16px;
 `;
 const DecoratorCard = styled.div`
+  padding: 16px 8px 0 8px;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  /* justify-content: center; */
   margin-bottom: -16px;
+
   &.fold {
     flex-direction: row;
     flex-wrap: wrap;
-    max-width: 300px;
+    max-width: 316px;
   }
   &.fold svg > text {
     user-select: none;
@@ -113,7 +127,15 @@ export function NodeSvgRender({
   size,
   status: statusKey,
   children,
-}: BaseProps & { children: ReactNode | string }) {
+  onClick,
+  onDragOver,
+  onDrop,
+}: BaseProps & {
+  children: ReactNode | string;
+  onClick?: MouseEventHandler;
+  onDragOver?: DragEventHandler;
+  onDrop?: DragEventHandler;
+}) {
   const nodeType = getNodeType(type);
   const status = statusMapper[statusKey || ""];
   const color = statusKey ? status.color : nodeTypeColor[nodeType];
@@ -125,6 +147,7 @@ export function NodeSvgRender({
       stroke: color,
       strokeLineDash: nodeType === "Decorator" ? [16, 8] : undefined,
       strokeWidth: 2,
+      fill: "#FFFFFF",
       fillStyle:
         nodeType === "Decorator"
           ? "cross-hatch"
@@ -158,6 +181,9 @@ export function NodeSvgRender({
       version="1.1"
       width={size.width}
       height={size.height}
+      onClick={onClick}
+      onDragOver={onDragOver}
+      onDrop={onDrop}
     >
       {typeof children === "string" ? (
         size.height <= 30 ? (
@@ -179,38 +205,24 @@ export function NodeSvgRender({
 type SubProps<N extends Node> = Omit<
   Props<N> & BaseProps,
   "type" | "label" | "size" | "small"
->;
+> & { prependDecorator(type: string): void };
 
 interface CompositeProps extends SubProps<Composite> {
   redrawLine?: (sig: number) => void;
 }
-const anchorOffsetAllow = 32;
 function findMoveToNodeIndex(
   left: number,
   min: number,
   max: number,
   anchors: { [index: number]: HTMLElement }
-): [number, boolean] {
+): number {
   for (let index = min; index < max; index++) {
     const anchorLeft = anchors[index].getBoundingClientRect().left;
-    const offset = left - anchorLeft;
-    if (offset < -anchorOffsetAllow) {
-      return [index, false];
-    } else if (offset <= anchorOffsetAllow) {
-      return [index, true];
+    if (left < anchorLeft) {
+      return index;
     }
   }
-  return [max, false];
-}
-function isMoveToTopNear(
-  top: number,
-  moveToIndex: number,
-  anchors: { [index: number]: HTMLElement }
-): boolean {
-  const moveToAnchor = anchors[moveToIndex];
-  const moveToRect = moveToAnchor.getBoundingClientRect();
-  const offsetTop = top - moveToRect.top;
-  return -anchorOffsetAllow <= offsetTop && offsetTop <= anchorOffsetAllow;
+  return max;
 }
 
 function useNodeFold() {
@@ -225,66 +237,125 @@ function useNodeFold() {
 }
 
 function CompositeRender({
-  node: { type, nodes },
+  node,
+  config,
   trans,
   children,
+  prependDecorator,
   ...baseProps
 }: CompositeProps) {
+  if (config?.value == null) return null; // never
+
+  const ref = useRef<HTMLDivElement>(null);
   const svgSize = { width: 250, height: 100 };
+  const { type, nodes } = node;
 
   const [fold, foldHandler] = useNodeFold();
 
-  const [refresh, setRefresh] = useState(0);
+  const refresh = useRefresh();
   const anchors: { [index: number]: HTMLElement } = useMemo(() => ({}), []);
-  const onMoved = (index: number, left: number, top: number) => {
+  const onMoved = (index: number, left: number) => {
     if (left === 0) return;
     const anchor = anchors[index];
+    if (anchor == null) return;
     const anchorRect = anchor.getBoundingClientRect();
-    const moveToLeft = anchorRect.left + left;
 
-    const [moveToIndex, leftNear] =
-      left < 0
-        ? findMoveToNodeIndex(moveToLeft, 0, index, anchors)
-        : findMoveToNodeIndex(moveToLeft, index, nodes.length, anchors);
+    const moveToIndex =
+      left < anchorRect.left
+        ? findMoveToNodeIndex(left, 0, index, anchors)
+        : findMoveToNodeIndex(left, index, nodes.length, anchors) - 1;
     if (index === moveToIndex) return;
 
-    if (leftNear) {
-      if (isMoveToTopNear(anchorRect.top + top, moveToIndex, anchors)) {
-        // swap
-        const node = nodes[index];
-        nodes[index] = nodes[moveToIndex];
-        nodes[moveToIndex] = node;
-      } else {
-        // 横坐标相近，纵坐标较远，危险操作，忽略
-        console.warn("move to near, but not near enough, ignored");
-        return;
-      }
-    } else {
-      // move
-      const node = nodes.splice(index, 1)[0];
-      const insertIndex = moveToIndex < index ? moveToIndex : moveToIndex - 1;
-      nodes.splice(insertIndex, 0, node);
-    }
-    setRefresh(1 + refresh);
+    // move
+    const node = nodes.splice(index, 1)[0];
+    nodes.splice(moveToIndex, 0, node);
+    refresh();
     triggerRedrawLiens(anchor);
   };
+  const onSwap = (index: number, swapTo: number) => {
+    const anchor = anchors[index];
+    // swap
+    const node = nodes[index];
+    nodes[index] = nodes[swapTo];
+    nodes[swapTo] = node;
+    refresh();
+    triggerRedrawLiens(anchor);
+  };
+
+  const anchorDropProps = createAnchorDropProps(
+    (data: DraggingData, index: number, copy) => {
+      const node = copy
+        ? JSON.parse(JSON.stringify(data.nodes[index]))
+        : data.nodes.splice(index, 1)[0];
+      nodes.push(node);
+      data.refresh();
+      refresh();
+      ref.current && triggerRedrawLiens(ref.current);
+    }
+  );
+  const draggingRef = {
+    nodes,
+    refresh() {
+      refresh();
+      ref.current && triggerRedrawLiens(ref.current);
+    },
+  };
+
+  const nodeDropProps = createNodeDropProps({
+    appendComposite(type: string) {
+      nodes.push({ type, nodes: [] } as Composite);
+      refresh();
+      ref.current && triggerRedrawLiens(ref.current);
+    },
+    appendAction(type: string) {
+      nodes.push({ type } as Action);
+      refresh();
+      ref.current && triggerRedrawLiens(ref.current);
+    },
+    prependDecorator,
+  });
+
+  const propsEditor = useNodePropsEditor(trans, () => refresh());
+
   return (
-    <CompositeContainer className={lineToParentClass}>
-      <CompositeCard onDoubleClick={foldHandler}>
-        <NodeSvgRender type={type} size={svgSize} {...baseProps}>
-          {trans(type)}
+    <CompositeContainer className={lineToParentClass} ref={ref}>
+      <CompositeCard onDoubleClick={foldHandler} {...anchorDropProps}>
+        <NodeSvgRender
+          type={type}
+          size={svgSize}
+          onClick={propsEditor.onClick.bind(null, node)}
+          {...baseProps}
+          {...nodeDropProps}
+        >
+          {node.alias || trans(type)}
         </NodeSvgRender>
       </CompositeCard>
       {fold || (
-        <CompositeNodes>
+        <CompositeNodes
+          style={{
+            margin: `${config.value.nodeVerticalMargin}px 8px`,
+          }}
+        >
+          <LineDropArea onMoved={onMoved} />
           {nodes.map((node, index) => (
-            <AutoRender key={index} node={node} trans={trans}>
+            <AutoRender
+              key={index}
+              node={node}
+              config={config}
+              trans={trans}
+              prependDecorator={(type) => {
+                nodes[index] = { type, node } as Decorator;
+                refresh();
+                triggerRedrawLiens(anchors[index]);
+              }}
+            >
               <LineRender
                 index={index}
                 total={nodes.length}
                 anchors={anchors}
-                onMoved={onMoved}
+                onSwrap={onSwap}
                 redrawSig={refresh}
+                draggingRef={draggingRef}
                 {...svgSize}
               />
             </AutoRender>
@@ -300,23 +371,45 @@ function DecoratorRender({
   node,
   trans,
   children,
+  prependDecorator,
   ...baseProps
 }: SubProps<Decorator>) {
   const [fold, foldHandler] = useNodeFold();
+  const refresh = useRefresh();
+  const ref = useRef<HTMLDivElement>(null);
   let decorators = [];
   let iter = node;
+  let prepend = prependDecorator;
   while (iter) {
-    decorators.push(iter);
-    if (getNodeType(iter.node.type) !== "Decorator") break;
+    const iterFinal = iter;
+    const appendComposite = (type: string) => {
+      const node = iterFinal.node;
+      iterFinal.node = { type, nodes: [node] } as Composite;
+      refresh();
+      ref.current && triggerRedrawLiens(ref.current);
+    };
+    const prependDecorator = prepend;
+    prepend = (type: string) => {
+      const node = iterFinal.node;
+      iterFinal.node = { type, node } as Decorator;
+      refresh();
+      ref.current && triggerRedrawLiens(ref.current);
+    };
+    decorators.push([iterFinal, appendComposite, prependDecorator] as const);
+    if (getNodeType(iterFinal.node.type) !== "Decorator") break;
     iter = iter.node as Decorator;
   }
+
+  const propsEditor = useNodePropsEditor(trans, () => refresh());
+
   return (
     <DecoratorContainer>
       <DecoratorCard
         className={fold ? "fold" : undefined}
         onDoubleClick={foldHandler}
+        ref={ref}
       >
-        {decorators.map((node, index) =>
+        {decorators.map(([node, append, prepend], index) =>
           fold ? (
             <NodeSvgRender
               key={index}
@@ -324,21 +417,31 @@ function DecoratorRender({
               size={{ width: 100, height: 24 }}
               {...baseProps}
             >
-              {trans(node.type)}
+              {node.alias || trans(node.type)}
             </NodeSvgRender>
           ) : (
             <NodeSvgRender
               key={index}
               type={node.type}
               size={{ width: 150, height: 60 }}
+              onClick={propsEditor.onClick.bind(null, node)}
               {...baseProps}
+              {...createNodeDropProps({
+                appendComposite: append,
+                prependDecorator: prepend,
+              })}
             >
-              {trans(node.type)}
+              {node.alias || trans(node.type)}
             </NodeSvgRender>
           )
         )}
       </DecoratorCard>
-      <AutoRender node={iter.node} trans={trans} {...baseProps} />
+      <AutoRender
+        node={iter.node}
+        trans={trans}
+        {...baseProps}
+        prependDecorator={prepend}
+      />
       {children}
     </DecoratorContainer>
   );
@@ -348,39 +451,67 @@ function ActionRender({
   node,
   trans,
   children,
+  prependDecorator,
   ...baseProps
 }: SubProps<Action>) {
+  const nodeDropProps = createNodeDropProps({ prependDecorator });
+  const refresh = useRefresh();
+  const propsEditor = useNodePropsEditor(trans, refresh);
+
   return (
     <ActionCard>
       <NodeSvgRender
         type={node.type}
         size={{ width: 120, height: 90 }}
+        onClick={propsEditor.onClick.bind(null, node)}
         {...baseProps}
+        {...nodeDropProps}
       >
-        {trans(node.type)}
+        {node.alias || trans(node.type)}
       </NodeSvgRender>
       {children}
     </ActionCard>
   );
 }
 
-function AutoRender<N extends Node>({ node, trans, children }: Props<N>) {
+function AutoRender<N extends Node>({
+  node,
+  config,
+  trans,
+  prependDecorator,
+  children,
+}: Props<N>) {
   switch (getNodeType(node.type)) {
     case "Composite":
       return (
-        <CompositeRender node={node as unknown as Composite} trans={trans}>
+        <CompositeRender
+          node={node as unknown as Composite}
+          config={config}
+          trans={trans}
+          prependDecorator={prependDecorator}
+        >
           {children}
         </CompositeRender>
       );
     case "Decorator":
       return (
-        <DecoratorRender node={node as unknown as Decorator} trans={trans}>
+        <DecoratorRender
+          node={node as unknown as Decorator}
+          config={config}
+          trans={trans}
+          prependDecorator={prependDecorator}
+        >
           {children}
         </DecoratorRender>
       );
     case "Action":
       return (
-        <ActionRender node={node} trans={trans}>
+        <ActionRender
+          node={node}
+          config={config}
+          trans={trans}
+          prependDecorator={prependDecorator}
+        >
           {children}
         </ActionRender>
       );
@@ -391,7 +522,7 @@ function AutoRender<N extends Node>({ node, trans, children }: Props<N>) {
           size={{ width: 100, height: 50 }}
           status="failure"
         >
-          {trans(node.type)}
+          {node.alias || trans(node.type)}
         </NodeSvgRender>
       );
   }

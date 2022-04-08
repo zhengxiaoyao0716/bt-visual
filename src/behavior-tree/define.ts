@@ -1,6 +1,7 @@
 // 基础节点
 export interface Node {
   type: string;
+  alias?: string; // 别名
 }
 
 // 树状节点
@@ -29,11 +30,11 @@ export module Composition {
   }
 
   export interface SelectBy extends Composite {
-    type: "?:SelectBy"; // 条件选择 // 根据 index 给定的值，执行对应位置的节点
+    type: "?:SelectBy"; // 条件选择 // 根据 index 给定的值，执行对应位置的节点，返回对应节点的执行结果。
     index: Store.Reader.Number; // 要执行的节点的位置，0-based
   }
   export interface SelectIf extends Composite {
-    type: "?:SelectIf"; // 布尔选择 // 先执行 cond (nodes.first) 节点，cond 成功时执行 nodes.second，cond 失败时执行 nodes.third
+    type: "?:SelectIf"; // 布尔选择 // 先执行 cond (nodes.first) 节点，cond 成功时执行 nodes.second，cond 失败时执行 nodes.third，返回对应节点的执行结果。
     nodes: [Node, Node] | [Node, Node, Node]; // [cond, second, third?]，节点数量应当为 2 或 3，第三个节点可省略。
   }
 
@@ -58,13 +59,14 @@ export interface Decorator extends Node {
 }
 export module Decorator {
   export interface Condition<V> extends Decorator {
+    // TODO 条件节点得重新设计
     type:
       | "@CompareEQ" // 比较给定的两个值是否相等，相等则执行 node 并返回其执行结果，不相等则直接返回失败。
       | "@CompareGE" // 比较给定的两个值的大小，若期望值大于等于待测值，执行 node 并返回其结果，否则失败。
       | "@CompareLE"; // 比较给定的两个值的大小，若期望值小于等于待测值，执行 node 并返回其结果，否则失败。
     expected: Store.Reader<V>; // 预期值
     subject: Store.Reader<V>; // 待测值
-    // signal?: Signal             // 当条件状态变化时，向父节点递归发出信号 TODO
+    // signal?: Signal // 当条件状态变化时，向父节点递归发出信号
   }
 
   export interface Reapeat extends Decorator {
@@ -75,23 +77,23 @@ export module Decorator {
 
   export interface Pipeline extends Decorator {
     type:
-      | "@Inverse" // 当 node 执行成功时返回失败，node 执行失败时返回成功
-      | "@Success" // 当 node 执行完成后，永远返回成功
-      | "@Failure"; // 当 node 执行完成后，永远返回失败
+      | "@Inverse" // 节点逆变 // 当 node 执行成功时返回失败，node 执行失败时返回成功
+      | "@Success" // 必定成功 // 当 node 执行完成后，永远返回成功
+      | "@Failure"; // 必定失败 // 当 node 执行完成后，永远返回失败
   }
 
   export interface Delay extends Decorator {
-    type: "@Delay"; // 延迟 millis 毫秒后执行 node 并返回 node 的执行结果
+    type: "@Delay"; // 延迟执行 // 延迟 millis 毫秒后执行 node 并返回 node 的执行结果
     millis: Store.Reader.Number; // 延迟时长，单位毫秒
   }
 
-  export interface Store extends Decorator {
-    type: "@Store"; // 存储器，将 node 的执行结果存储到 store 中，返回 node 的执行结果
+  export interface Save extends Decorator {
+    type: "@Save"; // 保存结果 // 将 node 的执行结果存储到 store 中，返回 node 的执行结果
     bind: Store.Key; // 绑定存储空间
   }
 
   export interface Acc extends Action {
-    type: "@Acc"; // 累加器，node 执行完毕后，根据成功或失败累加对应的增量，返回 node 的执行结果。
+    type: "@Acc"; // 累加结果 // node 执行完毕后，根据成功或失败累加对应的增量，返回 node 的执行结果。
     bind: Store.Key; // 绑定存储空间
     success: Store.Reader.Number; // 成功时累加值
     failure: Store.Reader.Number; // 失败时累加值
@@ -102,23 +104,23 @@ export module Decorator {
 export interface Action extends Node {}
 export module Action {
   export interface Empty extends Action {
-    type: "+ Empty"; // 空节点，默认什么都不做
+    type: "+ Empty"; // 空白节点 // 默认什么都不做
     extra?: Store.Reader; // 额外参数
   }
 
   export interface Tree extends Action {
-    type: "+ Tree"; // 子树节点，执行 name 指定的子树
+    type: "+ Tree"; // 子树节点 // 执行 name 指定的子树
     name: Store.Reader.String; // 子树名称
   }
 
   export interface Dynamic extends Action {
-    type: "+ Dynamic"; // 动态行为，执行 name 指定的行为
+    type: "+ Dynamic"; // 动态行为 // 执行 name 指定的行为
     name: Store.Reader.String; // 行为名称
     args?: { [name: string]: Store.Reader }; // 透传参数
   }
 
   export interface Wait extends Action {
-    type: "+ Wait"; // 等待 millis 毫秒后返回成功
+    type: "+ Wait"; // 定时等待 // 等待 millis 毫秒后返回成功
     millis: Store.Reader.Number; // 等待时长，单位毫秒
   }
 }

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { DragEvent, useEffect, useMemo, useRef, useState } from "react";
 import Accordion from "@mui/material/Accordion";
 import AccordionDetails from "@mui/material/AccordionDetails";
 import AccordionSummary from "@mui/material/AccordionSummary";
@@ -13,30 +13,17 @@ import InputAdornment from "@mui/material/InputAdornment";
 import SearchIcon from "@mui/icons-material/Search";
 
 import { TransFunction, useTrans } from "../storage/Locale";
-import { NodeType } from "../behavior-tree/define";
+import { Node, NodeType } from "../behavior-tree/define";
 import Config from "../storage/Config";
 import { useDragMoving } from "../components/DragMoving";
 import BTNodes from "../storage/BTNodes";
 import { NodeSvgRender } from "./NodeRender";
-
-const WidthController = styled.div`
-  position: absolute;
-  width: 6px;
-  height: 100%;
-  right: 0;
-  top: 0;
-  pointer-events: visible;
-  cursor: w-resize;
-  &:hover,
-  &:active {
-    border: 2px dashed #cccccc;
-  }
-`;
+import WidthController from "../components/WidthController";
 
 function NodeLibs({ children }: { children: JSX.Element }) {
   const config = Config.use();
+  if (config?.value == null) return null; // never
   const trans = useTrans();
-  if (config?.value == null) return null;
   const btNodes = BTNodes.use();
 
   const { nodeLibs } = config.value;
@@ -52,14 +39,14 @@ function NodeLibs({ children }: { children: JSX.Element }) {
     });
   useEffect(() => {
     if (wcDragging || wcLeft === 0) return;
-    const width = wcLeft + nodeLibs.width;
+    const width = nodeLibs.width + wcLeft;
     config.saving ||
       config.update({
         ...config.value,
         nodeLibs: {
           ...nodeLibs,
           width:
-            width < 30 ? 0 : Math.max(nodeLibs.minWidth, Math.min(width, 1000)),
+            width < 60 ? 0 : Math.max(nodeLibs.minWidth, Math.min(width, 1000)),
         },
       });
     setWCState({ left: 0, top: 0, dragging: false });
@@ -88,13 +75,17 @@ function NodeLibs({ children }: { children: JSX.Element }) {
       }}
       {...wcProps}
     >
-      {nodeLibs.width == 0 ? null : (
+      {nodeLibs.width <= 0 ? null : (
         <Stack
           sx={{
             width: `${nodeLibs.width}px`,
+            paddingRight: "6px",
             flex: "0 0 auto",
             height: "100%",
             overflowY: "scroll",
+            "&::-webkit-scrollbar": {
+              display: "none",
+            },
           }}
         >
           <SearchNode onChange={onSearchKeywordChange} />
@@ -103,30 +94,35 @@ function NodeLibs({ children }: { children: JSX.Element }) {
           <NodeLib {...nodeLibProps} type="Action" />
         </Stack>
       )}
-      <Box
-        sx={{
-          flex: "1 1 auto",
-          m: 2,
-          overflow: "hidden",
-        }}
-      >
-        {children}
-      </Box>
       <WidthController
         style={{
-          left: `${wcLeft + Math.max(0, nodeLibs.width - 10)}px`,
+          left: `${Math.max(0, nodeLibs.width - 6) + wcLeft}px`,
         }}
         ref={widthControllerRef}
       />
+      {children}
     </Box>
   );
 }
 
 export default BTNodes.hoc(NodeLibs);
 
+export const nodeDraggingRef = {
+  draggingType: null as null | "Composite" | "Decorator" | "Action",
+};
+
 const NodeContainer = styled.div`
   display: inline-block;
   margin: 0.1em 0.2em;
+  & > svg {
+    cursor: grab;
+  }
+  & > svg:active {
+    cursor: grabbing;
+  }
+  & > svg > text {
+    cursor: text;
+  }
 `;
 
 interface NodeLibProps {
@@ -200,7 +196,7 @@ function NodeLib({ config, trans, btNodes, keyword, type }: NodeLibProps) {
         }}
       >
         {nodes.map((node, index) => (
-          <NodeContainer key={index}>
+          <NodeContainer key={index} {...createDragNodeProps(type, node)}>
             <NodeSvgRender type={node.type} size={{ width: 100, height: 30 }}>
               {trans(node.translated.type)}
             </NodeSvgRender>
@@ -225,4 +221,19 @@ function SearchNode({ onChange }: { onChange(keyword: string): void }) {
       />
     </Container>
   );
+}
+
+function createDragNodeProps(
+  type: "Composite" | "Decorator" | "Action",
+  node: Node
+) {
+  const onDragStart = (event: DragEvent) => {
+    nodeDraggingRef.draggingType = type;
+    event.dataTransfer.effectAllowed = "copy";
+    event.dataTransfer.setData("application/json", JSON.stringify(node));
+  };
+  const onDragEnd = (_event: DragEvent) => {
+    nodeDraggingRef.draggingType = null;
+  };
+  return { draggable: true, onDragStart, onDragEnd };
 }

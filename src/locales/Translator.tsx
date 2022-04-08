@@ -7,16 +7,19 @@ import CircularProgress from "@mui/material/CircularProgress";
 import Box from "@mui/material/Box";
 import TextField from "@mui/material/TextField";
 import InputAdornment from "@mui/material/InputAdornment";
+import Grid from "@mui/material/Grid";
 
 import { Props, useDialogPage } from "../components/DialogPage";
 import { useLocale, useTrans } from "../storage/Locale";
 import { useMoveableList } from "../components/MoveableList";
 import { useDialogPrompt } from "../components/DialogPrompt";
+import { useWindowSize } from "../components/WindowSize";
+import { useRefresh } from "../components/Refresh";
 
 function Content({ hide, snack, appBar }: Props) {
   const locale = useLocale();
   const trans = useTrans();
-  const [refresh, setRefresh] = useState(0);
+  const refresh = useRefresh();
 
   const saved = locale?.value;
   const items = useMemo(() => {
@@ -35,36 +38,36 @@ function Content({ hide, snack, appBar }: Props) {
     values: [trans("original text"), trans("translated value")],
   };
 
+  const [width] = useWindowSize();
+  const gridXs = Math.min(12 / ((width / 300) | 0), 12);
+
   const moveableList = useMoveableList(
     items,
     dialogPrompt.prompt.bind(null, appendPromitProps),
-    () => setRefresh(1 + refresh),
+    refresh,
     ([text, translated], index, showMenu, _anchor) => {
       const newTab = text.startsWith("//") && !translated;
       return [
         newTab,
-        <ListItem
-          key={`${text}#${index}`}
-          button
-          sx={{ width: "20em" }}
-          onContextMenu={showMenu}
-        >
-          <TextField
-            label={text}
-            title={saved?.[text]}
-            fullWidth
-            multiline
-            InputProps={{
-              endAdornment:
-                saved?.[text] === translated ? null : (
-                  <InputAdornment position="end">●</InputAdornment>
-                ),
-            }}
-            defaultValue={translated}
-            onChange={(event) => change(index, event.target.value)}
-          />
-          {/* {anchor} */}
-        </ListItem>,
+        <Grid item xs={gridXs} key={`${text}#${index}`}>
+          <ListItem button onContextMenu={showMenu}>
+            <TextField
+              label={text}
+              title={saved?.[text]}
+              fullWidth
+              multiline
+              InputProps={{
+                endAdornment:
+                  saved?.[text] === translated ? null : (
+                    <InputAdornment position="end">●</InputAdornment>
+                  ),
+              }}
+              defaultValue={translated}
+              onChange={(event) => change(index, event.target.value)}
+            />
+            {/* {anchor} */}
+          </ListItem>
+        </Grid>,
       ] as const;
     }
   );
@@ -101,7 +104,7 @@ function Content({ hide, snack, appBar }: Props) {
     const item = items[index];
     if (item[1] === value) return;
     item[1] = value;
-    setRefresh(1 + refresh);
+    refresh();
   };
 
   const listTabs = moveableList.listItems.reduce((tabs, [newTab, item]) => {
@@ -125,14 +128,8 @@ function Content({ hide, snack, appBar }: Props) {
       )}
       <Box>
         {listTabs.map((tab, index) => (
-          <List
-            key={index}
-            sx={{
-              display: "flex",
-              flexWrap: "wrap",
-            }}
-          >
-            {tab}
+          <List key={index}>
+            <Grid container>{tab}</Grid>
           </List>
         ))}
       </Box>

@@ -1,8 +1,9 @@
-import rough from "roughjs";
+import { DragEvent, useLayoutEffect, useRef, useState } from "react";
 import styled from "@emotion/styled";
-import { useLayoutEffect, useRef, useState } from "react";
+import rough from "roughjs";
 
-import { grabableClass, GrabEvent } from "./GrabPaper";
+import { Node } from "../behavior-tree/define";
+import { useRefresh } from "../components/Refresh";
 
 const Anchor = styled.a`
   position: absolute;
@@ -22,6 +23,14 @@ const Anchor = styled.a`
 `;
 
 export const lineToParentClass = "line-to";
+export const disableDropClass = "disable-drop";
+export interface DraggingData {
+  nodes: Node[];
+  refresh(): void;
+}
+export const anchorDraggingRef = {
+  current: null as DraggingData | null,
+};
 
 interface Props {
   index: number;
@@ -29,8 +38,9 @@ interface Props {
   width: number;
   height: number;
   anchors: { [index: number]: HTMLElement };
-  onMoved: (index: number, left: number, top: number) => void;
+  onSwrap: (index: number, swapTo: number) => void;
   redrawSig: any; // 重绘信号，不直接参与绘制
+  draggingRef: DraggingData;
   color?: string;
 }
 export default function LineRender({
@@ -39,12 +49,13 @@ export default function LineRender({
   width,
   height,
   anchors,
-  onMoved,
+  onSwrap,
   redrawSig,
+  draggingRef,
   color,
 }: Props) {
   const ref = useRef<HTMLAnchorElement>(null);
-  const [refresh, setRefresh] = useState(0);
+  const refresh = useRefresh();
 
   useLayoutEffect(() => {
     // 这里需要等 react 绘制完毕后再同步调用，不能用 useEffect，否则连接线会闪烁
@@ -52,6 +63,8 @@ export default function LineRender({
     if (anchor == null) return;
     const root = findLineRoot(anchor, anchor);
     if (root == null) return;
+    root.classList.remove("active");  // anchor 拖拽移动后，onDragEnd 方法可能没触发，手动移除 active 状态
+    anchorDraggingRef.current = null; // 跟上面同理
     anchors[index] = anchor;
 
     const lineTo = createLineTo(
@@ -67,7 +80,8 @@ export default function LineRender({
         lineTo.offsetLeft,
         lineTo.offsetTop + lineTo.offsetHeight / 2,
         anchor.offsetLeft + (anchor.parentElement?.offsetLeft ?? 0),
-        anchor.offsetTop + (anchor.parentElement?.offsetTop ?? 0),
+        anchor.offsetTop +
+          (anchor.parentElement?.parentElement?.offsetTop ?? 0),
         {
           strokeLineDash: [8, 16],
           ...(color ? { stroke: color } : null),
@@ -75,32 +89,104 @@ export default function LineRender({
       );
     svg.appendChild(line);
 
-    const handleRedrawLines = () => setRefresh(1 + refresh);
-    root.addEventListener("redrawLines", handleRedrawLines);
-
-    const onGrab = (event: Event) => {
-      const { left, top } = event as GrabEvent;
-      onMoved(index, left, top);
-    };
-    anchor.addEventListener(GrabEvent.KEY, onGrab);
+    root.addEventListener("redrawLines", refresh);
 
     return () => {
       root.removeChild(lineTo);
       svg.removeChild(line);
-      root.removeEventListener("redrawLines", handleRedrawLines);
-      anchor.removeEventListener(GrabEvent.KEY, onGrab);
+      root.removeEventListener("redrawLines", refresh);
     };
   }, [ref.current, refresh, index, total, width, height, redrawSig]);
 
+  const onDragStart = (event: DragEvent) => {
+    const anchor = ref.current;
+    if (anchor == null) return;
+    const root = findLineRoot(anchor, anchor);
+    if (root == null) return;
+    anchor.parentElement?.classList.add(disableDropClass); // 屏蔽 anchor 同一树上的拖放
+    root.classList.add("active");
+    anchorDraggingRef.current = draggingRef;
+
+    event.dataTransfer.setData(
+      "application/json",
+      JSON.stringify({ anchor: index })
+    );
+  };
+
+  const onDragEnd = (_event: DragEvent) => {
+    const anchor = ref.current;
+    if (anchor == null) return;
+    const root = findLineRoot(anchor, anchor);
+    if (root == null) return;
+    anchorDraggingRef.current = null;
+    anchor.parentElement?.classList.remove(disableDropClass); // 解除 anchor 同一树上的屏蔽
+    root.classList.remove("active");
+  };
+
+  const onDragOver = (event: DragEvent) => {
+    const anchor = ref.current;
+    if (anchor == null) return;
+    const root = findLineRoot(anchor, anchor);
+    if (root == null || !root.classList.contains("active")) return;
+    event.dataTransfer.dropEffect = "link";
+    event.preventDefault();
+  };
+
+  const onDrop = (event: DragEvent) => {
+    event.preventDefault();
+    const data = JSON.parse(
+      event.dataTransfer.getData("application/json") || "{}"
+    );
+    const anchorIndex = data.anchor as undefined | number;
+    anchorIndex == null || index === anchorIndex || onSwrap(anchorIndex, index);
+  };
+
   return (
-    <Anchor ref={ref} className={grabableClass}>
+    <Anchor
+      ref={ref}
+      draggable={true}
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
+      onDragOver={onDragOver}
+      onDrop={onDrop}
+    >
       ◉
     </Anchor>
   );
 }
 
+const DropArea = styled.div`
+  position: absolute;
+  width: 100%;
+  top: -30px;
+  height: 100px;
+  div.active > div > & {
+    pointer-events: auto;
+  }
+`;
+
+export function LineDropArea(props: {
+  onMoved: (index: number, left: number) => void;
+}) {
+  const onDragOver = (event: DragEvent) => {
+    event.dataTransfer.dropEffect = "move";
+    event.preventDefault();
+  };
+
+  const onDrop = (event: DragEvent) => {
+    event.preventDefault();
+    const data = JSON.parse(
+      event.dataTransfer.getData("application/json") || "{}"
+    );
+    const anchorIndex = data.anchor as undefined | number;
+    anchorIndex == null || props.onMoved(anchorIndex, event.clientX);
+  };
+
+  return <DropArea onDragOver={onDragOver} onDrop={onDrop} />;
+}
+
 export function triggerRedrawLiens(element: Element) {
-  element.dispatchEvent(new Event("redrawLines", { bubbles: true }));
+  element?.dispatchEvent(new Event("redrawLines", { bubbles: true }));
 }
 
 function findLineRoot(
@@ -110,9 +196,9 @@ function findLineRoot(
   if (element.classList.contains(lineToParentClass)) {
     if (element != anchor.parentElement) return element;
   }
-  if (element.parentElement == null || element.parentElement == element)
+  if (element.parentElement == null || element.parentElement == element) {
     return null;
-  else return findLineRoot(element.parentElement, anchor);
+  } else return findLineRoot(element.parentElement, anchor);
 }
 
 function createLineTo(left: string, top: string) {

@@ -23,7 +23,7 @@ const nodes = {
     { type: "@Success" },
     { type: "@Failure" },
     { type: "@Delay" },
-    { type: "@Store" },
+    { type: "@Save" },
     { type: "@Acc" },
   ],
   Action: [

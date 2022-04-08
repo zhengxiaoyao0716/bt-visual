@@ -13,6 +13,11 @@ const defaultConfig = {
     width: 300.0,
     minWidth: 160.0,
   },
+  properties: {
+    width: 300.0,
+    minWidth: 160.0,
+  },
+  nodeVerticalMargin: 128,
 };
 
 export default createStorage(
