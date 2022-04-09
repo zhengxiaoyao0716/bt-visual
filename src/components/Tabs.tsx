@@ -1,5 +1,6 @@
+import { ReactNode } from "react";
 import { Tab, Tabs } from "@mui/material";
-import { useState } from "react";
+
 import { useRefresh } from "./Refresh";
 
 function LabelTab({
@@ -8,12 +9,12 @@ function LabelTab({
   setTab,
   refreshHooks,
 }: {
-  labels: string[];
+  labels: ReactNode[];
   index: number;
   setTab(index: number): void;
   refreshHooks: { [index: number]: () => void };
 }) {
-  const refresh = useRefresh();
+  const [, refresh] = useRefresh();
   refreshHooks[index] = refresh;
   return (
     <Tab
@@ -24,8 +25,11 @@ function LabelTab({
   );
 }
 
-export function useTabs(labels: string[]) {
-  const [tab, setTab] = useState(0);
+export function useTabs(
+  labels: ReactNode[],
+  tab: number,
+  setTab: (tab: number) => void
+) {
   const refreshHooks = {} as { [index: number]: () => void };
 
   const tabs = (

@@ -18,7 +18,9 @@ import Config from "../storage/Config";
 import { TransFunction, useTrans } from "../storage/Locale";
 import WidthController from "../components/WidthController";
 import Typography from "@mui/material/Typography";
-import { Action, Composite, Decorator } from "../behavior-tree/define";
+import type { Action, Composite, Decorator } from "../behavior-tree/type";
+import BTDefine from "../behavior-tree/Define";
+import { getNodeType } from "../behavior-tree/utils";
 
 type Option =
   | {
@@ -33,6 +35,10 @@ type Option =
       type: "subheader";
       value: string;
       adornment?: ReactNode;
+    }
+  | {
+      type: "error";
+      reason: string;
     };
 
 export type PropertiesOption = Option;
@@ -55,6 +61,16 @@ function RenderOption({
           {option.value}
         </Typography>
       </Stack>
+    );
+  }
+  if (option.type === "error") {
+    return (
+      <Typography
+        color={({ palette }) => palette.error[palette.mode]}
+        sx={{ flexGrow: 1, m: 1, textAlign: "center" }}
+      >
+        {option.reason}
+      </Typography>
     );
   }
   return (
@@ -158,12 +174,19 @@ export default function Properties({
 }
 
 export function useNodePropsEditor(trans: TransFunction, refresh: () => void) {
+  const define = BTDefine.use();
   const context = useContext(PropertiesContext);
+
   const hide = () => context?.setOptions(null);
+
   const depsKey = performance.now().toString();
   const show = (node: Composite | Decorator | Action) => {
+    if (define?.value == null) return;
+    const nodeType = getNodeType(node.type);
+    if (nodeType === "Unknown") return; // NEVER
+
     const type = trans(node.type);
-    context?.setOptions([
+    const options = [
       {
         type: "subheader",
         value: trans("Node Properties"),
@@ -183,7 +206,19 @@ export function useNodePropsEditor(trans: TransFunction, refresh: () => void) {
           refresh();
         },
       },
-    ] as Option[]);
+    ] as Option[];
+
+    const nodes = define.value[nodeType];
+    const props = nodes[node.type];
+    // TODO 测试用
+    if (props == null || true) {
+      options.push({
+        type: "error",
+        reason: trans("Node define not found!"),
+      });
+    }
+
+    context?.setOptions(options);
   };
   return {
     show,

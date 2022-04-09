@@ -2,7 +2,7 @@ import { DragEvent, useLayoutEffect, useRef, useState } from "react";
 import styled from "@emotion/styled";
 import rough from "roughjs";
 
-import { Node } from "../behavior-tree/define";
+import type { Node } from "../behavior-tree/type";
 import { useRefresh } from "../components/Refresh";
 
 const Anchor = styled.a`
@@ -55,7 +55,8 @@ export default function LineRender({
   color,
 }: Props) {
   const ref = useRef<HTMLAnchorElement>(null);
-  const refresh = useRefresh();
+  const [rfCount, refresh] = useRefresh();
+  const rect = ref.current?.getBoundingClientRect();
 
   useLayoutEffect(() => {
     // 这里需要等 react 绘制完毕后再同步调用，不能用 useEffect，否则连接线会闪烁
@@ -63,7 +64,7 @@ export default function LineRender({
     if (anchor == null) return;
     const root = findLineRoot(anchor, anchor);
     if (root == null) return;
-    root.classList.remove("active");  // anchor 拖拽移动后，onDragEnd 方法可能没触发，手动移除 active 状态
+    root.classList.remove("active"); // anchor 拖拽移动后，onDragEnd 方法可能没触发，手动移除 active 状态
     anchorDraggingRef.current = null; // 跟上面同理
     anchors[index] = anchor;
 
@@ -83,6 +84,7 @@ export default function LineRender({
         anchor.offsetTop +
           (anchor.parentElement?.parentElement?.offsetTop ?? 0),
         {
+          strokeWidth: 0.5,
           strokeLineDash: [8, 16],
           ...(color ? { stroke: color } : null),
         }
@@ -96,7 +98,19 @@ export default function LineRender({
       svg.removeChild(line);
       root.removeEventListener("redrawLines", refresh);
     };
-  }, [ref.current, refresh, index, total, width, height, redrawSig]);
+  }, [
+    ref.current,
+    rect?.left,
+    rect?.top,
+    rect?.width,
+    rect?.height,
+    rfCount,
+    index,
+    total,
+    width,
+    height,
+    redrawSig,
+  ]);
 
   const onDragStart = (event: DragEvent) => {
     const anchor = ref.current;

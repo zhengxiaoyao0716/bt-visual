@@ -15,9 +15,7 @@ export type Props = {
   values?: string[];
 };
 
-export function useDialogPrompt<T>(
-  onSubmit: (values: string[]) => Promise<T | null>
-) {
+export function useDialogPrompt() {
   const [state, setState] = useState(
     null as {
       props: Props;
@@ -79,8 +77,10 @@ export function useDialogPrompt<T>(
       )}
     </Dialog>
   );
-  const prompt = (props: Props): Promise<T | null> =>
-    new Promise((resolve) =>
+  function prompt<T>(
+    props: Props & { onSubmit(values: string[]): Promise<T | null> }
+  ): Promise<T | null> {
+    return new Promise((resolve) =>
       setState({
         props,
         cancel() {
@@ -88,7 +88,7 @@ export function useDialogPrompt<T>(
           setState(null);
         },
         submit(values: string[]) {
-          resolve(onSubmit(values.slice()));
+          resolve(props.onSubmit(values.map((text) => text.trim())));
           setState(null);
           values.forEach(
             (_value, index) => (values[index] = props?.values?.[index] ?? "")
@@ -96,6 +96,7 @@ export function useDialogPrompt<T>(
         },
       })
     );
+  }
   const hide = () => state && state.cancel();
   return { dialog, prompt, hide };
 }

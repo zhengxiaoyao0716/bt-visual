@@ -19,7 +19,7 @@ import { useRefresh } from "../components/Refresh";
 function Content({ hide, snack, appBar }: Props) {
   const locale = useLocale();
   const trans = useTrans();
-  const refresh = useRefresh();
+  const [, refresh] = useRefresh();
 
   const saved = locale?.value;
   const items = useMemo(() => {
@@ -27,23 +27,28 @@ function Content({ hide, snack, appBar }: Props) {
     return Object.entries(saved).map(([key, value]) => [key, value]);
   }, [locale]);
 
-  const dialogPrompt = useDialogPrompt(async ([text, translated]) =>
-    Promise.resolve([text, translated])
-  );
+  const dialogPrompt = useDialogPrompt();
   const appendPromitProps = {
+    async onSubmit([text, translated]: string[]) {
+      return [text, translated];
+    },
     cancel: trans("CANCEL"),
     submit: trans("APPEND"),
     title: trans("Append Item"),
     message: trans("Please input the original text and the translated value"),
     values: [trans("original text"), trans("translated value")],
   };
+  const prompt = dialogPrompt.prompt.bind(
+    null,
+    appendPromitProps
+  ) as () => Promise<string[] | null>;
 
   const [width] = useWindowSize();
   const gridXs = Math.min(12 / ((width / 300) | 0), 12);
 
   const moveableList = useMoveableList(
     items,
-    dialogPrompt.prompt.bind(null, appendPromitProps),
+    prompt,
     refresh,
     ([text, translated], index, showMenu, _anchor) => {
       const newTab = text.startsWith("//") && !translated;

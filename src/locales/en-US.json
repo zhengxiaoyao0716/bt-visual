@@ -10,7 +10,7 @@
   "// menu items": "",
   "HomePage": "HOME",
   "EditorPage": "EDITOR",
-  "AboutPage": "ABOUT",
+  "HelpPage": "HELP",
 
   "// translator page": "",
   "TranslatorPage": "TRANSLATOR",
@@ -18,6 +18,8 @@
   "Modification has been saved": "Modification has been saved",
 
   "// editor page": "",
+  "Undo": "UNDO",
+  "Redo": "REDO",
   "Node.Composite.name": "Composite",
   "Node.Decorator.name": "Decorator",
   "Node.Action.name": "Action",

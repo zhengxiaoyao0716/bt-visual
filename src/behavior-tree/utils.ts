@@ -1,4 +1,4 @@
-import { NodeType } from "./define";
+import type { NodeType } from "./type";
 
 const nodeTypeDict = {
   "?": "Composite",

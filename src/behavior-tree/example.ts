@@ -1,4 +1,4 @@
-import { Tree } from "./define";
+import type { Tree } from "./type";
 
 const neerGhostTree: Tree = {
   name: "Pac-Man / NearGhost",

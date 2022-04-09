@@ -22,7 +22,8 @@ import Editor from "./editor";
 import { useLocaleTheme } from "./components/LocaleTheme";
 import Config from "./storage/Config";
 import createLocale, { languages, useTrans } from "./storage/Locale";
-import About from "./pages/About";
+import Help from "./pages/Help";
+import ToolBarSlot from "./components/ToolBarSlot";
 
 function SideBarMenu() {
   const trans = useTrans();
@@ -38,8 +39,18 @@ function SideBarMenu() {
           Editor.route,
         ])}
         {renderListItem(trans("other"))}
-        {renderListItem([<InfoIcon />, trans("AboutPage"), About.route])}
+        {renderListItem([<InfoIcon />, trans("HelpPage"), Help.route])}
       </List>
+    </>
+  );
+}
+
+function Loading() {
+  return (
+    <>
+      <Skeleton width="60vw" height="60vh" />
+      <Skeleton width="60vw" height="10vh" />
+      <Skeleton width="45vw" height="10vh" />
     </>
   );
 }
@@ -49,6 +60,8 @@ function App() {
   const sideBar = useSideBar(renderMenuIcon, <SideBarMenu />);
   const config = Config.use();
   const Locale = createLocale(config?.value?.language ?? languages[0]);
+
+  const toolBarSlotRef = ToolBarSlot.useRef();
 
   if (config?.error) {
     return (
@@ -78,9 +91,7 @@ function App() {
                 </AppBar>
                 <Toolbar />
                 <Box sx={{ ml: 6 }}>
-                  <Skeleton width="60vw" height="60vh" />
-                  <Skeleton width="60vw" height="10vh" />
-                  <Skeleton width="45vw" height="10vh" />
+                  <Loading />
                 </Box>
               </Box>
             ) : (
@@ -91,6 +102,8 @@ function App() {
                 >
                   <Toolbar>
                     {sideBar.handler}
+                    <Box sx={{ ml: 8 }} />
+                    <ToolBarSlot.Node slotRef={toolBarSlotRef} />
                     <Box sx={{ flexGrow: 1 }} />
                     {localeTheme.handler}
                   </Toolbar>
@@ -111,11 +124,18 @@ function App() {
                   }}
                 >
                   <Toolbar />
-                  <Routes>
-                    <Route path={Home.route} element={<Home />} />
-                    <Route path={Editor.route} element={<Editor />} />
-                    <Route path={About.route} element={<About />} />
-                  </Routes>
+                  <ToolBarSlot.Provider value={toolBarSlotRef}>
+                    <Routes>
+                      <Route path={Home.route}>
+                        <Route index element={<Home />} />
+                        <Route
+                          path={`${Editor.route}/*`}
+                          element={<Editor />}
+                        />
+                        <Route path={Help.route} element={<Help />} />
+                      </Route>
+                    </Routes>
+                  </ToolBarSlot.Provider>
                 </Box>
               </>
             )

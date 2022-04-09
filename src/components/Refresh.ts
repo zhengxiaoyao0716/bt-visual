@@ -1,8 +1,8 @@
-import { useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
 export function useRefresh() {
   const ref = useRef(0);
-  const [refresh, setRefresh] = useState(0);
-  ref.current = refresh;
-  return () => setRefresh(1 + ref.current);
+  const [count, setCount] = useState(0);
+  ref.current = count;
+  return [count, useCallback(() => setCount(1 + ref.current), [])] as const;
 }

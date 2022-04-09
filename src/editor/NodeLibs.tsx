@@ -13,10 +13,10 @@ import InputAdornment from "@mui/material/InputAdornment";
 import SearchIcon from "@mui/icons-material/Search";
 
 import { TransFunction, useTrans } from "../storage/Locale";
-import { Node, NodeType } from "../behavior-tree/define";
+import type { Node, NodeType } from "../behavior-tree/type";
 import Config from "../storage/Config";
 import { useDragMoving } from "../components/DragMoving";
-import BTNodes from "../storage/BTNodes";
+import BTDefine from "../behavior-tree/Define";
 import { NodeSvgRender } from "./NodeRender";
 import WidthController from "../components/WidthController";
 
@@ -24,7 +24,7 @@ function NodeLibs({ children }: { children: JSX.Element }) {
   const config = Config.use();
   if (config?.value == null) return null; // never
   const trans = useTrans();
-  const btNodes = BTNodes.use();
+  const define = BTDefine.use();
 
   const { nodeLibs } = config.value;
 
@@ -61,7 +61,7 @@ function NodeLibs({ children }: { children: JSX.Element }) {
   const nodeLibProps = {
     config,
     trans,
-    btNodes,
+    define,
     keyword: filterKeyword,
   };
 
@@ -105,7 +105,7 @@ function NodeLibs({ children }: { children: JSX.Element }) {
   );
 }
 
-export default BTNodes.hoc(NodeLibs);
+export default NodeLibs;
 
 export const nodeDraggingRef = {
   draggingType: null as null | "Composite" | "Decorator" | "Action",
@@ -128,21 +128,21 @@ const NodeContainer = styled.div`
 interface NodeLibProps {
   config: ReturnType<typeof Config.use>;
   trans: TransFunction;
-  btNodes: ReturnType<typeof BTNodes.use>;
+  define: ReturnType<typeof BTDefine.use>;
   keyword: string;
   type: NodeType;
 }
-function NodeLib({ config, trans, btNodes, keyword, type }: NodeLibProps) {
+function NodeLib({ config, trans, define, keyword, type }: NodeLibProps) {
   if (type === "Unknown") return null;
   if (config?.value == null) return null;
-  if (btNodes?.value == null) return null;
+  if (define?.value == null) return null;
 
   const { nodeLibs } = config.value;
   const nodes = useMemo(() => {
-    const nodes = btNodes.value[type].map((node) => ({
-      ...node,
+    const nodes = Object.entries(define.value[type]).map(([type]) => ({
+      type,
       translated: {
-        type: trans(node.type),
+        type: trans(type),
       },
     }));
     if (!keyword) return nodes;
@@ -151,7 +151,7 @@ function NodeLib({ config, trans, btNodes, keyword, type }: NodeLibProps) {
         (key) => key.toLowerCase().indexOf(keyword) >= 0
       )
     );
-  }, [config, trans, btNodes.value, type, keyword]);
+  }, [config, trans, define.value, type, keyword]);
 
   const fold = nodeLibs.fold[type];
   const handleFoldChange = () =>

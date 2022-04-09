@@ -4,13 +4,14 @@
   "SAVE": "保存",
   "CANCEL": "取消",
   "SUBMIT": "提交",
-  "APPEND": "添加",
   "REMOVE": "删除",
+  "APPEND": "添加",
+  "CREATE": "新建",
 
   "// 菜单选项": "",
   "HomePage": "首页",
   "EditorPage": "编辑器",
-  "AboutPage": "关于",
+  "HelpPage": "帮助",
 
   "// 翻译页面": "",
   "TranslatorPage": "翻译",
@@ -26,6 +27,17 @@
   "Confirm to remove the item?": "确定删除该条目？",
 
   "// 编辑器页面": "",
+  "Create Tree": "新建行为树",
+  "Please input the name of the behavior tree": "请输入行为树的名称",
+  "Tree Name": "行为树名",
+  "Undo": "撤销",
+  "Redo": "重做",
+  "Copy Nodes": "复制节点",
+  "Move Nodes": "移动节点",
+  "Remove Nodes": "删除节点",
+  "Append Composite": "追加复合节点",
+  "Append Action": "追加行为节点",
+  "Prepend Decorator": "叠加装饰节点",
   "Node.Composite.name": "复合节点",
   "Node.Decorator.name": "装饰节点",
   "Node.Action.name": "行为节点",
@@ -58,10 +70,10 @@
   "+ Wait": "+ 定时等待",
 
   "// 属性页面": "",
-  "Tree Properties": "树属性",
-  "Tree Name": "树名",
+  "Tree Properties": "行为树属性",
   "Node Properties": "节点属性",
   "Node Name": "节点名",
+  "Node define not found!": "未找到节点定义！",
 
   "// 其他": ""
 }
