@@ -5,7 +5,6 @@ import {
   useEffect,
   useMemo,
   useRef,
-  useState,
 } from "react";
 import rough from "roughjs";
 import styled from "@emotion/styled";
@@ -16,7 +15,7 @@ import LineRender, {
   DraggingData,
   LineDropArea,
   lineToParentClass,
-  triggerRedrawLiens,
+  triggerRedrawLines,
 } from "./LineRender";
 import { getNodeType } from "../behavior-tree/utils";
 import Config from "../storage/Config";
@@ -51,7 +50,7 @@ export default function NodeRender({
     const nodeNew = { type, node: nodeOld } as Decorator;
     const action = trans("Prepend Node");
     const alias = nodeNew.alias || trans(nodeNew.type);
-    undoManager.execute(`${action} - ${alias}`, () => {
+    undoManager.execute(`${action} [${alias}]`, () => {
       tree.root = nodeNew;
       return () => {
         tree.root = nodeOld;
@@ -127,11 +126,11 @@ const DecoratorContainer = styled.div`
   position: relative;
 `;
 const DecoratorCard = styled.div`
-  padding: 16px 8px 0 8px;
   display: flex;
   flex-direction: column;
-  /* justify-content: center; */
-  margin-bottom: -16px;
+  &:first-of-type {
+    padding: 16px 8px 0 8px;
+  }
 
   &.fold {
     flex-direction: row;
@@ -142,6 +141,9 @@ const DecoratorCard = styled.div`
   &.fold svg > text {
     user-select: none;
   }
+`;
+const DecoratorNode = styled.div`
+  margin-top: -16px;
 `;
 
 const ActionCard = styled.div`
@@ -251,15 +253,16 @@ function findMoveToNodeIndex(
   return max;
 }
 
-function useNodeFold() {
-  const [fold, setFold] = useState(false);
+function troggleNodeFoldHandler(node: Node, refresh: () => void) {
   const handler: MouseEventHandler = (event) => {
     event.preventDefault();
     event.stopPropagation();
-    setFold(!fold);
-    triggerRedrawLiens(event.currentTarget);
+    refresh();
+    if (node.fold) delete node.fold;
+    else node.fold = true;
+    triggerRedrawLines(event.currentTarget);
   };
-  return [fold, handler] as const;
+  return handler;
 }
 
 function CompositeRender({
@@ -277,9 +280,10 @@ function CompositeRender({
   const alias = node.alias || trans(node.type);
   const { type, nodes } = node;
 
-  const [fold, foldHandler] = useNodeFold();
-
   const [, refresh] = useRefresh();
+  const foldHandler = troggleNodeFoldHandler(node, refresh);
+  const undoManager = useUndo();
+
   const anchors: { [index: number]: HTMLElement } = useMemo(() => ({}), []);
   const onMoved = (index: number, left: number) => {
     if (left === 0) return;
@@ -293,94 +297,119 @@ function CompositeRender({
         : findMoveToNodeIndex(left, index, nodes.length, anchors) - 1;
     if (index === moveToIndex) return;
 
-    // move
-    const node = nodes.splice(index, 1)[0];
-    nodes.splice(moveToIndex, 0, node);
+    const node = nodes[index];
+    const action = trans(
+      `Move nodes ${left < anchorRect.left ? "left" : "right"}`
+    );
+    const alias = node.alias || trans(node.type);
+    undoManager.execute(`${action} [${alias}]`, () => {
+      const node = nodes.splice(index, 1)[0];
+      nodes.splice(moveToIndex, 0, node);
+      triggerRedrawLines(anchor);
+      return () => {
+        const node = nodes.splice(moveToIndex, 1)[0];
+        nodes.splice(index, 0, node);
+        triggerRedrawLines(anchor);
+      };
+    });
     refresh();
-    triggerRedrawLiens(anchor);
   };
   const onSwap = (index: number, swapTo: number) => {
     const anchor = anchors[index];
-    // swap
-    const node = nodes[index];
-    nodes[index] = nodes[swapTo];
-    nodes[swapTo] = node;
+    const node1 = nodes[index];
+    const node2 = nodes[swapTo];
+    const action = trans("Swap nodes");
+    const alias1 = node1.alias || trans(node1.type);
+    const alias2 = node2.alias || trans(node2.type);
+    undoManager.execute(`${action} [${alias1}] <-> [${alias2}]`, () => {
+      nodes[index] = node2;
+      nodes[swapTo] = node1;
+      triggerRedrawLines(anchor);
+      return () => {
+        nodes[index] = node1;
+        nodes[swapTo] = node2;
+        triggerRedrawLines(anchor);
+      };
+    });
     refresh();
-    triggerRedrawLiens(anchor);
   };
 
-  const undoManager = useUndo();
+  const anchorDropProps = node.fold
+    ? null
+    : createAnchorDropProps((data: DraggingData, index: number, copy) => {
+        const node = copy
+          ? JSON.parse(JSON.stringify(data.nodes[index]))
+          : data.nodes.splice(index, 1)[0];
+        const action = trans(copy ? "Copy Nodes" : "Move Nodes");
+        const alias = node.alias || trans(node.type);
+        undoManager.execute(`${action} [${alias}]`, (redo) => {
+          if (!copy && redo) {
+            data.nodes.splice(index, 1)[0];
+          }
+          nodes.push(node);
+          triggerRedrawLines(ref.current);
 
-  const anchorDropProps = createAnchorDropProps(
-    (data: DraggingData, index: number, copy) => {
-      const node = copy
-        ? JSON.parse(JSON.stringify(data.nodes[index]))
-        : data.nodes.splice(index, 1)[0];
-      const action = trans(copy ? "Copy Nodes" : "Move Nodes");
-      const alias = node.alias || trans(node.type);
-      undoManager.execute(`${action} - ${alias}`, (redo) => {
-        if (!copy && redo) {
-          data.nodes.splice(index, 1)[0];
-        }
-        nodes.push(node);
-        ref.current && triggerRedrawLiens(ref.current);
+          return () => {
+            const node = nodes.pop() as Node;
+            copy || data.nodes.splice(index, 0, node);
+            triggerRedrawLines(ref.current);
+          };
+        });
 
-        return () => {
-          const node = nodes.pop() as Node;
-          copy || data.nodes.splice(index, 0, node);
-          ref.current && triggerRedrawLiens(ref.current);
-        };
+        data.refresh();
+        refresh();
       });
-
-      data.refresh();
-      refresh();
-    }
-  );
   const draggingRef = {
     nodes,
     refresh() {
       refresh();
-      ref.current && triggerRedrawLiens(ref.current);
+      triggerRedrawLines(ref.current);
     },
   };
 
-  const nodeDropProps = createNodeDropProps({
-    appendComposite(type: string) {
-      const node = { type, nodes: [] } as Composite;
-      const action = trans("Append Composite");
-      const alias = node.alias || trans(node.type);
-      undoManager.execute(`${action} - ${alias}`, () => {
-        nodes.push(node);
-        ref.current && triggerRedrawLiens(ref.current);
-        return () => {
-          nodes.pop();
-          ref.current && triggerRedrawLiens(ref.current);
-        };
+  const nodeDropProps = node.fold
+    ? null
+    : createNodeDropProps({
+        appendComposite(type: string) {
+          const node = { type, nodes: [] } as Composite;
+          const action = trans("Append Composite");
+          const alias = node.alias || trans(node.type);
+          undoManager.execute(`${action} [${alias}]`, () => {
+            nodes.push(node);
+            triggerRedrawLines(ref.current);
+            return () => {
+              nodes.pop();
+              triggerRedrawLines(ref.current);
+            };
+          });
+          refresh();
+        },
+        appendAction(type: string) {
+          const node = { type } as Action;
+          const action = trans("Append Action");
+          const alias = node.alias || trans(node.type);
+          undoManager.execute(`${action} [${alias}]`, () => {
+            nodes.push(node);
+            triggerRedrawLines(ref.current);
+            return () => {
+              nodes.pop();
+              triggerRedrawLines(ref.current);
+            };
+          });
+          refresh();
+        },
+        prependDecorator,
       });
-      refresh();
-    },
-    appendAction(type: string) {
-      const node = { type } as Action;
-      const action = trans("Append Action");
-      const alias = node.alias || trans(node.type);
-      undoManager.execute(`${action} - ${alias}`, () => {
-        nodes.push(node);
-        ref.current && triggerRedrawLiens(ref.current);
-        return () => {
-          nodes.pop();
-          ref.current && triggerRedrawLiens(ref.current);
-        };
-      });
-      refresh();
-    },
-    prependDecorator,
-  });
 
   const propsEditor = useNodePropsEditor(trans, () => refresh());
 
   return (
     <CompositeContainer className={lineToParentClass} ref={ref}>
-      <CompositeCard onDoubleClick={foldHandler} {...anchorDropProps}>
+      <CompositeCard
+        title={trans(node.type)}
+        onDoubleClick={foldHandler}
+        {...anchorDropProps}
+      >
         <NodeSvgRender
           type={type}
           size={svgSize}
@@ -391,7 +420,7 @@ function CompositeRender({
           {alias}
         </NodeSvgRender>
       </CompositeCard>
-      {fold || (
+      {node.fold ? null : (
         <CompositeNodes
           style={{
             margin: `${config.value.nodeVerticalMargin}px 8px 8px 8px`,
@@ -408,12 +437,12 @@ function CompositeRender({
                 const nodeNew = { type, node } as Decorator;
                 const action = trans("Prepend Decorator");
                 const alias = nodeNew.alias || trans(nodeNew.type);
-                undoManager.execute(`${action} - ${alias}`, () => {
+                undoManager.execute(`${action} [${alias}]`, () => {
                   nodes[index] = nodeNew;
-                  triggerRedrawLiens(anchors[index]);
+                  triggerRedrawLines(ref.current);
                   return () => {
                     nodes[index] = node;
-                    triggerRedrawLiens(anchors[index]);
+                    triggerRedrawLines(ref.current);
                   };
                 });
                 refresh();
@@ -444,8 +473,9 @@ function DecoratorRender({
   prependDecorator,
   ...baseProps
 }: SubProps<Decorator>) {
-  const [fold, foldHandler] = useNodeFold();
   const [, refresh] = useRefresh();
+  const foldHandler = troggleNodeFoldHandler(node, refresh);
+
   const ref = useRef<HTMLDivElement>(null);
   let decorators = [];
   let iter = node;
@@ -459,12 +489,12 @@ function DecoratorRender({
       const nodeNew = { type, nodes: [nodeOld] } as Composite;
       const action = trans("Append Composite");
       const alias = nodeNew.alias || trans(nodeNew.type);
-      undoManager.execute(`${action} - ${alias}`, () => {
+      undoManager.execute(`${action} [${alias}]`, () => {
         iterFinal.node = nodeNew;
-        ref.current && triggerRedrawLiens(ref.current);
+        triggerRedrawLines(ref.current);
         return () => {
           iterFinal.node = nodeOld;
-          ref.current && triggerRedrawLiens(ref.current);
+          triggerRedrawLines(ref.current);
         };
       });
       refresh();
@@ -475,12 +505,12 @@ function DecoratorRender({
       const nodeNew = { type, node: nodeOld } as Decorator;
       const action = trans("Prepend Decorator");
       const alias = nodeNew.alias || trans(nodeNew.type);
-      undoManager.execute(`${action} - ${alias}`, () => {
+      undoManager.execute(`${action} [${alias}]`, () => {
         iterFinal.node = nodeNew;
-        ref.current && triggerRedrawLiens(ref.current);
+        triggerRedrawLines(ref.current);
         return () => {
           iterFinal.node = nodeOld;
-          ref.current && triggerRedrawLiens(ref.current);
+          triggerRedrawLines(ref.current);
         };
       });
       refresh();
@@ -498,14 +528,10 @@ function DecoratorRender({
   const propsEditor = useNodePropsEditor(trans, () => refresh());
 
   return (
-    <DecoratorContainer>
-      <DecoratorCard
-        className={fold ? "fold" : undefined}
-        onDoubleClick={foldHandler}
-        ref={ref}
-      >
-        {decorators.map(([node, alias, append, prepend], index) =>
-          fold ? (
+    <DecoratorContainer ref={ref}>
+      {node.fold ? (
+        <DecoratorCard className="fold" onDoubleClick={foldHandler}>
+          {decorators.map(([node, alias, append, prepend], index) => (
             <NodeSvgRender
               key={index}
               type={node.type}
@@ -514,9 +540,16 @@ function DecoratorRender({
             >
               {alias}
             </NodeSvgRender>
-          ) : (
+          ))}
+        </DecoratorCard>
+      ) : (
+        decorators.map(([node, alias, append, prepend], index) => (
+          <DecoratorCard
+            key={index}
+            title={trans(node.type)}
+            onDoubleClick={foldHandler}
+          >
             <NodeSvgRender
-              key={index}
               type={node.type}
               size={{ width: 150, height: 60 }}
               onClick={propsEditor.onClick.bind(null, node)}
@@ -528,15 +561,17 @@ function DecoratorRender({
             >
               {alias}
             </NodeSvgRender>
-          )
-        )}
-      </DecoratorCard>
-      <AutoRender
-        node={iter.node}
-        trans={trans}
-        {...baseProps}
-        prependDecorator={prepend}
-      />
+          </DecoratorCard>
+        ))
+      )}
+      <DecoratorNode>
+        <AutoRender
+          node={iter.node}
+          trans={trans}
+          {...baseProps}
+          prependDecorator={prepend}
+        />
+      </DecoratorNode>
       {children}
     </DecoratorContainer>
   );
@@ -556,7 +591,7 @@ function ActionRender({
   const propsEditor = useNodePropsEditor(trans, refresh);
 
   return (
-    <ActionCard>
+    <ActionCard title={trans(node.type)}>
       <NodeSvgRender
         type={node.type}
         size={{ width: 120, height: 90 }}

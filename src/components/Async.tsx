@@ -1,10 +1,10 @@
-import { Dispatch, useEffect, useState } from "react";
+import { Dispatch, SetStateAction, useEffect, useState } from "react";
 
 type State<V> = V | Error | null;
 
 export function usePromise<V>(
   promise: PromiseLike<V>
-): [State<V>, Dispatch<State<V>>] {
+): [State<V>, Dispatch<SetStateAction<State<V>>>] {
   const [state, setState] = useState(null as State<V>);
   useEffect(() => {
     if (state != null) return;

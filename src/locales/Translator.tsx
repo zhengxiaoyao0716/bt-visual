@@ -15,10 +15,12 @@ import { useMoveableList } from "../components/MoveableList";
 import { useDialogPrompt } from "../components/DialogPrompt";
 import { useWindowSize } from "../components/WindowSize";
 import { useRefresh } from "../components/Refresh";
+import Snack from "../components/Snack";
 
-function Content({ hide, snack, appBar }: Props) {
+function Content({ hide, appBar }: Props) {
   const locale = useLocale();
   const trans = useTrans();
+  const snack = Snack.use();
   const [, refresh] = useRefresh();
 
   const saved = locale?.value;
@@ -88,7 +90,7 @@ function Content({ hide, snack, appBar }: Props) {
     );
   }
   const save = async () => {
-    if (locale?.value == null || locale.saving) return;
+    if (locale?.value == null) return;
     const savedItems = Object.entries(saved);
     const clean =
       savedItems &&
@@ -98,8 +100,11 @@ function Content({ hide, snack, appBar }: Props) {
           items[index][0] === key && items[index][1] === value
       );
     if (clean) {
-      await snack(trans("No modifications"));
+      await snack.show(trans("No modifications"));
       return;
+    }
+    if (locale.saving) {
+      await snack.show(trans("Saving, try again later"));
     }
     const dirty = Object.fromEntries(items);
     await locale.update(dirty);

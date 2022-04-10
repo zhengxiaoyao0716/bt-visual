@@ -2,6 +2,7 @@
 export interface Node {
   type: string;
   alias?: string; // 别名
+  fold?: true; // 折叠
 }
 
 // 树状节点

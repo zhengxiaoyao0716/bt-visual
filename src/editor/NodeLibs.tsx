@@ -52,6 +52,12 @@ function NodeLibs({ children }: { children: JSX.Element }) {
     setWCState({ left: 0, top: 0, dragging: false });
   }, [wcDragging]);
 
+  const troggleWidth = () => {
+    const width = nodeLibs.width < 60 ? nodeLibs.minWidth * 2 : 0;
+    config.saving ||
+      config.update({ ...config.value, nodeLibs: { ...nodeLibs, width } });
+  };
+
   const [filterKeyword, setFilterKeyword] = useState("");
   const onSearchKeywordChange = (value: string) => {
     const keyword = value.trim().toLowerCase();
@@ -94,13 +100,14 @@ function NodeLibs({ children }: { children: JSX.Element }) {
           <NodeLib {...nodeLibProps} type="Action" />
         </Stack>
       )}
+      {children}
       <WidthController
         style={{
           left: `${Math.max(0, nodeLibs.width - 6) + wcLeft}px`,
         }}
         ref={widthControllerRef}
+        onDoubleClick={troggleWidth}
       />
-      {children}
     </Box>
   );
 }

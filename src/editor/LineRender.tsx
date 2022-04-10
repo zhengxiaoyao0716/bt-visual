@@ -75,20 +75,17 @@ export default function LineRender({
     root.appendChild(lineTo);
 
     const svg = getOrCreateLineSvg(root);
-    const line = rough
-      .svg(svg)
-      .line(
-        lineTo.offsetLeft,
-        lineTo.offsetTop + lineTo.offsetHeight / 2,
-        anchor.offsetLeft + (anchor.parentElement?.offsetLeft ?? 0),
-        anchor.offsetTop +
-          (anchor.parentElement?.parentElement?.offsetTop ?? 0),
-        {
-          strokeWidth: 0.5,
-          strokeLineDash: [8, 16],
-          ...(color ? { stroke: color } : null),
-        }
-      );
+    const line = rough.svg(svg).line(
+      lineTo.offsetLeft,
+      lineTo.offsetTop + lineTo.offsetHeight / 2,
+      anchor.offsetLeft + (anchor.parentElement?.offsetLeft ?? 0) + 8, // 8 个像素是容器的 margin 造成的位移
+      anchor.offsetTop + (anchor.parentElement?.parentElement?.offsetTop ?? 0),
+      {
+        strokeWidth: 0.5,
+        strokeLineDash: [8, 16],
+        ...(color ? { stroke: color } : null),
+      }
+    );
     svg.appendChild(line);
 
     root.addEventListener("redrawLines", refresh);
@@ -105,6 +102,7 @@ export default function LineRender({
     rect?.width,
     rect?.height,
     rfCount,
+    refresh,
     index,
     total,
     width,
@@ -157,6 +155,7 @@ export default function LineRender({
 
   return (
     <Anchor
+      className="line-anchor"
       ref={ref}
       draggable={true}
       onDragStart={onDragStart}
@@ -199,8 +198,21 @@ export function LineDropArea(props: {
   return <DropArea onDragOver={onDragOver} onDrop={onDrop} />;
 }
 
-export function triggerRedrawLiens(element: Element) {
-  element?.dispatchEvent(new Event("redrawLines", { bubbles: true }));
+export function triggerRedrawLines(element: Element | null) {
+  if (element) {
+    element.dispatchEvent(new Event("redrawLines", { bubbles: true }));
+    return;
+  }
+  // element 丢失，常出现在 undo 时，节点树变化较大导致旧的节点已卸载，
+  // 暂时没有想到好的解决方案，只能全局查一下所有锚点，全部触发重绘了。
+  const anchors = document.querySelectorAll(".line-anchor");
+  Array.prototype.map
+    .call(anchors, (anchor) => findLineRoot(anchor, anchor))
+    .forEach((root) =>
+      (root as Element | null)?.dispatchEvent(
+        new Event("redrawLines", { bubbles: false })
+      )
+    );
 }
 
 function findLineRoot(

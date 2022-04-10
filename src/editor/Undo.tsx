@@ -1,11 +1,16 @@
-import { createContext, ReactNode, useContext } from "react";
+import { createContext, ReactNode, useContext, useRef } from "react";
 import IconButton from "@mui/material/IconButton";
-import UndoIcon from "@mui/icons-material/Undo";
-import RedoIcon from "@mui/icons-material/Redo";
+import HistoryToggleOffIcon from "@mui/icons-material/HistoryToggleOff";
+import RestoreIcon from "@mui/icons-material/Restore";
+import UpdateIcon from "@mui/icons-material/Update";
+import Typography from "@mui/material/Typography";
 
 import ToolBarSlot from "../components/ToolBarSlot";
 import { useRefresh } from "../components/Refresh";
 import { TransFunction } from "../storage/Locale";
+import { useHistoryEditor } from "./Properties";
+import Button from "@mui/material/Button";
+import { useEffect } from "react";
 
 interface Action {
   desc: string;
@@ -41,13 +46,15 @@ export default function Undo({
   trans: TransFunction;
   children: ReactNode;
 }) {
-  if (!(id in undoStacks)) undoStacks[id] = { actions: [], current: 0 };
+  if (!(id in undoStacks))
+    undoStacks[id] = { actions: [undefined], current: 0 };
 
   const { actions, current } = undoStacks[id];
   const undoDesc = actions[current - 1]?.desc ?? undefined;
   const redoDesc = actions[current]?.desc ?? undefined;
 
-  const [, refresh] = useRefresh();
+  const historyRefreshRef = useRef(() => {});
+  const [rfCount, refreshProvider] = useRefresh();
 
   const undo = () => {
     // 懒得考虑闭包捕获问题了，保险起见，每次重新堆区 undo 堆栈
@@ -58,9 +65,8 @@ export default function Undo({
 
     const redoAction = undoAction();
     stack.actions[stack.current] = redoAction;
-    refresh();
-
-    console.info(`${id} - undo: ${undoAction.desc}`);
+    historyRefreshRef.current();
+    refreshProvider();
   };
   const redo = () => {
     // 懒得考虑闭包捕获问题了，保险起见，每次重新堆区 undo 堆栈
@@ -71,40 +77,96 @@ export default function Undo({
     const undoAction = redoAction();
     stack.actions[stack.current] = undoAction;
     stack.current++;
-    refresh();
-
-    console.info(`${id} - redo: ${redoAction.desc}`);
+    historyRefreshRef.current();
+    refreshProvider();
   };
 
+  function History() {
+    const [, refresh] = useRefresh();
+    useEffect(() => {
+      historyRefreshRef.current = refresh;
+      return () => {
+        historyRefreshRef.current = () => {};
+      };
+    }, []);
+
+    const { actions, current } = undoStacks[id];
+    const goto = (index: number) => {
+      if (index < 0 || index >= actions.length) return;
+      const stack = undoStacks[id];
+      if (index < stack.current) {
+        function autoUndo() {
+          undo();
+          index < stack.current && setTimeout(autoUndo, 16.66);
+          refresh();
+        }
+        autoUndo();
+      } else {
+        function autoRedo() {
+          redo();
+          index >= stack.current && setTimeout(autoRedo, 16.66);
+          refresh();
+        }
+        autoRedo();
+      }
+    };
+    let disabled = false;
+    return (
+      <>
+        {actions.map((action, index) => {
+          if (action == null) disabled = true;
+          return (
+            <Button
+              key={index}
+              sx={{ textAlign: "left" }}
+              disabled={disabled}
+              onClick={goto.bind(null, index)}
+            >
+              <Typography
+                color={({ palette }) =>
+                  palette.text[index < current ? "primary" : "secondary"]
+                }
+                sx={{ width: "100%" }}
+              >
+                {index + 1}.{action?.desc}
+              </Typography>
+            </Button>
+          );
+        })}
+      </>
+    );
+  }
+  const historyEditor = useHistoryEditor(trans, [History]);
+
   const toolBarSlot = ToolBarSlot.useSlot();
-  toolBarSlot("Editor", {
-    undo: {
-      node: (
-        <IconButton
-          color="inherit"
-          disabled={!undoDesc}
-          title={`${trans("Undo")}${undoDesc}`}
-          onClick={undo}
-        >
-          <UndoIcon />
-        </IconButton>
-      ),
-      order: 0,
-    },
-    redo: {
-      node: (
-        <IconButton
-          color="inherit"
-          disabled={!redoDesc}
-          title={`${trans("Redo")}${redoDesc}`}
-          onClick={redo}
-        >
-          <RedoIcon />
-        </IconButton>
-      ),
-      order: 1,
-    },
-  });
+  useEffect(() => {
+    toolBarSlot("Editor", "Undo", 1, [
+      <IconButton
+        color="inherit"
+        disabled={!undoDesc && !redoDesc}
+        title={`${trans("History")}`}
+        onClick={historyEditor.show}
+      >
+        <HistoryToggleOffIcon />
+      </IconButton>,
+      <IconButton
+        color="inherit"
+        disabled={!undoDesc}
+        title={`${trans("Undo")} ${undoDesc}`}
+        onClick={undo}
+      >
+        <RestoreIcon />
+      </IconButton>,
+      <IconButton
+        color="inherit"
+        disabled={!redoDesc}
+        title={`${trans("Redo")} ${redoDesc}`}
+        onClick={redo}
+      >
+        <UpdateIcon />
+      </IconButton>,
+    ]);
+  }, [rfCount]);
 
   const execute = (desc: string, task: (redo: boolean) => () => {}) => {
     let execute = () => {
@@ -145,10 +207,17 @@ export default function Undo({
     const stack = undoStacks[id];
     stack.actions[stack.current] = undoAction;
     stack.actions[++stack.current] = undefined;
-    refresh();
+    historyRefreshRef.current();
+    refreshProvider();
   };
 
-  const manager: UndoManager = { execute, refresh };
+  const manager: UndoManager = {
+    execute,
+    refresh() {
+      historyRefreshRef.current();
+      refreshProvider();
+    },
+  };
   return (
     <UndoContext.Provider value={manager}>{children}</UndoContext.Provider>
   );

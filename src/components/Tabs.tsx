@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { ReactNode, useEffect } from "react";
 import { Tab, Tabs } from "@mui/material";
 
 import { useRefresh } from "./Refresh";
@@ -15,7 +15,9 @@ function LabelTab({
   refreshHooks: { [index: number]: () => void };
 }) {
   const [, refresh] = useRefresh();
-  refreshHooks[index] = refresh;
+  useEffect(() => {
+    refreshHooks[index] = refresh;
+  }, [refreshHooks, index, refresh]);
   return (
     <Tab
       label={labels[index]}

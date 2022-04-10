@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { MouseEvent, useRef, useState, WheelEvent } from "react";
 import styled from "@emotion/styled";
 import Box from "@mui/material/Box";
 
@@ -38,14 +38,14 @@ export default function DraftPaper({ children }: Props) {
   if (config?.value == null) return null; // never
 
   const ref = useRef<HTMLDivElement>(null);
-  const isInvalidEventTarget = (event: React.MouseEvent) =>
+  const isInvalidEventTarget = (event: MouseEvent) =>
     event.target != ref.current; // 这里不能用 currentTarget，会捕获到子元素
 
   const [movingProps, { left, top, dragging }, setDragMovingState] =
     useDragMoving(isInvalidEventTarget);
 
   const [scale, setScale] = useState(1.0);
-  const onWheel = (event: React.WheelEvent) => {
+  const onWheel = (event: WheelEvent) => {
     if (isInvalidEventTarget(event)) return;
 
     event.stopPropagation();

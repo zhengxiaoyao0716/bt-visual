@@ -10,11 +10,11 @@ const defaultConfig = {
       Decorator: false,
       Action: false,
     },
-    width: 300.0,
+    width: 320.0,
     minWidth: 160.0,
   },
   properties: {
-    width: 300.0,
+    width: 320.0,
     minWidth: 160.0,
   },
   nodeVerticalMargin: 128,

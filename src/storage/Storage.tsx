@@ -1,4 +1,10 @@
-import { createContext, ReactNode, useContext, useMemo } from "react";
+import {
+  ComponentType,
+  createContext,
+  ReactNode,
+  useContext,
+  useMemo,
+} from "react";
 
 import { usePromise } from "../components/Async";
 
@@ -10,6 +16,7 @@ class LocalStorage {
   }
 
   async save<T>(path: string, data: T): Promise<void> {
+    await new Promise((resolve) => setTimeout(resolve, 3000));
     window.localStorage.setItem(path, JSON.stringify(data));
   }
 }
@@ -91,7 +98,7 @@ export interface Props<T> {
 }
 export interface Storage<T> {
   (props: Props<T>): JSX.Element;
-  hoc<P>(Component: React.ComponentType<P>): React.ComponentType<P>;
+  hoc<P>(Component: ComponentType<P>): ComponentType<P>;
   use(): ContextValue<T>;
   displayName: string;
 }
@@ -124,7 +131,10 @@ export function createStorage<T>(
         : {
             value: state[0],
             async update(data) {
-              setState([state[0], true /* saving */]);
+              setState((state) => [
+                (state as [T, boolean])[0],
+                true /* saving */,
+              ]);
               await storage.save(path, data);
               setState([data, false /* saving */]);
             },
@@ -136,7 +146,7 @@ export function createStorage<T>(
       </Context.Provider>
     );
   }
-  Storage.hoc = function <P>(Component: React.ComponentType<P>) {
+  Storage.hoc = function <P>(Component: ComponentType<P>) {
     function WrappedComponent(props: P) {
       return (
         <Storage>

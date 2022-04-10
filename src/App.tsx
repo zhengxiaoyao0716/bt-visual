@@ -102,7 +102,7 @@ function App() {
                 >
                   <Toolbar>
                     {sideBar.handler}
-                    <Box sx={{ ml: 8 }} />
+                    <Box sx={{ ml: 2 }} />
                     <ToolBarSlot.Node slotRef={toolBarSlotRef} />
                     <Box sx={{ flexGrow: 1 }} />
                     {localeTheme.handler}

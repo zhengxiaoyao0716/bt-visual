@@ -1,4 +1,4 @@
-import React, { Dispatch, useState } from "react";
+import { Dispatch, MouseEvent, useState } from "react";
 import styled from "@emotion/styled";
 
 export interface DragEvent {
@@ -30,10 +30,10 @@ export function defaultBeforeHandler<E extends DragEvent>(event: E) {
 }
 
 export function useDragMoving(
-  before: BeforeHandler<React.MouseEvent> = defaultBeforeHandler
-): [DragListeners<React.MouseEvent>, DragState, Dispatch<DragState>] {
+  before: BeforeHandler<MouseEvent> = defaultBeforeHandler
+): [DragListeners<MouseEvent>, DragState, Dispatch<DragState>] {
   const [state, setState] = useState({ left: 0, top: 0, dragging: false });
-  const props = createDragListeners<React.MouseEvent>(state, setState, before);
+  const props = createDragListeners<MouseEvent>(state, setState, before);
   return [props, state, setState];
 }
 

@@ -1,4 +1,11 @@
-import { ComponentType, forwardRef, ReactNode, useState } from "react";
+import {
+  ComponentType,
+  forwardRef,
+  ReactElement,
+  ReactNode,
+  Ref,
+  useState,
+} from "react";
 import { TransitionProps } from "@mui/material/transitions";
 import Slide from "@mui/material/Slide";
 import Dialog from "@mui/material/Dialog";
@@ -6,20 +13,20 @@ import AppBar from "@mui/material/AppBar";
 import Toolbar from "@mui/material/Toolbar";
 import IconButton from "@mui/material/IconButton";
 import CloseIcon from "@mui/icons-material/Close";
-import Snackbar from "@mui/material/Snackbar";
+
+import Snack from "./Snack";
 
 const Transition = forwardRef(function Transition(
   props: TransitionProps & {
-    children: React.ReactElement;
+    children: ReactElement;
   },
-  ref: React.Ref<unknown>
+  ref: Ref<unknown>
 ) {
   return <Slide direction="up" ref={ref} {...props} />;
 });
 
 export interface Props {
   hide(): void;
-  snack(message: string, duraiont?: number): Promise<void>;
   appBar(children: ReactNode): JSX.Element;
 }
 
@@ -43,14 +50,6 @@ export function useDialogPage(Content: ComponentType<Props>) {
     </AppBar>
   );
 
-  const [snack, setSnack] = useState({ message: "" } as {
-    message: string;
-    duration?: number;
-    onClose?: () => void;
-  });
-  const showSnack = (message: string, duration: number = 3000): Promise<void> =>
-    new Promise((resolve) => setSnack({ message, duration, onClose: resolve }));
-
   const dialog = (
     <Dialog
       fullScreen
@@ -58,17 +57,10 @@ export function useDialogPage(Content: ComponentType<Props>) {
       onClose={hide}
       TransitionComponent={Transition}
     >
-      <Content hide={hide} snack={showSnack} appBar={appBar} />
-      <Snackbar
-        open={!!snack.message}
-        message={snack.message}
-        autoHideDuration={snack.duration}
-        onClose={() => {
-          setSnack({ message: "" });
-          snack.onClose?.();
-        }}
-      />
+      <Snack>
+        <Content hide={hide} appBar={appBar} />
+      </Snack>
     </Dialog>
   );
-  return { dialog, show, hide, snack: showSnack };
+  return { dialog, show, hide };
 }
