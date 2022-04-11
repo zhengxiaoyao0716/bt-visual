@@ -1,7 +1,7 @@
 import { DragEvent } from "react";
 
-import { anchorDraggingRef, DraggingData } from "./LineRender";
 import { nodeDraggingRef } from "./NodeLibs";
+import { anchorDraggingRef, DraggingData } from "./NodeRender/LineRender";
 
 export function createAnchorDropProps(
   anchorDrop: (data: DraggingData, index: number, copy: boolean) => void

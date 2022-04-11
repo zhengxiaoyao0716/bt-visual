@@ -137,11 +137,13 @@ function Content({ hide, appBar }: Props) {
         </>
       )}
       <Box>
-        {listTabs.map((tab, index) => (
-          <List key={index}>
-            <Grid container>{tab}</Grid>
-          </List>
-        ))}
+        {listTabs.length <= 0
+          ? moveableList.appender
+          : listTabs.map((tab, index) => (
+              <List key={index}>
+                <Grid container>{tab}</Grid>
+              </List>
+            ))}
       </Box>
       {dialogPrompt.dialog}
       {moveableList.itemMenu}

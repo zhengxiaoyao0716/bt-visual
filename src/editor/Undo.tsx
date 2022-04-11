@@ -12,14 +12,14 @@ import { useHistoryEditor } from "./Properties";
 import Button from "@mui/material/Button";
 import { useEffect } from "react";
 
-interface Action {
+interface Task {
   desc: string;
-  (): Action | undefined;
+  (): Task | undefined;
 }
 
 const undoStacks: {
   [key: string]: {
-    actions: (Action | undefined)[];
+    tasks: (Task | undefined)[];
     current: number;
   };
 } = {};
@@ -46,12 +46,11 @@ export default function Undo({
   trans: TransFunction;
   children: ReactNode;
 }) {
-  if (!(id in undoStacks))
-    undoStacks[id] = { actions: [undefined], current: 0 };
+  if (!(id in undoStacks)) undoStacks[id] = { tasks: [undefined], current: 0 };
 
-  const { actions, current } = undoStacks[id];
-  const undoDesc = actions[current - 1]?.desc ?? undefined;
-  const redoDesc = actions[current]?.desc ?? undefined;
+  const { tasks, current } = undoStacks[id];
+  const undoDesc = tasks[current - 1]?.desc ?? undefined;
+  const redoDesc = tasks[current]?.desc ?? undefined;
 
   const historyRefreshRef = useRef(() => {});
   const [rfCount, refreshProvider] = useRefresh();
@@ -60,22 +59,22 @@ export default function Undo({
     // 懒得考虑闭包捕获问题了，保险起见，每次重新堆区 undo 堆栈
     const stack = undoStacks[id];
     stack.current--;
-    const undoAction: Action | undefined = stack.actions[stack.current];
-    if (!undoAction) return; // never
+    const undoTask: Task | undefined = stack.tasks[stack.current];
+    if (!undoTask) return; // never
 
-    const redoAction = undoAction();
-    stack.actions[stack.current] = redoAction;
+    const redoTask = undoTask();
+    stack.tasks[stack.current] = redoTask;
     historyRefreshRef.current();
     refreshProvider();
   };
   const redo = () => {
     // 懒得考虑闭包捕获问题了，保险起见，每次重新堆区 undo 堆栈
     const stack = undoStacks[id];
-    const redoAction: Action | undefined = stack.actions[stack.current];
-    if (!redoAction) return; // never
+    const redoTask: Task | undefined = stack.tasks[stack.current];
+    if (!redoTask) return; // never
 
-    const undoAction = redoAction();
-    stack.actions[stack.current] = undoAction;
+    const undoTask = redoTask();
+    stack.tasks[stack.current] = undoTask;
     stack.current++;
     historyRefreshRef.current();
     refreshProvider();
@@ -90,9 +89,9 @@ export default function Undo({
       };
     }, []);
 
-    const { actions, current } = undoStacks[id];
+    const { tasks, current } = undoStacks[id];
     const goto = (index: number) => {
-      if (index < 0 || index >= actions.length) return;
+      if (index < 0 || index >= tasks.length) return;
       const stack = undoStacks[id];
       if (index < stack.current) {
         function autoUndo() {
@@ -113,7 +112,7 @@ export default function Undo({
     let disabled = false;
     return (
       <>
-        {actions.map((action, index) => {
+        {tasks.map((action, index) => {
           if (action == null) disabled = true;
           return (
             <Button
@@ -137,6 +136,7 @@ export default function Undo({
     );
   }
   const historyEditor = useHistoryEditor(trans, [History]);
+  useEffect(() => historyEditor.hide, [id]);
 
   const toolBarSlot = ToolBarSlot.useSlot();
   useEffect(() => {
@@ -168,15 +168,15 @@ export default function Undo({
     ]);
   }, [rfCount]);
 
-  const execute = (desc: string, task: (redo: boolean) => () => {}) => {
+  const execute = (desc: string, task: (redo: boolean) => () => void) => {
     let execute = () => {
       execute = () => task(true);
       return task(false);
     };
-    function redoAction() {
+    function redoTask() {
       try {
         const undo = execute();
-        function undoAction() {
+        function undoTask() {
           try {
             undo();
           } catch (e) {
@@ -184,29 +184,29 @@ export default function Undo({
               `undo task failed: ${e}, id: ${id}, desc: ${desc}, task: ${task}`
             );
             // 出现异常，立刻清空 undo 堆栈，防止异常堆积导致不可挽回
-            undoStacks[id] = { actions: [], current: 0 };
+            undoStacks[id] = { tasks: [], current: 0 };
             return undefined;
           }
-          return redoAction as Action;
+          return redoTask as Task;
         }
-        undoAction.desc = desc;
-        return undoAction as Action;
+        undoTask.desc = desc;
+        return undoTask as Task;
       } catch (e) {
         console.log(
           `execute task failed: ${e}, id: ${id}, desc: ${desc}, task: ${task}`
         );
         // 出现异常，立刻清空 undo 堆栈，防止异常堆积导致不可挽回
-        undoStacks[id] = { actions: [], current: 0 };
+        undoStacks[id] = { tasks: [], current: 0 };
         return undefined;
       }
     }
-    redoAction.desc = desc;
+    redoTask.desc = desc;
 
-    const undoAction = redoAction();
-    if (undoAction == null) return;
+    const undoTask = redoTask();
+    if (undoTask == null) return;
     const stack = undoStacks[id];
-    stack.actions[stack.current] = undoAction;
-    stack.actions[++stack.current] = undefined;
+    stack.tasks[stack.current] = undoTask;
+    stack.tasks[++stack.current] = undefined;
     historyRefreshRef.current();
     refreshProvider();
   };

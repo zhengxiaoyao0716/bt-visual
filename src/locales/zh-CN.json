@@ -31,6 +31,8 @@
 
   "// 编辑器页面": "",
   "Create Tree": "新建行为树",
+  "Remove Tree": "删除行为树",
+  "Confirm to remove the tree?": "确定删除该行为树？",
   "Please input the name of the behavior tree": "请输入行为树的名称",
   "Invalid tree name": "无效的行为树名",
   "Duplicate tree name": "行为树名称冲突",
@@ -44,6 +46,8 @@
   "Copy Nodes": "复制节点",
   "Move Nodes": "移动节点",
   "Remove Nodes": "删除节点",
+  "The root node is forbidden to be removed": "禁止移除根节点",
+  " ... ${num} nodes": " 等 ${num} 个节点",
   "Append Composite": "追加复合节点",
   "Append Action": "追加行为节点",
   "Prepend Decorator": "叠加装饰节点",
@@ -80,9 +84,17 @@
 
   "// 属性页面": "",
   "Tree Properties": "行为树属性",
+  "Store List": "黑板列表",
+  "Duplicate store key": "黑板键冲突",
+  "Invalid input": "无效的输入",
+  "Please the key and value of the store item": "请输入要添加的黑板键和值",
+  "store key": "黑板键",
+  "store value": "黑板值",
   "Node Properties": "节点属性",
   "Node Alias": "节点别名",
+  "Props List": "属性列表",
   "Node define not found!": "未找到节点定义！",
+  "Unknown props:": "未知属性：",
 
   "// 其他": ""
 }

@@ -27,7 +27,16 @@ export function useLocaleTheme() {
 
   const theme = useMUITheme();
   const themeWithLocale = useMemo(
-    () => createTheme(theme, locale),
+    () =>
+      createTheme(
+        {
+          ...theme,
+          typography: {
+            fontFamily: ["monospace"].join(","),
+          },
+        },
+        locale
+      ),
     [language, theme]
   );
 

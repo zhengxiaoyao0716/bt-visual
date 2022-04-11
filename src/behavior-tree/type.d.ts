@@ -2,7 +2,6 @@
 export interface Node {
   type: string;
   alias?: string; // 别名
-  fold?: true; // 折叠
 }
 
 // 树状节点
@@ -17,6 +16,7 @@ export type NodeType = "Composite" | "Decorator" | "Action" | "Unknown";
 // 复合节点
 export interface Composite extends Node {
   nodes: Node[];
+  fold?: true; // 折叠
 }
 export module Composition {
   export interface Selector extends Composite {
@@ -57,6 +57,7 @@ export module Composition {
 // 装饰节点
 export interface Decorator extends Node {
   node: Node;
+  fold?: true; // 折叠
 }
 export module Decorator {
   export interface Condition<V> extends Decorator {

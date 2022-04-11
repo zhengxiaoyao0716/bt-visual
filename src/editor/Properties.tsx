@@ -1,34 +1,36 @@
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import Box from "@mui/material/Box";
+import Divider from "@mui/material/Divider";
+import FormControl from "@mui/material/FormControl";
+import IconButton from "@mui/material/IconButton";
+import InputLabel from "@mui/material/InputLabel";
+import MenuItem from "@mui/material/MenuItem";
+import Select from "@mui/material/Select";
+import Stack from "@mui/material/Stack";
+import TextField from "@mui/material/TextField";
+import Typography from "@mui/material/Typography";
 import {
   ComponentType,
   createContext,
-  MouseEvent,
+  ReactElement,
   ReactNode,
   useContext,
   useEffect,
   useRef,
   useState,
 } from "react";
-import Box from "@mui/material/Box";
-import Stack from "@mui/material/Stack";
-import TextField from "@mui/material/TextField";
-import IconButton from "@mui/material/IconButton";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import FormControl from "@mui/material/FormControl";
-import InputLabel from "@mui/material/InputLabel";
-import Select from "@mui/material/Select";
-import MenuItem from "@mui/material/MenuItem";
-import Typography from "@mui/material/Typography";
 
+import BTDefine, { Item } from "../behavior-tree/Define";
+import type { Action, Composite, Decorator, Node } from "../behavior-tree/type";
+import { getNodeType } from "../behavior-tree/utils";
 import { useDragMoving } from "../components/DragMoving";
+import WidthController from "../components/WidthController";
 import Config from "../storage/Config";
 import { TransFunction, useTrans } from "../storage/Locale";
-import WidthController from "../components/WidthController";
-import type { Action, Composite, Decorator } from "../behavior-tree/type";
-import BTDefine from "../behavior-tree/Define";
-import { getNodeType } from "../behavior-tree/utils";
 
 type Option =
   | { type: "component"; Component: ComponentType }
+  | { type: "element"; element: ReactElement }
   | {
       type: "input";
       key: string; // 因为 TextField 用的 defaultValue，非直接控制，会导致切换面板时缓存了旧面板上的输入，所以需要 key 来辅助检测输入框变化
@@ -36,6 +38,8 @@ type Option =
       value?: string;
       submit?: (value: string) => void;
       multiline?: boolean;
+      disabled?: boolean;
+      desc?: string;
     }
   | {
       type: "select";
@@ -48,12 +52,14 @@ type Option =
   | {
       type: "subheader";
       value: string;
+      align: "left" | "center" | "right";
       adornment?: ReactNode;
     }
   | {
       type: "error";
       reason: string;
-    };
+    }
+  | { type: "divider" };
 
 export type PropertiesOption = Option;
 
@@ -68,6 +74,9 @@ function RenderOption({
     case "component": {
       return <option.Component />;
     }
+    case "element": {
+      return option.element;
+    }
     case "input": {
       return (
         <TextField
@@ -79,7 +88,9 @@ function RenderOption({
           onChange={(event) =>
             option.submit && option.submit(event.target.value.trim())
           }
+          disabled={option.disabled}
           sx={{ marginBottom: 2 }}
+          title={option.desc}
         />
       );
     }
@@ -113,7 +124,7 @@ function RenderOption({
           {option.adornment}
           <Typography
             color={({ palette }) => palette.text.secondary}
-            sx={{ flexGrow: 1, m: 1, textAlign: "right" }}
+            sx={{ flexGrow: 1, m: 1, textAlign: option.align || "left" }}
           >
             {option.value}
           </Typography>
@@ -129,6 +140,9 @@ function RenderOption({
           {option.reason}
         </Typography>
       );
+    }
+    case "divider": {
+      return <Divider />;
     }
   }
 }
@@ -247,6 +261,7 @@ export function useHistoryEditor(
       {
         type: "subheader",
         value: trans("History"),
+        align: "right",
         adornment: (
           <IconButton onClick={hide}>
             <ArrowBackIcon />
@@ -257,12 +272,9 @@ export function useHistoryEditor(
         (Component) => ({ type: "component", Component } as Option)
       ),
     ];
-    // TODO 历史记录
     context?.setOptions(options);
   };
-  return {
-    show,
-  };
+  return { hide, show };
 }
 
 export function useNodePropsEditor(trans: TransFunction, refresh: () => void) {
@@ -284,6 +296,7 @@ export function useNodePropsEditor(trans: TransFunction, refresh: () => void) {
       {
         type: "subheader",
         value: trans("Node Properties"),
+        align: "right",
         adornment: (
           <IconButton onClick={hide}>
             <ArrowBackIcon />
@@ -320,22 +333,104 @@ export function useNodePropsEditor(trans: TransFunction, refresh: () => void) {
     ];
 
     const props = nodes[node.type];
-    // TODO 测试节点定义缺失用
-    if (props == null || true) {
+    props == null &&
       options.push({
         type: "error",
         reason: trans("Node define not found!"),
       });
+
+    const propNames = props ? Object.keys(props) : [];
+    if (propNames.length > 0) {
+      options.push({ type: "divider" });
+      options.push({
+        type: "subheader",
+        value: `- ${trans("Props List")} -`,
+        align: "center",
+      });
+      for (const name of propNames) {
+        const item = props[name];
+        options.push(nodeItemOption(trans, depsKey, node, name, item));
+      }
     }
 
-    context?.setOptions(options);
+    context?.setOptions([
+      ...options,
+      ...unknownPropsOptions(trans, depsKey, node, propNames),
+    ]);
   };
-  return {
-    show,
-    onClick(node: Composite | Decorator | Action, event: MouseEvent) {
-      event.stopPropagation();
-      event.preventDefault();
-      show(node);
-    },
+
+  return { show, hide };
+}
+
+enum ignoredNodeProps {
+  type,
+  nodes,
+  node,
+  fold,
+}
+
+export function nodeItemOption(
+  trans: TransFunction,
+  key: string,
+  node: any,
+  name: string,
+  item: Item
+): Option {
+  const value = node[name];
+  const desc = item.desc || name;
+  const submit = (value: string) => {
+    node[name] = value;
+    console.log(node, value);
   };
+  // TODO 根据类型定义不同的输入方式
+  switch (item.type) {
+    // TODO 根据类型定义不同的输入方式
+    case "Store.Key": {
+    }
+    case "Store.Reader": {
+    }
+    case "dict": {
+      return {
+        type: "input",
+        key: `${key}.${name}`,
+        label: name,
+        value,
+        desc,
+        submit,
+      };
+    }
+  }
+}
+
+function unknownPropsOptions(
+  trans: TransFunction,
+  key: string,
+  node: Node,
+  propNames: string[]
+): Option[] {
+  const unknownProps: Option[] = Object.entries(node)
+    .filter(
+      ([name]) =>
+        !(name in ignoredNodeProps) && propNames.every((pn) => pn !== name)
+    )
+    .map(([name, value]) => ({
+      type: "element",
+      element: (
+        <TextField
+          key={`${key}.${name}`}
+          label={name}
+          fullWidth
+          value={value}
+          disabled
+          size="small"
+        />
+      ),
+    }));
+  if (unknownProps.length === 0) return [];
+  const unknownHeader: Option = {
+    type: "subheader",
+    value: trans("Unknown props:"),
+    align: "left",
+  };
+  return [{ type: "divider" }, unknownHeader, ...unknownProps];
 }

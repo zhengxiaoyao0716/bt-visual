@@ -1,4 +1,4 @@
-import { ReactNode, useEffect } from "react";
+import { MouseEvent, ReactNode, useEffect } from "react";
 import { Tab, Tabs } from "@mui/material";
 
 import { useRefresh } from "./Refresh";
@@ -8,11 +8,15 @@ function LabelTab({
   index,
   setTab,
   refreshHooks,
+  contextMenu,
 }: {
   labels: ReactNode[];
   index: number;
   setTab(index: number): void;
   refreshHooks: { [index: number]: () => void };
+  contextMenu?: (
+    index: number
+  ) => ((event: MouseEvent<HTMLElement>) => void) | undefined;
 }) {
   const [, refresh] = useRefresh();
   useEffect(() => {
@@ -23,6 +27,7 @@ function LabelTab({
       label={labels[index]}
       value={index}
       onClick={setTab.bind(null, index)}
+      onContextMenu={contextMenu && contextMenu(index)}
     />
   );
 }
@@ -30,7 +35,10 @@ function LabelTab({
 export function useTabs(
   labels: ReactNode[],
   tab: number,
-  setTab: (tab: number) => void
+  setTab: (tab: number) => void,
+  contextMenu?: (
+    index: number
+  ) => ((event: MouseEvent<HTMLElement>) => void) | undefined
 ) {
   const refreshHooks = {} as { [index: number]: () => void };
 
@@ -48,6 +56,7 @@ export function useTabs(
           index={index}
           setTab={setTab}
           refreshHooks={refreshHooks}
+          contextMenu={contextMenu}
         />
       ))}
     </Tabs>

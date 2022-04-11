@@ -1,15 +1,15 @@
-import { MouseEvent, useState } from "react";
-import Stack from "@mui/material/Stack";
-import Menu from "@mui/material/Menu";
-import MenuItem from "@mui/material/MenuItem";
+import AddIcon from "@mui/icons-material/Add";
+import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
+import ArrowDropUpIcon from "@mui/icons-material/ArrowDropUp";
+import DeleteIcon from "@mui/icons-material/Delete";
+import VerticalAlignBottomIcon from "@mui/icons-material/VerticalAlignBottom";
+import VerticalAlignTopIcon from "@mui/icons-material/VerticalAlignTop";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
-import ArrowDropUpIcon from "@mui/icons-material/ArrowDropUp";
-import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
-import DeleteIcon from "@mui/icons-material/Delete";
-import VerticalAlignTopIcon from "@mui/icons-material/VerticalAlignTop";
-import VerticalAlignBottomIcon from "@mui/icons-material/VerticalAlignBottom";
-import AddIcon from "@mui/icons-material/Add";
+import Menu from "@mui/material/Menu";
+import MenuItem from "@mui/material/MenuItem";
+import Stack from "@mui/material/Stack";
+import { MouseEvent, useState } from "react";
 
 import { useTrans } from "../storage/Locale";
 import { useDialogConfirm } from "./DialogConfirm";
@@ -151,5 +151,29 @@ export function useMoveableList<T, R>(
       {dialogConfirm.dialog}
     </>
   );
-  return { listItems, itemMenu: itemsMenu, showMenu, hideMenu };
+
+  const appender = (
+    <MenuItem
+      onClick={() =>
+        appendItem().then((item) => {
+          if (item == null) return;
+          items.push(item);
+          refreshList();
+        })
+      }
+    >
+      <ListItemIcon>
+        <AddIcon />
+      </ListItemIcon>
+      <ListItemText>{trans("Append Item")}</ListItemText>
+    </MenuItem>
+  );
+
+  return {
+    listItems,
+    itemMenu: itemsMenu,
+    showMenu,
+    hideMenu,
+    appender,
+  };
 }
