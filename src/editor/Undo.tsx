@@ -1,16 +1,24 @@
-import { createContext, ReactNode, useContext, useRef } from "react";
-import IconButton from "@mui/material/IconButton";
 import HistoryToggleOffIcon from "@mui/icons-material/HistoryToggleOff";
 import RestoreIcon from "@mui/icons-material/Restore";
 import UpdateIcon from "@mui/icons-material/Update";
-import Typography from "@mui/material/Typography";
-
-import ToolBarSlot from "../components/ToolBarSlot";
-import { useRefresh } from "../components/Refresh";
-import { TransFunction } from "../storage/Locale";
-import { useHistoryEditor } from "./Properties";
 import Button from "@mui/material/Button";
-import { useEffect } from "react";
+import IconButton from "@mui/material/IconButton";
+import Typography from "@mui/material/Typography";
+import {
+  createContext,
+  ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+} from "react";
+import { addHotkeyListener } from "../components/Hotkey";
+
+import { useRefresh } from "../components/Refresh";
+import ToolBarSlot from "../components/ToolBarSlot";
+import { TransFunction } from "../storage/Locale";
+import { cancelSelector } from "./NodeSelector";
+import { useHistoryEditor } from "./Properties";
 
 interface Task {
   desc: string;
@@ -48,37 +56,58 @@ export default function Undo({
 }) {
   if (!(id in undoStacks)) undoStacks[id] = { tasks: [undefined], current: 0 };
 
-  const { tasks, current } = undoStacks[id];
-  const undoDesc = tasks[current - 1]?.desc ?? undefined;
-  const redoDesc = tasks[current]?.desc ?? undefined;
-
   const historyRefreshRef = useRef(() => {});
   const [rfCount, refreshProvider] = useRefresh();
 
-  const undo = () => {
+  const undo = useCallback(() => {
     // 懒得考虑闭包捕获问题了，保险起见，每次重新堆区 undo 堆栈
     const stack = undoStacks[id];
+    const undoTask: Task | undefined = stack.tasks[stack.current - 1];
+    if (!undoTask) return;
     stack.current--;
-    const undoTask: Task | undefined = stack.tasks[stack.current];
-    if (!undoTask) return; // never
 
     const redoTask = undoTask();
     stack.tasks[stack.current] = redoTask;
     historyRefreshRef.current();
     refreshProvider();
-  };
-  const redo = () => {
+  }, [id]);
+  const redo = useCallback(() => {
     // 懒得考虑闭包捕获问题了，保险起见，每次重新堆区 undo 堆栈
     const stack = undoStacks[id];
     const redoTask: Task | undefined = stack.tasks[stack.current];
-    if (!redoTask) return; // never
+    if (!redoTask) return;
 
     const undoTask = redoTask();
     stack.tasks[stack.current] = undoTask;
     stack.current++;
     historyRefreshRef.current();
     refreshProvider();
-  };
+  }, [id]);
+
+  useEffect(() => {
+    const removeHotkeyListener = addHotkeyListener(
+      {
+        ctrlKey: true,
+        shiftKey: false,
+        code: "KeyZ",
+        callback: undo,
+      },
+      {
+        ctrlKey: true,
+        shiftKey: true,
+        code: "KeyZ",
+        callback: redo,
+      },
+      {
+        ctrlKey: true,
+        code: "KeyY",
+        callback: redo,
+      }
+    );
+    return () => {
+      removeHotkeyListener();
+    };
+  }, [undo, redo]);
 
   function History() {
     const [, refresh] = useRefresh();
@@ -138,6 +167,10 @@ export default function Undo({
   const historyEditor = useHistoryEditor(trans, [History]);
   useEffect(() => historyEditor.hide, [id]);
 
+  const { tasks, current } = undoStacks[id];
+  const undoDesc = tasks[current - 1]?.desc ?? undefined;
+  const redoDesc = tasks[current]?.desc ?? undefined;
+
   const toolBarSlot = ToolBarSlot.useSlot();
   useEffect(() => {
     toolBarSlot("Editor", "Undo", 1, [
@@ -174,9 +207,11 @@ export default function Undo({
       return task(false);
     };
     function redoTask() {
+      cancelSelector();
       try {
         const undo = execute();
         function undoTask() {
+          cancelSelector();
           try {
             undo();
           } catch (e) {

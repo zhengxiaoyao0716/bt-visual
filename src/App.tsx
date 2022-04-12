@@ -1,32 +1,34 @@
-import { Route, Routes } from "react-router-dom";
-import HomeIcon from "@mui/icons-material/Home";
+import { ThemeProvider } from "@emotion/react";
 import AccountTreeIcon from "@mui/icons-material/AccountTree";
+import HomeIcon from "@mui/icons-material/Home";
 import InfoIcon from "@mui/icons-material/Info";
+import AppBar from "@mui/material/AppBar";
 import Box from "@mui/material/Box";
 import CssBaseline from "@mui/material/CssBaseline";
-import AppBar from "@mui/material/AppBar";
-import Toolbar from "@mui/material/Toolbar";
 import Divider from "@mui/material/Divider";
 import List from "@mui/material/List";
 import Skeleton from "@mui/material/Skeleton";
+import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
-import { ThemeProvider } from "@emotion/react";
+import { Route, Routes } from "react-router-dom";
 
-import Home from "./pages/Home";
+import { useLocaleTheme } from "./components/LocaleTheme";
+import { getShareSideBars } from "./components/share";
 import {
   renderListItem,
   renderMenuIcon,
   useSideBar,
 } from "./components/SideBar";
+import ToolBarSlot from "./components/ToolBarSlot";
 import Editor from "./editor";
-import { useLocaleTheme } from "./components/LocaleTheme";
+import Help from "./pages/Help";
+import Home from "./pages/Home";
 import Config from "./storage/Config";
 import createLocale, { languages, useTrans } from "./storage/Locale";
-import Help from "./pages/Help";
-import ToolBarSlot from "./components/ToolBarSlot";
 
 function SideBarMenu() {
   const trans = useTrans();
+  const shareSideBars = getShareSideBars();
   return (
     <>
       <Toolbar />
@@ -40,6 +42,9 @@ function SideBarMenu() {
         ])}
         {renderListItem(trans("other"))}
         {renderListItem([<InfoIcon />, trans("HelpPage"), Help.route])}
+        {shareSideBars.map(({ title, href }, index) =>
+          renderListItem([<Box />, title, href], index)
+        )}
       </List>
     </>
   );

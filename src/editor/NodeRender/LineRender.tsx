@@ -200,7 +200,7 @@ export function LineDropArea(props: {
 
 export function triggerRedrawLines(element: Element | null) {
   if (element) {
-    element.dispatchEvent(new Event("redrawLines", { bubbles: true }));
+    element.dispatchEvent(new CustomEvent("redrawLines", { bubbles: true }));
     return;
   }
   // element 丢失，常出现在 undo 时，节点树变化较大导致旧的节点已卸载，
@@ -210,7 +210,7 @@ export function triggerRedrawLines(element: Element | null) {
     .call(anchors, (anchor) => findLineRoot(anchor, anchor))
     .forEach((root) =>
       (root as Element | null)?.dispatchEvent(
-        new Event("redrawLines", { bubbles: false })
+        new CustomEvent("redrawLines", { bubbles: false })
       )
     );
 }
