@@ -1,3 +1,5 @@
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
 import Link from "@mui/material/Link";
 import { Route, Routes, useParams } from "react-router-dom";
 
@@ -40,7 +42,13 @@ function ForestRender() {
 }
 
 function WorkspaceRender() {
-  return <Link href={craeteNavHref("Example", 0)}>Example</Link>;
+  return (
+    <Box sx={{ m: 2 }}>
+      <Link href={craeteNavHref("Example", 0)}>
+        <Button>Example</Button>
+      </Link>
+    </Box>
+  );
 }
 
 export default function Editor() {

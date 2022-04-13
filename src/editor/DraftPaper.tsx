@@ -1,40 +1,48 @@
-import { MouseEvent, useRef, useState, WheelEvent } from "react";
 import styled from "@emotion/styled";
-import Box from "@mui/material/Box";
+import CenterFocusWeakIcon from "@mui/icons-material/CenterFocusWeak";
+import IconButton from "@mui/material/IconButton";
+import { MouseEvent, useEffect, useRef, useState, WheelEvent } from "react";
 
-import Config from "../storage/Config";
 import { useDragMoving } from "../components/DragMoving";
+import ToolBarSlot from "../components/ToolBarSlot";
+import Config from "../storage/Config";
+import { useTrans } from "../storage/Locale";
 
 interface Props {
   children?: JSX.Element;
 }
 
+const gridBackground = ({ size }: { size: number }) => {
+  const gradientArgs = `transparent ${size - size / 16}px, #dddddd ${size}px`;
+  const gradient = (direction: "left" | "top") =>
+    `linear-gradient(${direction}, ${gradientArgs})`;
+  const gradientLeft = gradient("left");
+  const gradientTop = gradient("top");
+  return [
+    `background-image: -webkit-${gradientLeft}, -webkit-${gradientTop};`,
+    `background-image: ${gradientLeft}, ${gradientTop};`,
+    `background-size: ${size}px ${size}px`,
+  ];
+};
 const Container = styled.div`
   flex-grow: 1;
   margin: 1em;
   overflow: hidden;
   display: flex;
   justify-content: center;
+  pointer-events: auto;
+  cursor: move;
+  ${gridBackground}
 `;
 const Paper = styled.div`
   transform-origin: center top;
-  pointer-events: auto;
-  cursor: move;
-  & > div:first-of-type {
-    background-image: -webkit-linear-gradient(
-        top,
-        transparent 31px,
-        #dddddd 32px
-      ),
-      -webkit-linear-gradient(left, transparent 31px, #dddddd 32px);
-    background-image: linear-gradient(top, transparent 31px, #dddddd 32px),
-      linear-gradient(left, transparent 31px, #dddddd 32px);
-    background-size: 32px 32px;
-  }
+  pointer-events: none;
+  user-select: none;
 `;
 
 export default function DraftPaper({ children }: Props) {
   const config = Config.use();
+  const trans = useTrans();
   if (config?.value == null) return null; // never
 
   const ref = useRef<HTMLDivElement>(null);
@@ -42,7 +50,7 @@ export default function DraftPaper({ children }: Props) {
     event.target != ref.current; // 这里不能用 currentTarget，会捕获到子元素
 
   const [movingProps, { left, top, dragging }, setDragMovingState] =
-    useDragMoving(isInvalidEventTarget);
+    useDragMoving(isInvalidEventTarget, 6);
 
   const [scale, setScale] = useState(1.0);
   const onWheel = (event: WheelEvent) => {
@@ -78,21 +86,46 @@ export default function DraftPaper({ children }: Props) {
     });
   };
 
+  const toolBarSlot = ToolBarSlot.useSlot();
+  useEffect(() => {
+    const resetView = () => {
+      setScale(1.0);
+      setDragMovingState({
+        left: 0,
+        top: 0,
+        dragging,
+      });
+    };
+
+    toolBarSlot("Editor", "Paper", 2, [
+      <IconButton
+        color="inherit"
+        title={`${trans("Reset View")}`}
+        onClick={resetView}
+      >
+        <CenterFocusWeakIcon />
+      </IconButton>,
+    ]);
+  }, []);
+
   return (
-    <Container>
-      {/* Container 的 `display: flex` 会限制元素高度，Paper 放一个空 div，来避免 Paper 没有覆盖完整的 children 的内容 */}
-      <Box>
-        <Paper
-          ref={ref}
-          style={{
-            transform: `translate(${left}px, ${top}px) scale(${scale})`,
-          }}
-          onWheel={onWheel}
-          {...movingProps}
-        >
-          {children}
-        </Paper>
-      </Box>
+    <Container
+      ref={ref}
+      onWheel={onWheel}
+      onContextMenu={(event) => event.preventDefault()}
+      {...movingProps}
+      size={32 * scale}
+      style={{
+        backgroundPosition: `${left}px ${top}px`,
+      }}
+    >
+      <Paper
+        style={{
+          transform: `translate(${left}px, ${top}px) scale(${scale})`,
+        }}
+      >
+        {children}
+      </Paper>
     </Container>
   );
 }

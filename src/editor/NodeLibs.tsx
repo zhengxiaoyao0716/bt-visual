@@ -146,10 +146,11 @@ function NodeLib({ config, trans, define, keyword, type }: NodeLibProps) {
 
   const { nodeLibs } = config.value;
   const nodes = useMemo(() => {
-    const nodes = Object.entries(define.value[type]).map(([type]) => ({
+    const nodes = Object.entries(define.value[type]).map(([type, define]) => ({
       type,
       translated: {
         type: trans(type),
+        desc: define.desc || trans(type),
       },
     }));
     if (!keyword) return nodes;
@@ -203,8 +204,17 @@ function NodeLib({ config, trans, define, keyword, type }: NodeLibProps) {
         }}
       >
         {nodes.map((node, index) => (
-          <NodeContainer key={index} {...createDragNodeProps(type, node)}>
-            <NodeSvgRender type={node.type} size={{ width: 100, height: 30 }}>
+          <NodeContainer
+            key={index}
+            title={node.translated.desc}
+            {...createDragNodeProps(type, node)}
+          >
+            <NodeSvgRender
+              trans={trans}
+              btDefine={define.value}
+              type={node.type}
+              size={{ width: 100, height: 30 }}
+            >
               {trans(node.translated.type)}
             </NodeSvgRender>
           </NodeContainer>

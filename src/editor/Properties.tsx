@@ -290,7 +290,6 @@ export function useNodePropsEditor(trans: TransFunction, refresh: () => void) {
     if (nodeType === "Unknown") return; // NEVER
 
     const nodes = define.value[nodeType];
-    const typeFlagLen = nodeType === "Decorator" ? 1 : 2;
 
     const options: Option[] = [
       {
@@ -320,27 +319,27 @@ export function useNodePropsEditor(trans: TransFunction, refresh: () => void) {
         type: "input",
         key: depsKey, // 每次切换节点必定刷新
         label: trans("Node Alias"),
-        value: (node.alias || "").slice(typeFlagLen),
+        value: node.alias || "",
         submit(value: string) {
           if (value === node.alias) return;
           const type = trans(node.type);
           if (!value) delete node.alias;
-          else if (value === type.slice(typeFlagLen)) delete node.alias;
-          else node.alias = `${type.slice(0, typeFlagLen)}${value}`;
+          else if (value === type || value === node.type) delete node.alias;
+          else node.alias = value;
           refresh();
         },
       },
     ];
 
-    const props = nodes[node.type];
+    const { props } = nodes[node.type];
     props == null &&
       options.push({
         type: "error",
         reason: trans("Node define not found!"),
       });
 
-    const propNames = props ? Object.keys(props) : [];
-    if (propNames.length > 0) {
+    const propNames = props == null ? [] : Object.keys(props);
+    if (props != null && propNames.length > 0) {
       options.push({ type: "divider" });
       options.push({
         type: "subheader",

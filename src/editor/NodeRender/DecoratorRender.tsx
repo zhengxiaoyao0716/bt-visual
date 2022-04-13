@@ -44,6 +44,7 @@ const DecoratorNode = styled.div`
 export default function DecoratorRender({
   node,
   trans,
+  btDefine,
   children,
   prependDecorator,
   removeNodes,
@@ -60,21 +61,20 @@ export default function DecoratorRender({
   const undoManager = useUndo();
   while (iter) {
     const iterFinal = iter;
-    const alias = iter.alias || trans(iter.type);
     const appendComposite = (type: string) => {
       const nodeOld = iterFinal.node;
       const nodeNew = { type, nodes: [nodeOld] } as Composite;
       const action = trans("Append Composite");
       const alias = nodeNew.alias || trans(nodeNew.type);
-      undoManager.execute(`${action} [${alias}]`, () => {
+      undoManager.execute(`${action} [${alias}]`, (redo) => {
         iterFinal.node = nodeNew;
+        redo || refresh();
         triggerRedrawLines(ref.current);
         return () => {
           iterFinal.node = nodeOld;
           triggerRedrawLines(ref.current);
         };
       });
-      refresh();
     };
     const prependDecorator = prepend;
     prepend = (type: string) => {
@@ -82,34 +82,33 @@ export default function DecoratorRender({
       const nodeNew = { type, node: nodeOld } as Decorator;
       const action = trans("Prepend Decorator");
       const alias = nodeNew.alias || trans(nodeNew.type);
-      undoManager.execute(`${action} [${alias}]`, () => {
+      undoManager.execute(`${action} [${alias}]`, (redo) => {
         iterFinal.node = nodeNew;
+        redo || refresh();
         triggerRedrawLines(ref.current);
         return () => {
           iterFinal.node = nodeOld;
           triggerRedrawLines(ref.current);
         };
       });
-      refresh();
     };
     const removeNodes = remove;
     remove = () => {
       const action = trans("Remove Nodes");
       const decorator = iterFinal.node as Decorator;
       const alias = decorator.alias || trans(decorator.type);
-      undoManager.execute(`${action} [${alias}]`, () => {
+      undoManager.execute(`${action} [${alias}]`, (redo) => {
         iterFinal.node = decorator.node;
+        redo || refresh();
         triggerRedrawLines(ref.current);
         return () => {
           iterFinal.node = decorator;
           triggerRedrawLines(ref.current);
         };
       });
-      refresh();
     };
     decorators.push([
       iterFinal,
-      alias,
       appendComposite,
       prependDecorator,
       removeNodes,
@@ -124,25 +123,30 @@ export default function DecoratorRender({
     <DecoratorContainer ref={ref}>
       {node.fold ? (
         <DecoratorCard className="fold" onDoubleClick={foldHandler}>
-          {decorators.map(([node, alias, append, prepend], index) => (
+          {decorators.map(([node], index) => (
             <NodeSvgRender
+              trans={trans}
+              btDefine={btDefine}
               key={index}
               type={node.type}
               size={{ width: 100, height: 24 }}
+              fold={true}
               {...baseProps}
             >
-              {alias}
+              {node.alias}
             </NodeSvgRender>
           ))}
         </DecoratorCard>
       ) : (
-        decorators.map(([node, alias, append, prepend, remove], index) => (
+        decorators.map(([node, append, prepend, remove], index) => (
           <DecoratorCard
             key={index}
-            title={trans(node.type)}
+            title={btDefine?.Decorator[node.type]?.desc || trans(node.type)}
             onDoubleClick={foldHandler}
           >
             <NodeSvgRender
+              trans={trans}
+              btDefine={btDefine}
               type={node.type}
               size={{ width: 150, height: 60 }}
               onClick={selector.onClick.bind(null, node, remove)}
@@ -152,7 +156,7 @@ export default function DecoratorRender({
                 prependDecorator: prepend,
               })}
             >
-              {alias}
+              {node.alias}
             </NodeSvgRender>
           </DecoratorCard>
         ))
@@ -161,6 +165,7 @@ export default function DecoratorRender({
         <AutoRender
           node={iter.node}
           trans={trans}
+          btDefine={btDefine}
           {...baseProps}
           prependDecorator={prepend}
           removeNodes={removeNodes}

@@ -52,6 +52,7 @@ export default function CompositeRender({
   node,
   config,
   trans,
+  btDefine,
   children,
   prependDecorator,
   removeNodes,
@@ -61,7 +62,6 @@ export default function CompositeRender({
 
   const ref = useRef<HTMLDivElement>(null);
   const svgSize = { width: 250, height: 100 };
-  const alias = node.alias || trans(node.type);
   const { type, nodes } = node;
 
   const [, refresh] = useRefresh();
@@ -86,9 +86,10 @@ export default function CompositeRender({
       `Move nodes ${left < anchorRect.left ? "left" : "right"}`
     );
     const alias = node.alias || trans(node.type);
-    undoManager.execute(`${action} [${alias}]`, () => {
+    undoManager.execute(`${action} [${alias}]`, (redo) => {
       const node = nodes.splice(index, 1)[0];
       nodes.splice(moveToIndex, 0, node);
+      redo || refresh();
       triggerRedrawLines(anchor);
       return () => {
         const node = nodes.splice(moveToIndex, 1)[0];
@@ -96,7 +97,6 @@ export default function CompositeRender({
         triggerRedrawLines(anchor);
       };
     });
-    refresh();
   };
   const onSwap = (index: number, swapTo: number) => {
     const anchor = anchors[index];
@@ -105,9 +105,10 @@ export default function CompositeRender({
     const action = trans("Swap nodes");
     const alias1 = node1.alias || trans(node1.type);
     const alias2 = node2.alias || trans(node2.type);
-    undoManager.execute(`${action} [${alias1}] <-> [${alias2}]`, () => {
+    undoManager.execute(`${action} [${alias1}] <-> [${alias2}]`, (redo) => {
       nodes[index] = node2;
       nodes[swapTo] = node1;
+      redo || refresh();
       triggerRedrawLines(anchor);
       return () => {
         nodes[index] = node1;
@@ -115,34 +116,36 @@ export default function CompositeRender({
         triggerRedrawLines(anchor);
       };
     });
-    refresh();
   };
 
   const anchorDropProps = node.fold
     ? null
-    : createAnchorDropProps((data: DraggingData, index: number, copy) => {
-        const node = copy
-          ? JSON.parse(JSON.stringify(data.nodes[index]))
-          : data.nodes.splice(index, 1)[0];
-        const action = trans(copy ? "Copy Nodes" : "Move Nodes");
-        const alias = node.alias || trans(node.type);
-        undoManager.execute(`${action} [${alias}]`, (redo) => {
-          if (!copy && redo) {
-            data.nodes.splice(index, 1)[0];
-          }
-          nodes.push(node);
-          triggerRedrawLines(ref.current);
-
-          return () => {
-            const node = nodes.pop() as Node;
-            copy || data.nodes.splice(index, 0, node);
+    : createAnchorDropProps(
+        (data: DraggingData, index: number, copy: boolean) => {
+          const node = copy
+            ? JSON.parse(JSON.stringify(data.nodes[index]))
+            : data.nodes.splice(index, 1)[0];
+          const action = trans(copy ? "Copy Nodes" : "Move Nodes");
+          const alias = node.alias || trans(node.type);
+          undoManager.execute(`${action} [${alias}]`, (redo) => {
+            if (!copy && redo) {
+              data.nodes.splice(index, 1)[0];
+            }
+            nodes.push(node);
+            if (!redo) {
+              data.refresh();
+              refresh();
+            }
             triggerRedrawLines(ref.current);
-          };
-        });
 
-        data.refresh();
-        refresh();
-      });
+            return () => {
+              const node = nodes.pop() as Node;
+              copy || data.nodes.splice(index, 0, node);
+              triggerRedrawLines(ref.current);
+            };
+          });
+        }
+      );
   const draggingRef = {
     nodes,
     refresh() {
@@ -158,50 +161,67 @@ export default function CompositeRender({
           const node = { type, nodes: [] } as Composite;
           const action = trans("Append Composite");
           const alias = node.alias || trans(node.type);
-          undoManager.execute(`${action} [${alias}]`, () => {
+          undoManager.execute(`${action} [${alias}]`, (redo) => {
             nodes.push(node);
+            redo || refresh();
             triggerRedrawLines(ref.current);
             return () => {
               nodes.pop();
               triggerRedrawLines(ref.current);
             };
           });
-          refresh();
         },
         appendAction(type: string) {
           const node = { type } as Action;
           const action = trans("Append Action");
           const alias = node.alias || trans(node.type);
-          undoManager.execute(`${action} [${alias}]`, () => {
+          undoManager.execute(`${action} [${alias}]`, (redo) => {
             nodes.push(node);
+            redo || refresh();
             triggerRedrawLines(ref.current);
             return () => {
               nodes.pop();
               triggerRedrawLines(ref.current);
             };
           });
-          refresh();
         },
         prependDecorator,
       });
 
-  const selector = useSelector(trans, refresh);
+  const paste = (node: Node) => {
+    const action = trans("Paste Nodes");
+    const alias = node.alias || trans(node.type);
+    undoManager.execute(`${action} [${alias}]`, (redo) => {
+      nodes.push(node);
+      redo || refresh();
+      triggerRedrawLines(ref.current);
+      return () => {
+        nodes.pop();
+        triggerRedrawLines(ref.current);
+      };
+    });
+    triggerRedrawLines(ref.current);
+  };
+  const selector = useSelector(trans, refresh, paste);
 
   return (
     <CompositeContainer className={lineToParentClass} ref={ref}>
       <CompositeCard
-        title={trans(node.type)}
+        title={btDefine?.Composite[node.type]?.desc || trans(node.type)}
         onDoubleClick={foldHandler}
         {...anchorDropProps}
       >
         <NodeSvgRender
+          trans={trans}
+          btDefine={btDefine}
           type={type}
           size={svgSize}
+          fold={node.fold}
           onClick={selector.onClick.bind(null, node, removeNodes)}
           {...baseProps}
           {...nodeDropProps}
         >
-          {alias}
+          {node.alias}
         </NodeSvgRender>
       </CompositeCard>
       {node.fold ? null : (
@@ -217,28 +237,30 @@ export default function CompositeRender({
               node={node}
               config={config}
               trans={trans}
+              btDefine={btDefine}
               prependDecorator={(type) => {
                 const nodeNew = { type, node } as Decorator;
                 const action = trans("Prepend Decorator");
                 const alias = nodeNew.alias || trans(nodeNew.type);
-                undoManager.execute(`${action} [${alias}]`, () => {
+                undoManager.execute(`${action} [${alias}]`, (redo) => {
                   nodes[index] = nodeNew;
+                  redo || refresh();
                   triggerRedrawLines(ref.current);
                   return () => {
                     nodes[index] = node;
                     triggerRedrawLines(ref.current);
                   };
                 });
-                refresh();
               }}
               removeNodes={(onlyDecorator) => {
                 const action = trans("Remove Nodes");
                 const alias = node.alias || trans(node.type);
-                undoManager.execute(`${action} [${alias}]`, () => {
+                undoManager.execute(`${action} [${alias}]`, (redo) => {
                   if (onlyDecorator) {
                     const decorator = nodes[index] as Decorator;
                     const node = (decorator as Decorator).node;
                     nodes[index] = node;
+                    redo || refresh();
                     triggerRedrawLines(ref.current);
                     return () => {
                       nodes[index] = decorator;
@@ -246,6 +268,7 @@ export default function CompositeRender({
                     };
                   } else {
                     const node = nodes.splice(index, 1)[0];
+                    redo || refresh();
                     triggerRedrawLines(ref.current);
                     return () => {
                       nodes.splice(index, 0, node);
@@ -253,7 +276,6 @@ export default function CompositeRender({
                     };
                   }
                 });
-                refresh();
               }}
             >
               <LineRender

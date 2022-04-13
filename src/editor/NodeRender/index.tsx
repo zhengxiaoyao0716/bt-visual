@@ -12,7 +12,6 @@ import NodeSvgRender, { Props, SubProps } from "./NodeSvgRender";
 
 const RootContainer = styled.div`
   position: relative;
-  pointer-events: none;
   text-align: center;
 `;
 
@@ -29,13 +28,13 @@ export default function NodeRender({
     const nodeNew = { type, node: nodeOld } as Decorator;
     const action = trans("Prepend Node");
     const alias = nodeNew.alias || trans(nodeNew.type);
-    undoManager.execute(`${action} [${alias}]`, () => {
+    undoManager.execute(`${action} [${alias}]`, (redo) => {
       tree.root = nodeNew;
+      redo || refresh();
       return () => {
         tree.root = nodeOld;
       };
     });
-    refresh();
   };
 
   const snack = Snack.use();
@@ -47,13 +46,13 @@ export default function NodeRender({
     const decorator = tree.root as Decorator;
     const action = trans("Remove Nodes");
     const alias = decorator.alias || trans(decorator.type);
-    undoManager.execute(`${action} [${alias}]`, () => {
+    undoManager.execute(`${action} [${alias}]`, (redo) => {
       tree.root = decorator.node;
+      redo || refresh();
       return () => {
         tree.root = decorator;
       };
     });
-    refresh();
   };
   return (
     <RootContainer>
@@ -72,6 +71,7 @@ export function AutoRender<N extends Node>({
   node,
   config,
   trans,
+  btDefine,
   prependDecorator,
   removeNodes,
   children,
@@ -83,6 +83,7 @@ export function AutoRender<N extends Node>({
           node={node as unknown as Composite}
           config={config}
           trans={trans}
+          btDefine={btDefine}
           prependDecorator={prependDecorator}
           removeNodes={removeNodes}
         >
@@ -95,6 +96,7 @@ export function AutoRender<N extends Node>({
           node={node as unknown as Decorator}
           config={config}
           trans={trans}
+          btDefine={btDefine}
           prependDecorator={prependDecorator}
           removeNodes={removeNodes}
         >
@@ -107,6 +109,7 @@ export function AutoRender<N extends Node>({
           node={node}
           config={config}
           trans={trans}
+          btDefine={btDefine}
           prependDecorator={prependDecorator}
           removeNodes={removeNodes}
         >
@@ -116,11 +119,13 @@ export function AutoRender<N extends Node>({
     default:
       return (
         <NodeSvgRender
+          trans={trans}
+          btDefine={btDefine}
           type="unknown"
           size={{ width: 100, height: 50 }}
           status="failure"
         >
-          {node.alias || trans(node.type)}
+          {node.alias}
         </NodeSvgRender>
       );
   }

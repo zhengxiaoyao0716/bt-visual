@@ -2,6 +2,7 @@ import { Dispatch, MouseEvent, useState } from "react";
 import styled from "@emotion/styled";
 
 export interface DragEvent {
+  buttons: number;
   movementX: number;
   movementY: number;
   stopPropagation(): void;
@@ -30,10 +31,11 @@ export function defaultBeforeHandler<E extends DragEvent>(event: E) {
 }
 
 export function useDragMoving(
-  before: BeforeHandler<MouseEvent> = defaultBeforeHandler
+  before: BeforeHandler<MouseEvent> = defaultBeforeHandler,
+  mouse: number = 7
 ): [DragListeners<MouseEvent>, DragState, Dispatch<DragState>] {
   const [state, setState] = useState({ left: 0, top: 0, dragging: false });
-  const props = createDragListeners<MouseEvent>(state, setState, before);
+  const props = createDragListeners<MouseEvent>(state, setState, before, mouse);
   return [props, state, setState];
 }
 
@@ -53,9 +55,11 @@ const Widget = styled.a`
 export function createDragListeners<E extends DragEvent>(
   state: DragState,
   setState: Dispatch<DragState>,
-  before: BeforeHandler<E> = defaultBeforeHandler
+  before: BeforeHandler<E> = defaultBeforeHandler,
+  mouse: number = 7
 ): DragListeners<E> {
   const onMouseDown = (event: E) => {
+    if ((event.buttons & mouse) === 0) return;
     if (before && before(event)) return;
     if (!state.dragging) setState({ ...state, dragging: true });
   };

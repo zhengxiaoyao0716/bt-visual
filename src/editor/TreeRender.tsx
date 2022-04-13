@@ -14,6 +14,7 @@ import Typography from "@mui/material/Typography";
 import { MouseEvent, useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
+import BTDefine from "../behavior-tree/Define";
 import { Forest } from "../behavior-tree/Forest";
 import type { Store, Tree } from "../behavior-tree/type";
 import { useDialogPrompt } from "../components/DialogPrompt";
@@ -43,6 +44,7 @@ export default function TreeRender({
   if (forest?.value == null) return null; // never
   const config = Config.use();
   const trans = useTrans();
+  const define = BTDefine.use();
   const navigate = useNavigate();
   const snack = Snack.use();
   const { name, trees } = forest.value;
@@ -50,7 +52,9 @@ export default function TreeRender({
 
   const [anchorEl, setAnchorEl] = useState<null | [number, HTMLElement]>(null);
   const showMenu = (index: number) => {
-    if (trees.length <= 1 || index >= trees.length) return;
+    if (trees.length <= 1 || index >= trees.length) {
+      return (event: MouseEvent<HTMLElement>) => event.preventDefault();
+    }
     return (event: MouseEvent<HTMLElement>) => {
       event.preventDefault();
       event.stopPropagation();
@@ -287,7 +291,12 @@ export default function TreeRender({
         <Undo id={`${name}[${treeIndex}]`} trans={trans}>
           <NodeSelector>
             <DraftPaper key={tree.name}>
-              <NodeRender tree={tree} config={config} trans={trans} />
+              <NodeRender
+                tree={tree}
+                config={config}
+                trans={trans}
+                btDefine={define?.value}
+              />
             </DraftPaper>
           </NodeSelector>
         </Undo>

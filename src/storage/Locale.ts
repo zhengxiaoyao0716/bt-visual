@@ -36,7 +36,7 @@ export function useLocale(): ContextValue<Locale> {
 }
 
 export interface TransFunction {
-  (text: string): string;
+  (text: string, replaces?: { [key: string]: any }): string;
   language: LanguageName;
 }
 export function useTrans(): TransFunction {
@@ -52,7 +52,17 @@ export function useTrans(): TransFunction {
       showTransWarning && console.warn(new Error(`[${language}] ${text}`));
       return text;
     }
-    trans.language = language;
-    return trans;
+    function replace(text: string, replaces?: { [key: string]: any }) {
+      let translated = trans(text);
+      if (replaces == null) return translated;
+      for (const key in replaces) {
+        const value = replaces[key];
+        translated.replace(`\${${key}}`, value);
+      }
+      // translated.replace
+      return translated;
+    }
+    replace.language = language;
+    return replace;
   }, [locale, showTransWarning]);
 }

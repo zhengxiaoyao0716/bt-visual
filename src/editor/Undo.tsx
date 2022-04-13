@@ -57,7 +57,7 @@ export default function Undo({
   if (!(id in undoStacks)) undoStacks[id] = { tasks: [undefined], current: 0 };
 
   const historyRefreshRef = useRef(() => {});
-  const [rfCount, refreshProvider] = useRefresh();
+  const [rfc, refreshProvider] = useRefresh();
 
   const undo = useCallback(() => {
     // 懒得考虑闭包捕获问题了，保险起见，每次重新堆区 undo 堆栈
@@ -199,7 +199,7 @@ export default function Undo({
         <UpdateIcon />
       </IconButton>,
     ]);
-  }, [rfCount]);
+  }, [rfc]);
 
   const execute = (desc: string, task: (redo: boolean) => () => void) => {
     let execute = () => {

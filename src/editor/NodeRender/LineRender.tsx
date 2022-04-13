@@ -1,5 +1,5 @@
 import styled from "@emotion/styled";
-import { DragEvent, useLayoutEffect, useRef } from "react";
+import { DragEvent, useEffect, useLayoutEffect, useRef } from "react";
 import rough from "roughjs";
 
 import type { Node } from "../../behavior-tree/type";
@@ -55,11 +55,11 @@ export default function LineRender({
   color,
 }: Props) {
   const ref = useRef<HTMLAnchorElement>(null);
-  const [rfCount, refresh] = useRefresh();
+  const [rfc, refresh] = useRefresh();
   const rect = ref.current?.getBoundingClientRect();
 
+  // 这里需要等 react 绘制完毕后再同步调用，不能用 useEffect，否则连接线会闪烁
   useLayoutEffect(() => {
-    // 这里需要等 react 绘制完毕后再同步调用，不能用 useEffect，否则连接线会闪烁
     const anchor = ref.current;
     if (anchor == null) return;
     const root = findLineRoot(anchor, anchor);
@@ -88,12 +88,11 @@ export default function LineRender({
     );
     svg.appendChild(line);
 
-    root.addEventListener("redrawLines", refresh);
-
     return () => {
+      root.classList.remove("active"); // anchor 拖拽移动后，onDragEnd 方法可能没触发，手动移除 active 状态
+      anchorDraggingRef.current = null; // 跟上面同理
       root.removeChild(lineTo);
       svg.removeChild(line);
-      root.removeEventListener("redrawLines", refresh);
     };
   }, [
     ref.current,
@@ -101,7 +100,7 @@ export default function LineRender({
     rect?.top,
     rect?.width,
     rect?.height,
-    rfCount,
+    rfc,
     refresh,
     index,
     total,
@@ -109,6 +108,18 @@ export default function LineRender({
     height,
     redrawSig,
   ]);
+
+  useEffect(() => {
+    const anchor = ref.current;
+    if (anchor == null) return;
+    const root = findLineRoot(anchor, anchor);
+    if (root == null) return;
+    root.addEventListener("redrawLines", refresh);
+
+    return () => {
+      root.removeEventListener("redrawLines", refresh);
+    };
+  }, [ref.current]);
 
   const onDragStart = (event: DragEvent) => {
     const anchor = ref.current;
@@ -170,11 +181,12 @@ export default function LineRender({
 
 const DropArea = styled.div`
   position: absolute;
-  width: 100%;
+  width: calc(100% + 60px);
   top: -30px;
   height: 100px;
   div.active > div > & {
     pointer-events: auto;
+    border: 1px dashed #3366ee;
   }
 `;
 
@@ -198,7 +210,8 @@ export function LineDropArea(props: {
   return <DropArea onDragOver={onDragOver} onDrop={onDrop} />;
 }
 
-export function triggerRedrawLines(element: Element | null) {
+export async function triggerRedrawLines(element: Element | null) {
+  await new Promise((resolve) => setTimeout(resolve, 0)); // 延迟一帧，等待 react 绘制完毕再重绘连接线
   if (element) {
     element.dispatchEvent(new CustomEvent("redrawLines", { bubbles: true }));
     return;

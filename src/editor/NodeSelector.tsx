@@ -1,5 +1,8 @@
 import CloseIcon from "@mui/icons-material/Close";
 import DeleteIcon from "@mui/icons-material/Delete";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import ContentPasteIcon from "@mui/icons-material/ContentPaste";
+import ContentPasteOffIcon from "@mui/icons-material/ContentPasteOff";
 import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
 import {
@@ -23,15 +26,21 @@ interface Selector {
   selected: {
     node: Node;
     remove(): void;
+    paste?: (node: Node) => void;
   }[];
+  clipboard: {
+    node?: Node;
+  };
+  remove?: () => void;
+  copy?: () => void;
+  paste?: () => void;
   refresh(): void;
-  remove(): void;
 }
 
 const SelectorContext = createContext<MutableRefObject<Selector> | null>(null);
 
 export default function NodeSelector({ children }: { children: ReactNode }) {
-  const ref = useRef<Selector>({ selected: [], refresh() {}, remove() {} });
+  const ref = useRef<Selector>({ selected: [], clipboard: {}, refresh() {} });
   const containerRef = useRef<HTMLDivElement>(null);
   return (
     <SelectorContext.Provider value={ref}>
@@ -42,6 +51,7 @@ export default function NodeSelector({ children }: { children: ReactNode }) {
           flexGrow: 1,
           position: "relative",
           overflow: "hidden",
+          display: "flex",
         }}
       >
         {children}
@@ -76,6 +86,25 @@ function NodeMenus({
       selector.refresh();
     };
 
+    selector.copy = () => {
+      if (selector == null || selector.selected.length <= 0) return;
+      if (selector.selected.length > 1) return;
+      const { node } = selector.selected[0];
+      selector.clipboard.node = JSON.parse(JSON.stringify(node));
+      selector.refresh();
+    };
+    selector.paste = () => {
+      const copied = selector.clipboard.node;
+      if (copied == null) return;
+      if (selector == null || selector.selected.length <= 0) return;
+      if (selector.selected.length > 1) return;
+      const { node, paste } = selector.selected[0];
+      if (!paste) return;
+      if ("fold" in node && (node as { fold?: true }).fold) return;
+      paste(copied);
+      // selector.refresh();
+    };
+
     const removeHotkeyListener = addHotkeyListener(
       {
         code: "Delete",
@@ -85,6 +114,16 @@ function NodeMenus({
         code: "KeyD",
         ctrlKey: true,
         callback: selector.remove,
+      },
+      {
+        code: "KeyC",
+        ctrlKey: true,
+        callback: selector.copy,
+      },
+      {
+        code: "KeyV",
+        ctrlKey: true,
+        callback: selector.paste,
       }
     );
     return () => {
@@ -112,18 +151,34 @@ function NodeMenus({
   const selNum = selector.selected.length;
   if (selNum <= 0) return null;
 
-  const firstSelected = selector.selected[0];
-  const firstAlias = firstSelected.node.alias || trans(firstSelected.node.type);
-
-  const removeDesc =
+  const { node: selected, paste } = selector.selected[0];
+  const firstAlias = selected.alias || trans(selected.type);
+  const selectedAlias =
     selNum == 1
-      ? `${trans("Remove Nodes")} [${firstAlias}]`
-      : `${trans("Remove Nodes")} [${firstAlias}${trans(
-          " ... ${num} nodes"
-        ).replace("${num}", String(selNum))}]`;
+      ? firstAlias
+      : `${firstAlias}${trans(" ... ${num} nodes", { num: selNum })}]`;
+
+  const removeDesc = `${trans("Remove Nodes")} [${selectedAlias}]`;
+  const copyDesc = `${trans("Copy Nodes")} [${selectedAlias}]`;
+
+  const clipNode = selector.clipboard.node;
+  const clipAlias =
+    clipNode == null ? null : clipNode.alias || trans(clipNode.type);
+  const isSelectedFold =
+    "fold" in selected && (selected as { fold?: true }).fold;
+
+  const pasteDesc =
+    clipNode == null
+      ? undefined
+      : isSelectedFold
+      ? trans("Disallow pasting to collapsed node")
+      : paste
+      ? `${trans("Paste Nodes")} [${clipAlias}]`
+      : trans("Selected node does not support pasting");
 
   const cancel = () => {
     selector.selected = [];
+    selector.clipboard = {};
     selector.refresh();
   };
 
@@ -143,6 +198,16 @@ function NodeMenus({
       <IconButton onClick={selector.remove} title={removeDesc}>
         <DeleteIcon />
       </IconButton>
+      <IconButton onClick={selector.copy} title={copyDesc}>
+        <ContentCopyIcon />
+      </IconButton>
+      <IconButton onClick={selector.paste} title={pasteDesc}>
+        {clipNode && !isSelectedFold && paste ? (
+          <ContentPasteIcon />
+        ) : (
+          <ContentPasteOffIcon />
+        )}
+      </IconButton>
       <IconButton onClick={cancel}>
         <CloseIcon />
       </IconButton>
@@ -157,7 +222,11 @@ export function cancelSelector() {
   );
 }
 
-export function useSelector(trans: TransFunction, refresh: () => void) {
+export function useSelector(
+  trans: TransFunction,
+  refresh: () => void,
+  paste?: (node: Node) => void
+) {
   const propsEditor = useNodePropsEditor(trans, refresh);
   const selector = useContext(SelectorContext)?.current;
   return {
@@ -186,6 +255,7 @@ export function useSelector(trans: TransFunction, refresh: () => void) {
             propsEditor.hide();
             remove();
           },
+          paste,
         });
         selector.refresh();
       }

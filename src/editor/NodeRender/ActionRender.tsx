@@ -14,27 +14,28 @@ const ActionCard = styled.div`
 export default function ActionRender({
   node,
   trans,
+  btDefine,
   children,
   prependDecorator,
   removeNodes,
   ...baseProps
 }: SubProps<Action>) {
-  const alias = node.alias || trans(node.type);
-
   const nodeDropProps = createNodeDropProps({ prependDecorator });
   const [, refresh] = useRefresh();
   const selector = useSelector(trans, refresh);
 
   return (
-    <ActionCard title={trans(node.type)}>
+    <ActionCard title={btDefine?.Action[node.type]?.desc || trans(node.type)}>
       <NodeSvgRender
+        trans={trans}
+        btDefine={btDefine}
         type={node.type}
         size={{ width: 120, height: 90 }}
         onClick={selector.onClick.bind(null, node, removeNodes)}
         {...baseProps}
         {...nodeDropProps}
       >
-        {alias}
+        {node.alias}
       </NodeSvgRender>
       {children}
     </ActionCard>

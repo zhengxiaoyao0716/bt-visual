@@ -1,7 +1,7 @@
 interface Hotkey {
   ctrlKey?: boolean;
   shiftKey?: boolean;
-  code: "Delete" | "KeyZ" | "KeyY" | "KeyD";
+  code: "Delete" | "KeyZ" | "KeyY" | "KeyD" | "KeyC" | "KeyV";
   callback: () => void;
 }
 

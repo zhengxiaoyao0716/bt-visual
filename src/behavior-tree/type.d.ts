@@ -106,23 +106,23 @@ export module Decorator {
 export interface Action extends Node {}
 export module Action {
   export interface Empty extends Action {
-    type: "+ Empty"; // 空白节点 // 默认什么都不做
+    type: "+Empty"; // 空白节点 // 默认什么都不做
     extra?: Store.Reader; // 额外参数
   }
 
   export interface Tree extends Action {
-    type: "+ Tree"; // 子树节点 // 执行 name 指定的子树
+    type: "+Tree"; // 子树节点 // 执行 name 指定的子树
     name: Store.Reader.String; // 子树名称
   }
 
   export interface Dynamic extends Action {
-    type: "+ Dynamic"; // 动态行为 // 执行 name 指定的行为
+    type: "+Dynamic"; // 动态行为 // 执行 name 指定的行为
     name: Store.Reader.String; // 行为名称
     args?: { [name: string]: Store.Reader }; // 透传参数
   }
 
   export interface Wait extends Action {
-    type: "+ Wait"; // 定时等待 // 等待 millis 毫秒后返回成功
+    type: "+Wait"; // 定时等待 // 等待 millis 毫秒后返回成功
     millis: Store.Reader.Number; // 等待时长，单位毫秒
   }
 }
