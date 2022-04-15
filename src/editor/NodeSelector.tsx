@@ -222,6 +222,11 @@ export function cancelSelector() {
   );
 }
 
+interface ClickProps {
+  node: Composite | Decorator | Action;
+  remove: () => void;
+}
+
 export function useSelector(
   trans: TransFunction,
   refresh: () => void,
@@ -230,11 +235,7 @@ export function useSelector(
   const propsEditor = useNodePropsEditor(trans, refresh);
   const selector = useContext(SelectorContext)?.current;
   return {
-    onClick(
-      node: Composite | Decorator | Action,
-      remove: () => void,
-      event: MouseEvent
-    ) {
+    onClick({ node, remove }: ClickProps, event: MouseEvent) {
       event.stopPropagation();
       event.preventDefault();
 

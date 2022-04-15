@@ -16,6 +16,7 @@ class LocalStorage {
   }
 
   async save<T>(path: string, data: T): Promise<void> {
+    // await new Promise((resolve) => setTimeout(resolve, 1000));
     window.localStorage.setItem(path, JSON.stringify(data));
   }
 }

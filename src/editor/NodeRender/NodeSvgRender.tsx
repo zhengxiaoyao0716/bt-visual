@@ -8,7 +8,7 @@ import {
 } from "react";
 import rough from "roughjs";
 
-import BTDefine, { BTDefines } from "../../behavior-tree/Define";
+import { BTDefines } from "../../behavior-tree/Define";
 import type { Composite, Decorator, Node } from "../../behavior-tree/type";
 import { getNodeType } from "../../behavior-tree/utils";
 import Config from "../../storage/Config";
@@ -50,6 +50,7 @@ const nodeTypeMapper = {
 };
 
 export interface Props {
+  locked: boolean;
   config: ReturnType<typeof Config.use>;
   trans: TransFunction;
   btDefine: BTDefines | undefined;
@@ -96,6 +97,7 @@ const NodeSvg = styled.svg`
 `;
 
 export default function NodeSvgRender({
+  locked,
   trans,
   btDefine,
   type,
@@ -107,6 +109,7 @@ export default function NodeSvgRender({
   onDragOver,
   onDrop,
 }: {
+  locked: boolean;
   trans: TransFunction;
   btDefine: BTDefines | undefined;
   type: string;
@@ -180,9 +183,9 @@ export default function NodeSvgRender({
       version="1.1"
       width={size.width}
       height={size.height}
-      onClick={onClick}
-      onDragOver={onDragOver}
-      onDrop={onDrop}
+      onClick={locked ? undefined : onClick}
+      onDragOver={locked ? undefined : onDragOver}
+      onDrop={locked ? undefined : onDrop}
     >
       {children == null || typeof children === "string" ? (
         size.height <= 30 ? (

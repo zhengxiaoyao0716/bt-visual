@@ -17,6 +17,7 @@ import { addHotkeyListener } from "../components/Hotkey";
 import { useRefresh } from "../components/Refresh";
 import ToolBarSlot from "../components/ToolBarSlot";
 import { TransFunction } from "../storage/Locale";
+import { LockerContext } from "./NodeRender/NodeLocker";
 import { cancelSelector } from "./NodeSelector";
 import { useHistoryEditor } from "./Properties";
 
@@ -138,6 +139,8 @@ export default function Undo({
         autoRedo();
       }
     };
+
+    const locked = useContext(LockerContext);
     let disabled = false;
     return (
       <>
@@ -147,12 +150,14 @@ export default function Undo({
             <Button
               key={index}
               sx={{ textAlign: "left" }}
-              disabled={disabled}
+              disabled={locked || disabled}
               onClick={goto.bind(null, index)}
             >
               <Typography
                 color={({ palette }) =>
-                  palette.text[index < current ? "primary" : "secondary"]
+                  palette.text[
+                    !locked && index < current ? "primary" : "secondary"
+                  ]
                 }
                 sx={{ width: "100%" }}
               >
@@ -170,13 +175,14 @@ export default function Undo({
   const { tasks, current } = undoStacks[id];
   const undoDesc = tasks[current - 1]?.desc ?? undefined;
   const redoDesc = tasks[current]?.desc ?? undefined;
+  const locked = useContext(LockerContext);
 
   const toolBarSlot = ToolBarSlot.useSlot();
   useEffect(() => {
     toolBarSlot("Editor", "Undo", 1, [
       <IconButton
         color="inherit"
-        disabled={!undoDesc && !redoDesc}
+        disabled={locked || (!undoDesc && !redoDesc)}
         title={`${trans("History")}`}
         onClick={historyEditor.show}
       >
@@ -184,7 +190,7 @@ export default function Undo({
       </IconButton>,
       <IconButton
         color="inherit"
-        disabled={!undoDesc}
+        disabled={locked || !undoDesc}
         title={`${trans("Undo")} ${undoDesc}`}
         onClick={undo}
       >
@@ -192,14 +198,14 @@ export default function Undo({
       </IconButton>,
       <IconButton
         color="inherit"
-        disabled={!redoDesc}
+        disabled={locked || !redoDesc}
         title={`${trans("Redo")} ${redoDesc}`}
         onClick={redo}
       >
         <UpdateIcon />
       </IconButton>,
     ]);
-  }, [rfc]);
+  }, [rfc, locked]);
 
   const execute = (desc: string, task: (redo: boolean) => () => void) => {
     let execute = () => {

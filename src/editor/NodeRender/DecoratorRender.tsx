@@ -43,6 +43,7 @@ const DecoratorNode = styled.div`
 
 export default function DecoratorRender({
   node,
+  locked,
   trans,
   btDefine,
   children,
@@ -125,6 +126,7 @@ export default function DecoratorRender({
         <DecoratorCard className="fold" onDoubleClick={foldHandler}>
           {decorators.map(([node], index) => (
             <NodeSvgRender
+              locked={locked}
               trans={trans}
               btDefine={btDefine}
               key={index}
@@ -145,11 +147,12 @@ export default function DecoratorRender({
             onDoubleClick={foldHandler}
           >
             <NodeSvgRender
+              locked={locked}
               trans={trans}
               btDefine={btDefine}
               type={node.type}
               size={{ width: 150, height: 60 }}
-              onClick={selector.onClick.bind(null, node, remove)}
+              onClick={selector.onClick.bind(null, { node, remove })}
               {...baseProps}
               {...createNodeDropProps({
                 appendComposite: append,
@@ -164,6 +167,7 @@ export default function DecoratorRender({
       <DecoratorNode>
         <AutoRender
           node={iter.node}
+          locked={locked}
           trans={trans}
           btDefine={btDefine}
           {...baseProps}

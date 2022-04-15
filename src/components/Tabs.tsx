@@ -12,7 +12,7 @@ function LabelTab({
 }: {
   labels: ReactNode[];
   index: number;
-  setTab(index: number): void;
+  setTab(index: number, event: MouseEvent): void;
   refreshHooks: { [index: number]: () => void };
   contextMenu?: (
     index: number
@@ -35,7 +35,7 @@ function LabelTab({
 export function useTabs(
   labels: ReactNode[],
   tab: number,
-  setTab: (tab: number) => void,
+  setTab: (tab: number, event: MouseEvent) => void,
   contextMenu?: (
     index: number
   ) => ((event: MouseEvent<HTMLElement>) => void) | undefined

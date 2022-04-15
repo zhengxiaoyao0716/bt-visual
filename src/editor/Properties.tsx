@@ -27,6 +27,7 @@ import { useDragMoving } from "../components/DragMoving";
 import WidthController from "../components/WidthController";
 import Config from "../storage/Config";
 import { TransFunction, useTrans } from "../storage/Locale";
+import { LockerContext } from "./NodeRender/NodeLocker";
 
 type Option =
   | { type: "component"; Component: ComponentType }
@@ -200,6 +201,8 @@ export default function Properties({
 
   const [options, setOptions] = useState(null as Option[] | null);
 
+  const locked = useContext(LockerContext);
+
   return (
     <Box
       sx={{
@@ -207,6 +210,7 @@ export default function Properties({
         overflow: "hidden",
         display: "flex",
         position: "relative",
+        pointerEvents: locked ? "none" : "auto",
       }}
       {...wcProps}
     >

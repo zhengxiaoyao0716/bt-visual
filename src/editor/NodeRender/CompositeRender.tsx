@@ -50,6 +50,7 @@ interface CompositeProps extends SubProps<Composite> {
 
 export default function CompositeRender({
   node,
+  locked,
   config,
   trans,
   btDefine,
@@ -69,6 +70,28 @@ export default function CompositeRender({
   const undoManager = useUndo();
 
   const anchors: { [index: number]: HTMLElement } = useMemo(() => ({}), []);
+  const moveTo = (index: number, moveToIndex: number) => {
+    if (index === moveToIndex) return;
+
+    const node = nodes[index];
+    const action = trans(
+      `Move nodes ${index < moveToIndex ? "left" : "right"}`
+    );
+    const alias = node.alias || trans(node.type);
+    undoManager.execute(`${action} [${alias}]`, (redo) => {
+      const node = nodes.splice(index, 1)[0];
+      nodes.splice(moveToIndex, 0, node);
+      redo || refresh();
+      const anchor = anchors[index];
+      triggerRedrawLines(anchor);
+      return () => {
+        const node = nodes.splice(moveToIndex, 1)[0];
+        nodes.splice(index, 0, node);
+        const anchor = anchors[index];
+        triggerRedrawLines(anchor);
+      };
+    });
+  };
   const onMoved = (index: number, left: number) => {
     if (left === 0) return;
     const anchor = anchors[index];
@@ -79,24 +102,7 @@ export default function CompositeRender({
       left < anchorRect.left
         ? findMoveToNodeIndex(left, 0, index, anchors)
         : findMoveToNodeIndex(left, index, nodes.length, anchors) - 1;
-    if (index === moveToIndex) return;
-
-    const node = nodes[index];
-    const action = trans(
-      `Move nodes ${left < anchorRect.left ? "left" : "right"}`
-    );
-    const alias = node.alias || trans(node.type);
-    undoManager.execute(`${action} [${alias}]`, (redo) => {
-      const node = nodes.splice(index, 1)[0];
-      nodes.splice(moveToIndex, 0, node);
-      redo || refresh();
-      triggerRedrawLines(anchor);
-      return () => {
-        const node = nodes.splice(moveToIndex, 1)[0];
-        nodes.splice(index, 0, node);
-        triggerRedrawLines(anchor);
-      };
-    });
+    moveTo(index, moveToIndex);
   };
   const onSwap = (index: number, swapTo: number) => {
     const anchor = anchors[index];
@@ -203,6 +209,7 @@ export default function CompositeRender({
     triggerRedrawLines(ref.current);
   };
   const selector = useSelector(trans, refresh, paste);
+  const onSelected = selector.onClick.bind(null, { node, remove: removeNodes });
 
   return (
     <CompositeContainer className={lineToParentClass} ref={ref}>
@@ -212,12 +219,13 @@ export default function CompositeRender({
         {...anchorDropProps}
       >
         <NodeSvgRender
+          locked={locked}
           trans={trans}
           btDefine={btDefine}
           type={type}
           size={svgSize}
           fold={node.fold}
-          onClick={selector.onClick.bind(null, node, removeNodes)}
+          onClick={onSelected}
           {...baseProps}
           {...nodeDropProps}
         >
@@ -235,6 +243,7 @@ export default function CompositeRender({
             <AutoRender
               key={index}
               node={node}
+              locked={locked}
               config={config}
               trans={trans}
               btDefine={btDefine}
@@ -279,6 +288,7 @@ export default function CompositeRender({
               }}
             >
               <LineRender
+                locked={locked}
                 index={index}
                 total={nodes.length}
                 anchors={anchors}

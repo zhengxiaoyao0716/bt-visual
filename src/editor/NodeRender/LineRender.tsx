@@ -33,6 +33,7 @@ export const anchorDraggingRef = {
 };
 
 interface Props {
+  locked: boolean;
   index: number;
   total: number;
   width: number;
@@ -44,6 +45,7 @@ interface Props {
   color?: string;
 }
 export default function LineRender({
+  locked,
   index,
   total,
   width,
@@ -121,48 +123,58 @@ export default function LineRender({
     };
   }, [ref.current]);
 
-  const onDragStart = (event: DragEvent) => {
-    const anchor = ref.current;
-    if (anchor == null) return;
-    const root = findLineRoot(anchor, anchor);
-    if (root == null) return;
-    anchor.parentElement?.classList.add(disableDropClass); // 屏蔽 anchor 同一树上的拖放
-    root.classList.add("active");
-    anchorDraggingRef.current = draggingRef;
+  const onDragStart = locked
+    ? undefined
+    : (event: DragEvent) => {
+        const anchor = ref.current;
+        if (anchor == null) return;
+        const root = findLineRoot(anchor, anchor);
+        if (root == null) return;
+        anchor.parentElement?.classList.add(disableDropClass); // 屏蔽 anchor 同一树上的拖放
+        root.classList.add("active");
+        anchorDraggingRef.current = draggingRef;
 
-    event.dataTransfer.setData(
-      "application/json",
-      JSON.stringify({ anchor: index })
-    );
-  };
+        event.dataTransfer.setData(
+          "application/json",
+          JSON.stringify({ anchor: index })
+        );
+      };
 
-  const onDragEnd = (_event: DragEvent) => {
-    const anchor = ref.current;
-    if (anchor == null) return;
-    const root = findLineRoot(anchor, anchor);
-    if (root == null) return;
-    anchorDraggingRef.current = null;
-    anchor.parentElement?.classList.remove(disableDropClass); // 解除 anchor 同一树上的屏蔽
-    root.classList.remove("active");
-  };
+  const onDragEnd = locked
+    ? undefined
+    : (_event: DragEvent) => {
+        const anchor = ref.current;
+        if (anchor == null) return;
+        const root = findLineRoot(anchor, anchor);
+        if (root == null) return;
+        anchorDraggingRef.current = null;
+        anchor.parentElement?.classList.remove(disableDropClass); // 解除 anchor 同一树上的屏蔽
+        root.classList.remove("active");
+      };
 
-  const onDragOver = (event: DragEvent) => {
-    const anchor = ref.current;
-    if (anchor == null) return;
-    const root = findLineRoot(anchor, anchor);
-    if (root == null || !root.classList.contains("active")) return;
-    event.dataTransfer.dropEffect = "link";
-    event.preventDefault();
-  };
+  const onDragOver = locked
+    ? undefined
+    : (event: DragEvent) => {
+        const anchor = ref.current;
+        if (anchor == null) return;
+        const root = findLineRoot(anchor, anchor);
+        if (root == null || !root.classList.contains("active")) return;
+        event.dataTransfer.dropEffect = "link";
+        event.preventDefault();
+      };
 
-  const onDrop = (event: DragEvent) => {
-    event.preventDefault();
-    const data = JSON.parse(
-      event.dataTransfer.getData("application/json") || "{}"
-    );
-    const anchorIndex = data.anchor as undefined | number;
-    anchorIndex == null || index === anchorIndex || onSwrap(anchorIndex, index);
-  };
+  const onDrop = locked
+    ? undefined
+    : (event: DragEvent) => {
+        event.preventDefault();
+        const data = JSON.parse(
+          event.dataTransfer.getData("application/json") || "{}"
+        );
+        const anchorIndex = data.anchor as undefined | number;
+        anchorIndex == null ||
+          index === anchorIndex ||
+          onSwrap(anchorIndex, index);
+      };
 
   return (
     <Anchor

@@ -13,6 +13,7 @@ const ActionCard = styled.div`
 
 export default function ActionRender({
   node,
+  locked,
   trans,
   btDefine,
   children,
@@ -23,15 +24,17 @@ export default function ActionRender({
   const nodeDropProps = createNodeDropProps({ prependDecorator });
   const [, refresh] = useRefresh();
   const selector = useSelector(trans, refresh);
+  const selected = selector.onClick.bind(null, { node, remove: removeNodes });
 
   return (
     <ActionCard title={btDefine?.Action[node.type]?.desc || trans(node.type)}>
       <NodeSvgRender
+        locked={locked}
         trans={trans}
         btDefine={btDefine}
         type={node.type}
         size={{ width: 120, height: 90 }}
-        onClick={selector.onClick.bind(null, node, removeNodes)}
+        onClick={selected}
         {...baseProps}
         {...nodeDropProps}
       >

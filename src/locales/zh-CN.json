@@ -30,7 +30,13 @@
   "Confirm to remove the item?": "确定删除该条目？",
 
   "// 编辑器页面": "",
+  "Lock Editor": "锁定编辑器",
+  "Unlock Editor": "解锁编辑器",
+  "Editor locked": "编辑器已锁定",
+  "Editor unlocked": "编辑器已解锁",
   "Reset View": "重置视图",
+  "Fullscreen": "全屏",
+  "Exit Fullscreen": "退出全屏",
   "Create Tree": "新建行为树",
   "Remove Tree": "删除行为树",
   "Confirm to remove the tree?": "确定删除该行为树？",

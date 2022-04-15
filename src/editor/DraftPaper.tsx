@@ -1,14 +1,18 @@
 import styled from "@emotion/styled";
 import CenterFocusWeakIcon from "@mui/icons-material/CenterFocusWeak";
+import FullscreenIcon from "@mui/icons-material/Fullscreen";
+import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
 import IconButton from "@mui/material/IconButton";
 import { MouseEvent, useEffect, useRef, useState, WheelEvent } from "react";
 
 import { useDragMoving } from "../components/DragMoving";
+import Fullscreen from "../components/Fullscreen";
 import ToolBarSlot from "../components/ToolBarSlot";
 import Config from "../storage/Config";
 import { useTrans } from "../storage/Locale";
 
 interface Props {
+  readonly?: true;
   children?: JSX.Element;
 }
 
@@ -40,7 +44,7 @@ const Paper = styled.div`
   user-select: none;
 `;
 
-export default function DraftPaper({ children }: Props) {
+export default function DraftPaper({ readonly, children }: Props) {
   const config = Config.use();
   const trans = useTrans();
   if (config?.value == null) return null; // never
@@ -97,16 +101,28 @@ export default function DraftPaper({ children }: Props) {
       });
     };
 
-    toolBarSlot("Editor", "Paper", 2, [
+    const toolBarType = readonly ? "Editor/Readonly" : "Editor";
+    toolBarSlot(toolBarType, "Paper", 2, [
       <IconButton
         color="inherit"
         title={`${trans("Reset View")}`}
         onClick={resetView}
       >
-        <CenterFocusWeakIcon />
+        <CenterFocusWeakIcon sx={{ transform: "scale(0.8)" }} />
       </IconButton>,
+      <Fullscreen>
+        {(fullscreen, troggle) => (
+          <IconButton
+            color="inherit"
+            title={`${trans(fullscreen ? "Exit Fullscreen" : "Fullscreen")}`}
+            onClick={troggle}
+          >
+            {fullscreen ? <FullscreenExitIcon /> : <FullscreenIcon />}
+          </IconButton>
+        )}
+      </Fullscreen>,
     ]);
-  }, []);
+  }, [readonly]);
 
   return (
     <Container

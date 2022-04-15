@@ -1,4 +1,5 @@
 import styled from "@emotion/styled";
+import { useContext } from "react";
 
 import type { Composite, Decorator, Node } from "../../behavior-tree/type";
 import { getNodeType } from "../../behavior-tree/utils";
@@ -8,6 +9,7 @@ import { useUndo } from "../Undo";
 import ActionRender from "./ActionRender";
 import CompositeRender from "./CompositeRender";
 import DecoratorRender from "./DecoratorRender";
+import { LockerContext } from "./NodeLocker";
 import NodeSvgRender, { Props, SubProps } from "./NodeSvgRender";
 
 const RootContainer = styled.div`
@@ -19,7 +21,7 @@ export default function NodeRender({
   tree,
   trans,
   ...props
-}: Props & { tree: { root: Node } }) {
+}: Omit<Props, "locked"> & { tree: { root: Node } }) {
   const [, refresh] = useRefresh();
 
   const undoManager = useUndo();
@@ -54,10 +56,14 @@ export default function NodeRender({
       };
     });
   };
+
+  const locked = useContext(LockerContext);
+
   return (
     <RootContainer>
       <AutoRender
         node={tree.root}
+        locked={locked}
         trans={trans}
         prependDecorator={prependDecorator}
         removeNodes={removeNodes}
@@ -69,58 +75,34 @@ export default function NodeRender({
 
 export function AutoRender<N extends Node>({
   node,
-  config,
-  trans,
-  btDefine,
-  prependDecorator,
-  removeNodes,
   children,
+  ...props
 }: SubProps<N>) {
   switch (getNodeType(node.type)) {
     case "Composite":
       return (
-        <CompositeRender
-          node={node as unknown as Composite}
-          config={config}
-          trans={trans}
-          btDefine={btDefine}
-          prependDecorator={prependDecorator}
-          removeNodes={removeNodes}
-        >
+        <CompositeRender node={node as unknown as Composite} {...props}>
           {children}
         </CompositeRender>
       );
     case "Decorator":
       return (
-        <DecoratorRender
-          node={node as unknown as Decorator}
-          config={config}
-          trans={trans}
-          btDefine={btDefine}
-          prependDecorator={prependDecorator}
-          removeNodes={removeNodes}
-        >
+        <DecoratorRender node={node as unknown as Decorator} {...props}>
           {children}
         </DecoratorRender>
       );
     case "Action":
       return (
-        <ActionRender
-          node={node}
-          config={config}
-          trans={trans}
-          btDefine={btDefine}
-          prependDecorator={prependDecorator}
-          removeNodes={removeNodes}
-        >
+        <ActionRender node={node} {...props}>
           {children}
         </ActionRender>
       );
     default:
       return (
         <NodeSvgRender
-          trans={trans}
-          btDefine={btDefine}
+          locked={props.locked}
+          trans={props.trans}
+          btDefine={props.btDefine}
           type="unknown"
           size={{ width: 100, height: 50 }}
           status="failure"

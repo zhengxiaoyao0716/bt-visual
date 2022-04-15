@@ -210,6 +210,7 @@ function NodeLib({ config, trans, define, keyword, type }: NodeLibProps) {
             {...createDragNodeProps(type, node)}
           >
             <NodeSvgRender
+              locked={true}
               trans={trans}
               btDefine={define.value}
               type={node.type}
