@@ -18,13 +18,13 @@ export default function ActionRender({
   btDefine,
   children,
   prependDecorator,
-  removeNodes,
+  deliverParent,
   ...baseProps
 }: SubProps<Action>) {
   const nodeDropProps = createNodeDropProps({ prependDecorator });
   const [, refresh] = useRefresh();
-  const selector = useSelector(trans, refresh);
-  const selected = selector.onClick.bind(null, { node, remove: removeNodes });
+  const selector = useSelector(deliverParent, trans, refresh);
+  const selected = selector.onClick.bind(null, node);
 
   return (
     <ActionCard title={btDefine?.Action[node.type]?.desc || trans(node.type)}>

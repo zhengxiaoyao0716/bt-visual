@@ -148,7 +148,7 @@ function RenderOption({
   }
 }
 
-const PropertiesContext = createContext(
+export const PropertiesContext = createContext(
   null as {
     setOptions: (options: Option[] | null) => void;
   } | null
@@ -383,7 +383,6 @@ export function nodeItemOption(
   const desc = item.desc || name;
   const submit = (value: string) => {
     node[name] = value;
-    console.log(node, value);
   };
   // TODO 根据类型定义不同的输入方式
   switch (item.type) {

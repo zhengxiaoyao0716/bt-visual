@@ -9,10 +9,16 @@ import {
 import rough from "roughjs";
 
 import { BTDefines } from "../../behavior-tree/Define";
-import type { Composite, Decorator, Node } from "../../behavior-tree/type";
+import type {
+  Composite,
+  Decorator,
+  Node,
+  Tree,
+} from "../../behavior-tree/type";
 import { getNodeType } from "../../behavior-tree/utils";
 import Config from "../../storage/Config";
 import { TransFunction } from "../../storage/Locale";
+import { DeliverParent } from "../NodeSelector";
 import { triggerRedrawLines } from "./LineRender";
 
 const statusMapper = {
@@ -59,13 +65,14 @@ export interface Props {
 
 export type SubProps<N extends Node> = Props & {
   node: N;
-  removeNodes(onlyDecorator?: true): void;
   prependDecorator(type: string): void;
+  deliverParent: DeliverParent;
   status?: keyof typeof statusMapper;
 };
 
 export function troggleNodeFoldHandler(
   node: Composite | Decorator,
+  onSelect: (node: Composite | Decorator) => void,
   refresh: () => void
 ) {
   const handler: MouseEventHandler = (event) => {
@@ -74,6 +81,7 @@ export function troggleNodeFoldHandler(
     refresh();
     if (node.fold) delete node.fold;
     else node.fold = true;
+    onSelect(node);
     triggerRedrawLines(event.currentTarget);
   };
   return handler;
@@ -183,7 +191,7 @@ export default function NodeSvgRender({
       version="1.1"
       width={size.width}
       height={size.height}
-      onClick={locked ? undefined : onClick}
+      onClick={onClick}
       onDragOver={locked ? undefined : onDragOver}
       onDrop={locked ? undefined : onDrop}
     >

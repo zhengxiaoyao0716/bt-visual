@@ -42,23 +42,21 @@ function ForestRender() {
   };
 
   return (
-    <BTDefine>
-      <Snack>
-        <NodeLibs>
-          <Forest>
-            {(forest) =>
-              invalid(forest) ? null : (
-                <Workerspace
-                  forest={forest}
-                  treeIndex={treeIndex}
-                  showTree={showTree}
-                />
-              )
-            }
-          </Forest>
-        </NodeLibs>
-      </Snack>
-    </BTDefine>
+    <Snack>
+      <NodeLibs>
+        <Forest>
+          {(forest) =>
+            invalid(forest) ? null : (
+              <Workerspace
+                forest={forest}
+                treeIndex={treeIndex}
+                showTree={showTree}
+              />
+            )
+          }
+        </Forest>
+      </NodeLibs>
+    </Snack>
   );
 }
 
@@ -71,21 +69,23 @@ function ReadonlyForestRender() {
   const trans = useTrans();
 
   return (
-    <Forest>
-      {(forest) => {
-        const tree = forest?.value?.trees?.[treeIndex];
-        return tree == null ? null : (
-          <LockerContext.Provider value={true}>
-            <TreeRender
-              tree={tree}
-              config={config}
-              trans={trans}
-              readonly={true}
-            />
-          </LockerContext.Provider>
-        );
-      }}
-    </Forest>
+    <Snack>
+      <Forest>
+        {(forest) => {
+          const tree = forest?.value?.trees?.[treeIndex];
+          return tree == null ? null : (
+            <LockerContext.Provider value={true}>
+              <TreeRender
+                tree={tree}
+                config={config}
+                trans={trans}
+                readonly={true}
+              />
+            </LockerContext.Provider>
+          );
+        }}
+      </Forest>
+    </Snack>
   );
 }
 
@@ -101,14 +101,16 @@ function WorkspaceRender() {
 
 export default function Editor() {
   return (
-    <Routes>
-      <Route path={"/"} element={<WorkspaceRender />} />
-      <Route
-        path={`/readonly/:forest/:tree`}
-        element={<ReadonlyForestRender />}
-      />
-      <Route path={`/:forest/:tree`} element={<ForestRender />} />
-    </Routes>
+    <BTDefine>
+      <Routes>
+        <Route path={"/"} element={<WorkspaceRender />} />
+        <Route
+          path={`/readonly/:forest/:tree`}
+          element={<ReadonlyForestRender />}
+        />
+        <Route path={`/:forest/:tree`} element={<ForestRender />} />
+      </Routes>
+    </BTDefine>
   );
 }
 Editor.route = "/editor";

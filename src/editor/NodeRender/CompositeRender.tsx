@@ -10,8 +10,8 @@ import type {
 } from "../../behavior-tree/type";
 import { useRefresh } from "../../components/Refresh";
 import { createAnchorDropProps, createNodeDropProps } from "../NodeDrop";
-import { useSelector } from "../NodeSelector";
-import { useUndo } from "../Undo";
+import { DeliverParent, useSelector } from "../NodeSelector";
+import Undo from "../Undo";
 import LineRender, {
   disableDropClass,
   DraggingData,
@@ -56,7 +56,7 @@ export default function CompositeRender({
   btDefine,
   children,
   prependDecorator,
-  removeNodes,
+  deliverParent,
   ...baseProps
 }: CompositeProps) {
   if (config?.value == null) return null; // never
@@ -66,8 +66,7 @@ export default function CompositeRender({
   const { type, nodes } = node;
 
   const [, refresh] = useRefresh();
-  const foldHandler = troggleNodeFoldHandler(node, refresh);
-  const undoManager = useUndo();
+  const undoManager = Undo.use();
 
   const anchors: { [index: number]: HTMLElement } = useMemo(() => ({}), []);
   const moveTo = (index: number, moveToIndex: number) => {
@@ -194,22 +193,18 @@ export default function CompositeRender({
         prependDecorator,
       });
 
-  const paste = (node: Node) => {
-    const action = trans("Paste Nodes");
-    const alias = node.alias || trans(node.type);
-    undoManager.execute(`${action} [${alias}]`, (redo) => {
-      nodes.push(node);
-      redo || refresh();
+  const selector = useSelector(deliverParent, trans, refresh);
+  const onSelected = selector.onClick.bind(null, node);
+
+  const deliverSelf: DeliverParent = {
+    composite: node,
+    refresh,
+    redrawLines() {
       triggerRedrawLines(ref.current);
-      return () => {
-        nodes.pop();
-        triggerRedrawLines(ref.current);
-      };
-    });
-    triggerRedrawLines(ref.current);
+    },
   };
-  const selector = useSelector(trans, refresh, paste);
-  const onSelected = selector.onClick.bind(null, { node, remove: removeNodes });
+
+  const foldHandler = troggleNodeFoldHandler(node, selector.select, refresh);
 
   return (
     <CompositeContainer className={lineToParentClass} ref={ref}>
@@ -261,31 +256,7 @@ export default function CompositeRender({
                   };
                 });
               }}
-              removeNodes={(onlyDecorator) => {
-                const action = trans("Remove Nodes");
-                const alias = node.alias || trans(node.type);
-                undoManager.execute(`${action} [${alias}]`, (redo) => {
-                  if (onlyDecorator) {
-                    const decorator = nodes[index] as Decorator;
-                    const node = (decorator as Decorator).node;
-                    nodes[index] = node;
-                    redo || refresh();
-                    triggerRedrawLines(ref.current);
-                    return () => {
-                      nodes[index] = decorator;
-                      triggerRedrawLines(ref.current);
-                    };
-                  } else {
-                    const node = nodes.splice(index, 1)[0];
-                    redo || refresh();
-                    triggerRedrawLines(ref.current);
-                    return () => {
-                      nodes.splice(index, 0, node);
-                      triggerRedrawLines(ref.current);
-                    };
-                  }
-                });
-              }}
+              deliverParent={deliverSelf}
             >
               <LineRender
                 locked={locked}

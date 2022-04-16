@@ -39,7 +39,7 @@ export function clearStacks() {
   }
 }
 
-interface UndoManager {
+export interface UndoManager {
   execute(desc: string, task: (redo: boolean) => () => void): void;
   refresh(): void;
 }
@@ -221,7 +221,7 @@ export default function Undo({
           try {
             undo();
           } catch (e) {
-            console.log(
+            console.error(
               `undo task failed: ${e}, id: ${id}, desc: ${desc}, task: ${task}`
             );
             // 出现异常，立刻清空 undo 堆栈，防止异常堆积导致不可挽回
@@ -233,7 +233,7 @@ export default function Undo({
         undoTask.desc = desc;
         return undoTask as Task;
       } catch (e) {
-        console.log(
+        console.error(
           `execute task failed: ${e}, id: ${id}, desc: ${desc}, task: ${task}`
         );
         // 出现异常，立刻清空 undo 堆栈，防止异常堆积导致不可挽回
@@ -264,6 +264,4 @@ export default function Undo({
   );
 }
 
-export function useUndo(): UndoManager {
-  return useContext(UndoContext) as UndoManager;
-}
+Undo.use = (): UndoManager => useContext(UndoContext) as UndoManager;

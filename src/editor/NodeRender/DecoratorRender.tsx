@@ -7,7 +7,7 @@ import { getNodeType } from "../../behavior-tree/utils";
 import { useRefresh } from "../../components/Refresh";
 import { createNodeDropProps } from "../NodeDrop";
 import { useSelector } from "../NodeSelector";
-import { useUndo } from "../Undo";
+import Undo from "../Undo";
 import { triggerRedrawLines } from "./LineRender";
 import NodeSvgRender, {
   SubProps,
@@ -48,18 +48,16 @@ export default function DecoratorRender({
   btDefine,
   children,
   prependDecorator,
-  removeNodes,
+  deliverParent,
   ...baseProps
 }: SubProps<Decorator>) {
   const [, refresh] = useRefresh();
-  const foldHandler = troggleNodeFoldHandler(node, refresh);
 
   const ref = useRef<HTMLDivElement>(null);
   let decorators = [];
   let iter = node;
   let prepend = prependDecorator;
-  let remove = removeNodes.bind(null, true);
-  const undoManager = useUndo();
+  const undoManager = Undo.use();
   while (iter) {
     const iterFinal = iter;
     const appendComposite = (type: string) => {
@@ -93,32 +91,13 @@ export default function DecoratorRender({
         };
       });
     };
-    const removeNodes = remove;
-    remove = () => {
-      const action = trans("Remove Nodes");
-      const decorator = iterFinal.node as Decorator;
-      const alias = decorator.alias || trans(decorator.type);
-      undoManager.execute(`${action} [${alias}]`, (redo) => {
-        iterFinal.node = decorator.node;
-        redo || refresh();
-        triggerRedrawLines(ref.current);
-        return () => {
-          iterFinal.node = decorator;
-          triggerRedrawLines(ref.current);
-        };
-      });
-    };
-    decorators.push([
-      iterFinal,
-      appendComposite,
-      prependDecorator,
-      removeNodes,
-    ] as const);
+    decorators.push([iterFinal, appendComposite, prependDecorator] as const);
     if (getNodeType(iterFinal.node.type) !== "Decorator") break;
     iter = iter.node as Decorator;
   }
 
-  const selector = useSelector(trans, refresh);
+  const selector = useSelector(deliverParent, trans, refresh);
+  const foldHandler = troggleNodeFoldHandler(node, selector.select, refresh);
 
   return (
     <DecoratorContainer ref={ref}>
@@ -140,7 +119,7 @@ export default function DecoratorRender({
           ))}
         </DecoratorCard>
       ) : (
-        decorators.map(([node, append, prepend, remove], index) => (
+        decorators.map(([node, append, prepend], index) => (
           <DecoratorCard
             key={index}
             title={btDefine?.Decorator[node.type]?.desc || trans(node.type)}
@@ -152,7 +131,7 @@ export default function DecoratorRender({
               btDefine={btDefine}
               type={node.type}
               size={{ width: 150, height: 60 }}
-              onClick={selector.onClick.bind(null, { node, remove })}
+              onClick={selector.onClick.bind(null, node)}
               {...baseProps}
               {...createNodeDropProps({
                 appendComposite: append,
@@ -172,7 +151,7 @@ export default function DecoratorRender({
           btDefine={btDefine}
           {...baseProps}
           prependDecorator={prepend}
-          removeNodes={removeNodes}
+          deliverParent={deliverParent}
         />
       </DecoratorNode>
       {children}

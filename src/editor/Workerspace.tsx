@@ -28,7 +28,6 @@ import Config from "../storage/Config";
 import { useTrans } from "../storage/Locale";
 import { ContextValue } from "../storage/Storage";
 import { LockerContext, useLocker } from "./NodeRender/NodeLocker";
-import NodeSelector from "./NodeSelector";
 import Properties, { PropertiesOption } from "./Properties";
 import TreeRender from "./TreeRender";
 import Undo from "./Undo";
@@ -340,9 +339,7 @@ export default function Workspace({
       <LockerContext.Provider value={Locker.locked}>
         <Properties options={treeOptions}>
           <Undo id={`${name}[${treeIndex}]`} trans={trans}>
-            <NodeSelector>
-              <TreeRender tree={tree} config={config} trans={trans} />
-            </NodeSelector>
+            <TreeRender tree={tree} config={config} trans={trans} />
           </Undo>
         </Properties>
       </LockerContext.Provider>

@@ -1,4 +1,4 @@
-interface Hotkey {
+export interface Hotkey {
   ctrlKey?: boolean;
   shiftKey?: boolean;
   code: "Delete" | "KeyZ" | "KeyY" | "KeyD" | "KeyC" | "KeyV" | "KeyS" | "KeyL";

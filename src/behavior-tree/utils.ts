@@ -16,3 +16,5 @@ export function getNodeType(type: string): NodeType {
   const key = char as keyof typeof nodeTypeDict;
   return nodeTypeDict[key] as NodeType;
 }
+
+export const EMPTY_NODE = { type: "Unknown" };

@@ -1,11 +1,16 @@
 import styled from "@emotion/styled";
 import { useContext } from "react";
 
-import type { Composite, Decorator, Node } from "../../behavior-tree/type";
+import type {
+  Composite,
+  Decorator,
+  Node,
+  Tree,
+} from "../../behavior-tree/type";
 import { getNodeType } from "../../behavior-tree/utils";
 import { useRefresh } from "../../components/Refresh";
 import Snack from "../../components/Snack";
-import { useUndo } from "../Undo";
+import Undo from "../Undo";
 import ActionRender from "./ActionRender";
 import CompositeRender from "./CompositeRender";
 import DecoratorRender from "./DecoratorRender";
@@ -21,10 +26,10 @@ export default function NodeRender({
   tree,
   trans,
   ...props
-}: Omit<Props, "locked"> & { tree: { root: Node } }) {
+}: Omit<Props, "locked"> & { tree: Tree }) {
   const [, refresh] = useRefresh();
 
-  const undoManager = useUndo();
+  const undoManager = Undo.use();
   const prependDecorator = (type: string) => {
     const nodeOld = tree.root;
     const nodeNew = { type, node: nodeOld } as Decorator;
@@ -40,22 +45,6 @@ export default function NodeRender({
   };
 
   const snack = Snack.use();
-  const removeNodes = (onlyDecorator?: boolean) => {
-    if (!onlyDecorator) {
-      snack.show(trans("The root node is forbidden to be removed"));
-      return;
-    }
-    const decorator = tree.root as Decorator;
-    const action = trans("Remove Nodes");
-    const alias = decorator.alias || trans(decorator.type);
-    undoManager.execute(`${action} [${alias}]`, (redo) => {
-      tree.root = decorator.node;
-      redo || refresh();
-      return () => {
-        tree.root = decorator;
-      };
-    });
-  };
 
   const locked = useContext(LockerContext);
 
@@ -66,7 +55,7 @@ export default function NodeRender({
         locked={locked}
         trans={trans}
         prependDecorator={prependDecorator}
-        removeNodes={removeNodes}
+        deliverParent={{ tree, refresh }}
         {...props}
       />
     </RootContainer>

@@ -57,7 +57,7 @@ export function useTrans(): TransFunction {
       if (replaces == null) return translated;
       for (const key in replaces) {
         const value = replaces[key];
-        translated.replace(`\${${key}}`, value);
+        translated = translated.replace(`\${${key}}`, value);
       }
       // translated.replace
       return translated;
