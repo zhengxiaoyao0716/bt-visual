@@ -1,9 +1,14 @@
+import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
+import ArrowDropUpIcon from "@mui/icons-material/ArrowDropUp";
+import ArrowLeftIcon from "@mui/icons-material/ArrowLeft";
+import ArrowRightIcon from "@mui/icons-material/ArrowRight";
 import CloseIcon from "@mui/icons-material/Close";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import ContentPasteIcon from "@mui/icons-material/ContentPaste";
 import ContentPasteOffIcon from "@mui/icons-material/ContentPasteOff";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import Box from "@mui/material/Box";
+import Divider from "@mui/material/Divider";
 import IconButton from "@mui/material/IconButton";
 import Typography from "@mui/material/Typography";
 import {
@@ -26,7 +31,7 @@ import {
 } from "../behavior-tree/type";
 import { EMPTY_NODE, getNodeType } from "../behavior-tree/utils";
 import clipboard from "../components/clipboard";
-import { addHotkeyListener, Hotkey } from "../components/Hotkey";
+import { addHotkeyListener } from "../components/Hotkey";
 import { useRefresh } from "../components/Refresh";
 import Snack from "../components/Snack";
 import { TransFunction, useTrans } from "../storage/Locale";
@@ -50,6 +55,10 @@ interface Selector {
   refresh(): void;
   copy?: () => void;
   paste?: () => void;
+  moveUp?: () => void;
+  moveDown?: () => void;
+  moveLeft?: () => void;
+  moveRight?: () => void;
   remove?: () => void;
 }
 
@@ -131,6 +140,51 @@ function getSelectedAlias(trans: TransFunction, selector: Selector): string {
   return getNodesAlias(trans, selNum, first, last);
 }
 
+function getMoveArgs(selector: Selector | undefined): {
+  up?: Decorator;
+  down?: Decorator;
+  index?: number;
+  nodes?: Node[];
+} {
+  const selected = selector?.selected;
+  if (selected == null || selected.length !== 1) return {};
+  const { parent, node } = selected[0];
+  const nodeType = getNodeType(node.type);
+  if ("tree" in parent) {
+    if (nodeType !== "Decorator") return {};
+    // 根节点下的装饰器
+    const target = node as Decorator;
+    const up =
+      parent.tree.root === target
+        ? undefined
+        : findDirectlyDecorator(parent.tree.root, target) || undefined;
+    const down =
+      getNodeType(target.node.type) === "Decorator"
+        ? (target.node as Decorator)
+        : undefined;
+    return { up, down };
+  }
+  const { nodes } = parent.composite;
+  // 其他非装饰器节点
+  if (nodeType !== "Decorator") {
+    if (nodes.length <= 1) return {};
+    const [index] = findPosition(parent.composite, node);
+    if (index == null) return {};
+    return { index, nodes };
+  }
+  // 其他装饰器节点
+  const target = node as Decorator;
+  const [index, decorator] = findPosition(parent.composite, node);
+  if (index == null) return {};
+  const top = nodes[index];
+  const up = top === target ? undefined : decorator || undefined;
+  const down =
+    getNodeType(target.node.type) === "Decorator"
+      ? (target.node as Decorator)
+      : undefined;
+  return { up, down };
+}
+
 function NodeMenus({
   containerRef,
   hidePropsEditor,
@@ -150,6 +204,11 @@ function NodeMenus({
   const removeDesc = trans("Remove Nodes");
   const copyDesc = trans("Copy Nodes");
 
+  const moveUpDesc = trans("Move node up");
+  const moveDownDesc = trans("Move node down");
+  const moveLeftDesc = trans("Move nodes left");
+  const moveRightDesc = trans("Move nodes right");
+
   useEffect(() => {
     if (selector == null) return;
     selector.refresh = refresh;
@@ -160,167 +219,354 @@ function NodeMenus({
       await clipboard.write("nodes", nodes);
       selector.refresh();
     };
+    const removeCopyHotkey = addHotkeyListener({
+      code: "KeyC",
+      ctrlKey: true,
+      callback: selector.copy,
+    });
 
-    selector.paste = locked
-      ? undefined
-      : async () => {
-          const copied: Node[] | null = await clipboard.read("nodes");
-          if (copied == null) return;
-          if (selector == null || selector.selected.length <= 0) return;
-          if (selector.selected.length > 1) return;
-          const { parent, node } = selector.selected[0];
-          const canPaste = getNodeType(node.type) === "Composite";
-          if (!canPaste) return;
-          if ("fold" in node && (node as { fold?: true }).fold) return;
-          selector.refresh();
-          const alias = getNodesAlias(
-            trans,
-            copied.length,
-            copied[0],
-            copied[copied.length - 1]
-          );
-          const { nodes } = node as Composite;
-          undoManager.execute(`${copyDesc} [${alias}]`, (redo) => {
-            nodes.push(...copied);
-            redo || ("refresh" in parent && parent.refresh());
-            "redrawLines" in parent && parent.redrawLines();
+    if (locked) {
+      selector.paste = () => {};
+      selector.remove = () => {};
+      return () => {
+        selector.refresh = () => {};
+        selector.copy = () => {};
+        removeCopyHotkey();
+      };
+    }
+
+    selector.paste = async () => {
+      const copied: Node[] | null = await clipboard.read("nodes");
+      if (copied == null) return;
+      if (selector == null || selector.selected.length <= 0) return;
+      if (selector.selected.length > 1) return;
+      const { parent, node } = selector.selected[0];
+      const canPaste = getNodeType(node.type) === "Composite";
+      if (!canPaste) return;
+      if ("fold" in node && (node as { fold?: true }).fold) return;
+      selector.refresh();
+      const alias = getNodesAlias(
+        trans,
+        copied.length,
+        copied[0],
+        copied[copied.length - 1]
+      );
+      const { nodes } = node as Composite;
+      undoManager.execute(`${copyDesc} [${alias}]`, (redo) => {
+        nodes.push(...copied);
+        redo || ("refresh" in parent && parent.refresh());
+        "redrawLines" in parent && parent.redrawLines();
+        return () => {
+          nodes.splice(nodes.length - copied.length, copied.length);
+          "refresh" in parent && parent.refresh();
+          "redrawLines" in parent && parent.redrawLines();
+        };
+      });
+      hidePropsEditor();
+    };
+
+    selector.remove = () => {
+      if (selector == null || selector.selected.length <= 0) return;
+
+      const tasks: (() => () => void)[] = [];
+      const parents: Set<DeliverParent> = new Set([]);
+      for (const { parent, node } of selector.selected) {
+        parents.add(parent);
+        const nodeType = getNodeType(node.type);
+        if ("tree" in parent) {
+          // 禁止删除 root 下的非装饰器节点
+          if (nodeType !== "Decorator") {
+            showSnack(trans("The root node is forbidden to be removed"));
+            return;
+          }
+          const target = node as Decorator;
+          const { tree } = parent;
+          tasks.push(() => {
+            if (tree.root === target) {
+              tree.root = target.node;
+              target.node = EMPTY_NODE;
+              return () => {
+                target.node = tree.root;
+                tree.root = target;
+              };
+            }
+            const decorator = findDirectlyDecorator(tree.root, target);
+            if (decorator == null) return () => {};
+            decorator.node = target.node;
+            target.node = EMPTY_NODE;
             return () => {
-              nodes.splice(nodes.length - copied.length, copied.length);
-              "refresh" in parent && parent.refresh();
-              "redrawLines" in parent && parent.redrawLines();
+              target.node = decorator.node;
+              decorator.node = target;
             };
           });
-          hidePropsEditor();
-        };
-
-    selector.remove = locked
-      ? undefined
-      : () => {
-          if (selector == null || selector.selected.length <= 0) return;
-
-          const tasks: (() => () => void)[] = [];
-          const parents: Set<DeliverParent> = new Set([]);
-          for (const { parent, node } of selector.selected) {
-            parents.add(parent);
-            const nodeType = getNodeType(node.type);
-            if ("tree" in parent) {
-              // 禁止删除 root 下的非装饰器节点
-              if (nodeType !== "Decorator") {
-                showSnack(trans("The root node is forbidden to be removed"));
-                return;
-              }
-              const target = node as Decorator;
-              const { tree } = parent;
-              tasks.push(() => {
-                if (tree.root === target) {
-                  tree.root = target.node;
-                  target.node = EMPTY_NODE;
-                  return () => {
-                    target.node = tree.root;
-                    tree.root = target;
-                  };
-                }
-                const decorator = findDirectlyDecorator(tree.root, target);
-                if (decorator == null) return () => {};
+        } else {
+          const { composite } = parent;
+          if (nodeType === "Decorator") {
+            const target = node as Decorator;
+            tasks.push(() => {
+              const [index, decorator] = findPosition(composite, target);
+              if (index == null) return () => {};
+              if (decorator == null) {
+                composite.nodes[index] = target.node;
+                target.node = EMPTY_NODE;
+                return () => {
+                  target.node = composite.nodes[index];
+                  composite.nodes[index] = target;
+                };
+              } else {
                 decorator.node = target.node;
                 target.node = EMPTY_NODE;
                 return () => {
                   target.node = decorator.node;
                   decorator.node = target;
                 };
-              });
-            } else {
-              const { composite } = parent;
-              if (nodeType === "Decorator") {
-                const target = node as Decorator;
-                tasks.push(() => {
-                  const [index, decorator] = findPosition(composite, target);
-                  if (index == null) return () => {};
-                  if (decorator == null) {
-                    composite.nodes[index] = target.node;
-                    target.node = EMPTY_NODE;
-                    return () => {
-                      target.node = composite.nodes[index];
-                      composite.nodes[index] = target;
-                    };
-                  } else {
-                    decorator.node = target.node;
-                    target.node = EMPTY_NODE;
-                    return () => {
-                      target.node = decorator.node;
-                      decorator.node = target;
-                    };
-                  }
-                });
-              } else {
-                const target = node;
-                tasks.push(() => {
-                  const [index] = findPosition(composite, target);
-                  if (index == null) return () => {};
-                  const node = composite.nodes.splice(index, 1)[0];
-                  return () => {
-                    composite.nodes.splice(index, 0, node);
-                  };
-                });
               }
-            }
-          }
-          if (tasks.length <= 0) return;
-          const alias = getSelectedAlias(trans, selector);
-          const refresh = (redo: boolean) => {
-            parents.forEach((parent: DeliverParent) => {
-              if ("tree" in parent) return;
-              const { refresh, redrawLines } = parent;
-              redo || refresh();
-              redrawLines();
             });
-          };
-          undoManager.execute(`${removeDesc} [${alias}]`, (redo) => {
-            const undoTasks = tasks.map((task) => task());
-            refresh(redo);
-            return () => {
-              undoTasks.reverse().forEach((task) => task());
-              refresh(false);
-            };
-          });
-          hidePropsEditor();
-          selector.selected = [];
-          selector.refresh();
+          } else {
+            const target = node;
+            tasks.push(() => {
+              const [index] = findPosition(composite, target);
+              if (index == null) return () => {};
+              const node = composite.nodes.splice(index, 1)[0];
+              return () => {
+                composite.nodes.splice(index, 0, node);
+              };
+            });
+          }
+        }
+      }
+      if (tasks.length <= 0) return;
+      const alias = getSelectedAlias(trans, selector);
+      const refresh = (redo: boolean) => {
+        parents.forEach((parent: DeliverParent) => {
+          if ("tree" in parent) return;
+          const { refresh, redrawLines } = parent;
+          redo || refresh();
+          redrawLines();
+        });
+      };
+      undoManager.execute(`${removeDesc} [${alias}]`, (redo) => {
+        const undoTasks = tasks.map((task) => task());
+        refresh(redo);
+        return () => {
+          undoTasks.reverse().forEach((task) => task());
+          refresh(false);
         };
+      });
+      hidePropsEditor();
+      selector.selected = [];
+      selector.refresh();
+    };
 
-    const removeHotkeyListener = addHotkeyListener(
+    const removeEditableHotkeys = addHotkeyListener(
       {
-        code: "KeyC",
+        code: "KeyV",
         ctrlKey: true,
-        callback: selector.copy,
+        callback: selector.paste,
       },
-      ...(locked
-        ? []
-        : ([
-            {
-              code: "KeyV",
-              ctrlKey: true,
-              callback: selector.paste,
-            },
-            {
-              code: "Delete",
-              callback: selector.remove,
-            },
-            {
-              code: "KeyD",
-              ctrlKey: true,
-              callback: selector.remove,
-            },
-          ] as Hotkey[]))
+      {
+        code: "Delete",
+        callback: selector.remove,
+      },
+      {
+        code: "KeyD",
+        ctrlKey: true,
+        callback: selector.remove,
+      }
     );
+
+    const autoSelect = (parent: DeliverParent, node: Node) => {
+      selector.selected = [{ parent, node }];
+      selector.refresh();
+    };
+
+    const swapUpAndDown = (
+      up: Decorator,
+      down: Decorator,
+      select: () => void
+    ): Decorator => {
+      select();
+      up.node = down.node;
+      down.node = up;
+      return down;
+    };
+
+    const swapDecorator = (
+      parent: DeliverParent,
+      up: Decorator,
+      down: Decorator,
+      select: () => void,
+      redo: boolean
+    ) => {
+      if ("tree" in parent) {
+        if (parent.tree.root === up) {
+          parent.tree.root = swapUpAndDown(up, down, select);
+          return () => {
+            parent.tree.root = swapUpAndDown(down, up, select);
+          };
+        } else {
+          const grand = findDirectlyDecorator(parent.tree.root, up);
+          if (grand == null) return () => {};
+          grand.node = swapUpAndDown(up, down, select);
+          return () => {
+            grand.node = swapUpAndDown(down, up, select);
+          };
+        }
+      }
+      const { refresh, redrawLines } = parent;
+      const [index, grand] = findPosition(parent.composite, up);
+      if (index == null) return () => {};
+      if (grand == null) {
+        parent.composite.nodes[index] = swapUpAndDown(up, down, select);
+        redo || refresh();
+        redrawLines();
+        return () => {
+          parent.composite.nodes[index] = swapUpAndDown(down, up, select);
+          redrawLines();
+        };
+      }
+      grand.node = swapUpAndDown(up, down, select);
+      redo || refresh();
+      redrawLines();
+      return () => {
+        grand.node = swapUpAndDown(down, up, select);
+        redrawLines();
+      };
+    };
+
+    selector.moveUp = () => {
+      const { up } = getMoveArgs(selector);
+      if (up == null) return;
+      const target = selector.selected[0].node as Decorator;
+      const alias = target.alias || trans(target.type);
+      const { parent } = selector.selected[0];
+      undoManager.execute(
+        `${moveUpDesc} [${alias}]`,
+        swapDecorator.bind(
+          null,
+          parent,
+          up,
+          target,
+          autoSelect.bind(null, parent, target)
+        )
+      );
+      hidePropsEditor();
+      selector.refresh();
+    };
+    selector.moveDown = () => {
+      const { down } = getMoveArgs(selector);
+      if (down == null) return;
+      const target = selector.selected[0].node as Decorator;
+      const alias = target.alias || trans(target.type);
+      const { parent } = selector.selected[0];
+      undoManager.execute(
+        `${moveDownDesc} [${alias}]`,
+        swapDecorator.bind(
+          null,
+          parent,
+          target,
+          down,
+          autoSelect.bind(null, parent, target)
+        )
+      );
+      hidePropsEditor();
+      selector.refresh();
+    };
+
+    selector.moveLeft = () => {
+      const { index, nodes } = getMoveArgs(selector);
+      if (index == null || nodes == null || index <= 0) return;
+      const target = selector.selected[0].node;
+      const alias = target.alias || trans(target.type);
+      const { parent } = selector.selected[0];
+
+      undoManager.execute(`${moveLeftDesc} [${alias}]`, (redo) => {
+        autoSelect(parent, target);
+        const node = nodes[index];
+        nodes[index] = nodes[index - 1];
+        nodes[index - 1] = node;
+        if ("tree" in parent) {
+          return () => {
+            autoSelect(parent, target);
+            nodes[index - 1] = nodes[index];
+            nodes[index] = node;
+          };
+        }
+        redo || parent.refresh();
+        parent.redrawLines();
+        return () => {
+          autoSelect(parent, target);
+          nodes[index - 1] = nodes[index];
+          nodes[index] = node;
+          redo || parent.refresh();
+          parent.redrawLines();
+        };
+      });
+    };
+    selector.moveRight = () => {
+      const { index, nodes } = getMoveArgs(selector);
+      if (index == null || nodes == null || index >= nodes?.length - 1) return;
+      const target = selector.selected[0].node;
+      const alias = target.alias || trans(target.type);
+      const { parent } = selector.selected[0];
+
+      undoManager.execute(`${moveRightDesc} [${alias}]`, (redo) => {
+        autoSelect(parent, target);
+        const node = nodes[index];
+        nodes[index] = nodes[index + 1];
+        nodes[index + 1] = node;
+        if ("tree" in parent) {
+          return () => {
+            autoSelect(parent, target);
+            nodes[index + 1] = nodes[index];
+            nodes[index] = node;
+          };
+        }
+        redo || parent.refresh();
+        parent.redrawLines();
+        return () => {
+          autoSelect(parent, target);
+          nodes[index + 1] = nodes[index];
+          nodes[index] = node;
+          redo || parent.refresh();
+          parent.redrawLines();
+        };
+      });
+    };
+
+    const removeMoveableHotkeys = addHotkeyListener(
+      {
+        code: "ArrowUp",
+        ctrlKey: true,
+        callback: selector.moveUp,
+      },
+      {
+        code: "ArrowDown",
+        ctrlKey: true,
+        callback: selector.moveDown,
+      },
+      {
+        code: "ArrowLeft",
+        ctrlKey: true,
+        callback: selector.moveLeft,
+      },
+      {
+        code: "ArrowRight",
+        ctrlKey: true,
+        callback: selector.moveRight,
+      }
+    );
+
     return () => {
       selector.refresh = () => {};
-      selector.remove = () => {};
       selector.copy = () => {};
       selector.paste = () => {};
-      removeHotkeyListener();
+      selector.remove = () => {};
+      removeCopyHotkey();
+      removeEditableHotkeys();
+      removeMoveableHotkeys();
     };
-  }, [selector, locked]);
+  }, [selector, undoManager, locked]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -345,7 +591,6 @@ function NodeMenus({
     ({ node }) => "fold" in node && (node as { fold?: true }).fold
   );
   const canPaste = getNodeType(selector.selected[0].node.type) === "Composite";
-
   const pasteDesc =
     selNum > 1
       ? trans("Selected nodes does not support pasting")
@@ -354,6 +599,8 @@ function NodeMenus({
       : canPaste
       ? trans("Paste Nodes")
       : trans("Selected nodes does not support pasting");
+
+  const moveArgs = getMoveArgs(selector);
 
   const cancel = () => {
     selector.selected = [];
@@ -371,6 +618,9 @@ function NodeMenus({
         border: (theme) => `1px solid ${theme.palette.divider}`,
         borderRadius: 1,
         bgcolor: "background.paper",
+        "& hr": {
+          borderLeft: (theme) => `1px solid ${theme.palette.divider}`,
+        },
       }}
     >
       <IconButton onClick={selector.copy} title={copyDesc}>
@@ -390,6 +640,45 @@ function NodeMenus({
           <DeleteOutlineIcon />
         </IconButton>
       )}
+      {locked || (moveArgs.up == null && moveArgs.down == null) ? null : (
+        <>
+          <Divider />
+          <IconButton
+            onClick={selector.moveUp}
+            title={moveUpDesc}
+            disabled={moveArgs.up == null}
+          >
+            <ArrowDropUpIcon />
+          </IconButton>
+          <IconButton
+            onClick={selector.moveDown}
+            title={moveDownDesc}
+            disabled={moveArgs.down == null}
+          >
+            <ArrowDropDownIcon />
+          </IconButton>
+        </>
+      )}
+      {locked || moveArgs.index == null ? null : (
+        <>
+          <Divider />
+          <IconButton
+            onClick={selector.moveLeft}
+            title={moveLeftDesc}
+            disabled={moveArgs.index <= 0}
+          >
+            <ArrowLeftIcon />
+          </IconButton>
+          <IconButton
+            onClick={selector.moveRight}
+            title={moveRightDesc}
+            disabled={moveArgs.index >= moveArgs.nodes!.length - 1}
+          >
+            <ArrowRightIcon />
+          </IconButton>
+        </>
+      )}
+      <Divider />
       <IconButton onClick={cancel}>
         <CloseIcon />
       </IconButton>

@@ -1,7 +1,19 @@
 export interface Hotkey {
   ctrlKey?: boolean;
   shiftKey?: boolean;
-  code: "Delete" | "KeyZ" | "KeyY" | "KeyD" | "KeyC" | "KeyV" | "KeyS" | "KeyL";
+  code:
+    | "Delete"
+    | "KeyZ"
+    | "KeyY"
+    | "KeyD"
+    | "KeyC"
+    | "KeyV"
+    | "KeyS"
+    | "KeyL"
+    | "ArrowDown"
+    | "ArrowUp"
+    | "ArrowLeft"
+    | "ArrowRight";
   callback: () => void;
 }
 

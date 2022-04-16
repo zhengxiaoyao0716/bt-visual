@@ -205,7 +205,7 @@ export default function Undo({
         <UpdateIcon />
       </IconButton>,
     ]);
-  }, [rfc, locked]);
+  }, [rfc, locked, undo, redo]);
 
   const execute = (desc: string, task: (redo: boolean) => () => void) => {
     let execute = () => {

@@ -49,6 +49,8 @@
   "Redo": "重做",
   "Move nodes left": "左移节点",
   "Move nodes right": "右移节点",
+  "Move node up": "上移节点",
+  "Move node down": "下移节点",
   "Swap nodes": "交换节点",
   "Copy Nodes": "复制节点",
   "Paste Nodes": "粘贴节点",
