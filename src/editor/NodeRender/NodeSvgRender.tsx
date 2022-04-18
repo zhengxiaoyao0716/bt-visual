@@ -9,12 +9,7 @@ import {
 import rough from "roughjs";
 
 import { BTDefines } from "../../behavior-tree/Define";
-import type {
-  Composite,
-  Decorator,
-  Node,
-  Tree,
-} from "../../behavior-tree/type";
+import type { Composite, Decorator, Node } from "../../behavior-tree/type";
 import { getNodeType } from "../../behavior-tree/utils";
 import Config from "../../storage/Config";
 import { TransFunction } from "../../storage/Locale";
@@ -72,7 +67,7 @@ export type SubProps<N extends Node> = Props & {
 
 export function troggleNodeFoldHandler(
   node: Composite | Decorator,
-  onSelect: (node: Composite | Decorator) => void,
+  onSelect: (node: Composite | Decorator | null) => void,
   refresh: () => void
 ) {
   const handler: MouseEventHandler = (event) => {
@@ -81,7 +76,7 @@ export function troggleNodeFoldHandler(
     refresh();
     if (node.fold) delete node.fold;
     else node.fold = true;
-    onSelect(node);
+    onSelect(node.fold ? null : node);
     triggerRedrawLines(event.currentTarget);
   };
   return handler;
@@ -98,7 +93,8 @@ const NodeSvg = styled.svg`
   }
 
   transition: transform 0.1s;
-  &:hover {
+  &:hover,
+  &.selected {
     transform: scale(1.2);
     transition: transform 0.3s;
   }
@@ -112,8 +108,10 @@ export default function NodeSvgRender({
   size,
   status: statusKey,
   fold,
+  selected,
   children,
   onClick,
+  onDragEnter,
   onDragOver,
   onDrop,
 }: {
@@ -125,7 +123,9 @@ export default function NodeSvgRender({
   children: ReactNode | string;
   status?: keyof typeof statusMapper;
   fold?: true;
+  selected?: boolean;
   onClick?: MouseEventHandler;
+  onDragEnter?: DragEventHandler;
   onDragOver?: DragEventHandler;
   onDrop?: DragEventHandler;
 }) {
@@ -152,7 +152,7 @@ export default function NodeSvgRender({
       stroke: status.color || color,
       strokeLineDash: nodeType === "Decorator" ? [16, 8] : undefined,
       strokeWidth: 2,
-      fill: fold ? "#EEEEEE" : "#FFFFFF",
+      fill: "#FFFFFF",
       fillStyle,
       fillWeight: 2,
       roughness: 1.5,
@@ -182,8 +182,9 @@ export default function NodeSvgRender({
     color,
     fillStyle,
   ]);
-  const textColor = fold ? "#666666" : "#000000";
+  const textColor = "#000000";
   const alias = children || trans(type).slice(nodeType === "Composite" ? 2 : 1);
+
   return (
     <NodeSvg
       ref={ref}
@@ -192,8 +193,10 @@ export default function NodeSvgRender({
       width={size.width}
       height={size.height}
       onClick={onClick}
+      onDragEnter={locked ? undefined : onDragEnter}
       onDragOver={locked ? undefined : onDragOver}
       onDrop={locked ? undefined : onDrop}
+      className={selected ? "selected" : undefined}
     >
       {children == null || typeof children === "string" ? (
         size.height <= 30 ? (
@@ -228,6 +231,11 @@ export default function NodeSvgRender({
             <text x={32} y={45} fill={textColor} fontSize={18}>
               {alias}
             </text>
+            {selected ? (
+              <svg x="80%" y="0" fill={color}>
+                <polygon points="38.2578,4.5882 13.6995,23.4648 0.2589,12.8583 0,17.7765 13.3437,33.9351 38.5233,9.4998" />
+              </svg>
+            ) : null}
           </>
         )
       ) : (

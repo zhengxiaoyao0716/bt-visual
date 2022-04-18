@@ -1,5 +1,6 @@
 import styled from "@emotion/styled";
 import { useMemo, useRef } from "react";
+import AddIcon from "@mui/icons-material/Add";
 
 import { AutoRender } from ".";
 import type {
@@ -10,7 +11,7 @@ import type {
 } from "../../behavior-tree/type";
 import { useRefresh } from "../../components/Refresh";
 import { createAnchorDropProps, createNodeDropProps } from "../NodeDrop";
-import { DeliverParent, useSelector } from "../NodeSelector";
+import { DeliverParent, isSelected, useSelector } from "../NodeSelector";
 import Undo from "../Undo";
 import LineRender, {
   disableDropClass,
@@ -23,12 +24,14 @@ import NodeSvgRender, {
   SubProps,
   troggleNodeFoldHandler,
 } from "./NodeSvgRender";
+import Box from "@mui/material/Box";
 
 const CompositeContainer = styled.div`
   border: 1px dashed #999;
   position: relative;
   pointer-events: none;
   margin: 0 8px;
+  height: fit-content;
 `;
 const CompositeCard = styled.div`
   position: relative;
@@ -123,34 +126,38 @@ export default function CompositeRender({
     });
   };
 
-  const anchorDropProps = node.fold
-    ? null
-    : createAnchorDropProps(
-        (data: DraggingData, index: number, copy: boolean) => {
-          const node = copy
-            ? JSON.parse(JSON.stringify(data.nodes[index]))
-            : data.nodes.splice(index, 1)[0];
-          const action = trans(copy ? "Copy Nodes" : "Move Nodes");
-          const alias = node.alias || trans(node.type);
-          undoManager.execute(`${action} [${alias}]`, (redo) => {
-            if (!copy && redo) {
-              data.nodes.splice(index, 1)[0];
-            }
-            nodes.push(node);
-            if (!redo) {
-              data.refresh();
-              refresh();
-            }
-            triggerRedrawLines(ref.current);
+  function checkUnfold() {
+    node.fold && delete node.fold;
+  }
 
-            return () => {
-              const node = nodes.pop() as Node;
-              copy || data.nodes.splice(index, 0, node);
-              triggerRedrawLines(ref.current);
-            };
-          });
+  const anchorDropProps = createAnchorDropProps(
+    (data: DraggingData, index: number, copy: boolean) => {
+      const node = copy
+        ? JSON.parse(JSON.stringify(data.nodes[index]))
+        : data.nodes.splice(index, 1)[0];
+      const action = trans(copy ? "Copy Nodes" : "Move Nodes");
+      const alias = node.alias || trans(node.type);
+      undoManager.execute(`${action} [${alias}]`, (redo) => {
+        checkUnfold();
+        if (!copy && redo) {
+          data.nodes.splice(index, 1)[0];
         }
-      );
+        nodes.push(node);
+        if (!redo) {
+          data.refresh();
+          refresh();
+        }
+        triggerRedrawLines(ref.current);
+
+        return () => {
+          checkUnfold();
+          const node = nodes.pop() as Node;
+          copy || data.nodes.splice(index, 0, node);
+          triggerRedrawLines(ref.current);
+        };
+      });
+    }
+  );
   const draggingRef = {
     nodes,
     refresh() {
@@ -159,39 +166,41 @@ export default function CompositeRender({
     },
   };
 
-  const nodeDropProps = node.fold
-    ? null
-    : createNodeDropProps({
-        appendComposite(type: string) {
-          const node = { type, nodes: [] } as Composite;
-          const action = trans("Append Composite");
-          const alias = node.alias || trans(node.type);
-          undoManager.execute(`${action} [${alias}]`, (redo) => {
-            nodes.push(node);
-            redo || refresh();
-            triggerRedrawLines(ref.current);
-            return () => {
-              nodes.pop();
-              triggerRedrawLines(ref.current);
-            };
-          });
-        },
-        appendAction(type: string) {
-          const node = { type } as Action;
-          const action = trans("Append Action");
-          const alias = node.alias || trans(node.type);
-          undoManager.execute(`${action} [${alias}]`, (redo) => {
-            nodes.push(node);
-            redo || refresh();
-            triggerRedrawLines(ref.current);
-            return () => {
-              nodes.pop();
-              triggerRedrawLines(ref.current);
-            };
-          });
-        },
-        prependDecorator,
+  const nodeDropProps = createNodeDropProps({
+    appendComposite(type: string) {
+      const node = { type, nodes: [] } as Composite;
+      const action = trans("Append Composite");
+      const alias = node.alias || trans(node.type);
+      undoManager.execute(`${action} [${alias}]`, (redo) => {
+        checkUnfold();
+        nodes.push(node);
+        redo || refresh();
+        triggerRedrawLines(ref.current);
+        return () => {
+          checkUnfold();
+          nodes.pop();
+          triggerRedrawLines(ref.current);
+        };
       });
+    },
+    appendAction(type: string) {
+      const node = { type } as Action;
+      const action = trans("Append Action");
+      const alias = node.alias || trans(node.type);
+      undoManager.execute(`${action} [${alias}]`, (redo) => {
+        checkUnfold();
+        nodes.push(node);
+        redo || refresh();
+        triggerRedrawLines(ref.current);
+        return () => {
+          checkUnfold();
+          nodes.pop();
+          triggerRedrawLines(ref.current);
+        };
+      });
+    },
+    prependDecorator,
+  });
 
   const selector = useSelector(deliverParent, trans, refresh);
   const onSelected = selector.onClick.bind(null, node);
@@ -220,12 +229,25 @@ export default function CompositeRender({
           type={type}
           size={svgSize}
           fold={node.fold}
+          selected={isSelected(node)}
           onClick={onSelected}
           {...baseProps}
           {...nodeDropProps}
         >
           {node.alias}
         </NodeSvgRender>
+        {node.fold ? (
+          <AddIcon
+            sx={{
+              position: "absolute",
+              width: "100%",
+              left: "50%",
+              marginLeft: "-50%",
+              textAlign: "center",
+              bottom: "1em",
+            }}
+          />
+        ) : null}
       </CompositeCard>
       {node.fold ? null : (
         <CompositeNodes

@@ -44,6 +44,8 @@ const Paper = styled.div`
   user-select: none;
 `;
 
+const initScale = 1.0;
+
 export default function DraftPaper({ readonly, children }: Props) {
   const config = Config.use();
   const trans = useTrans();
@@ -56,7 +58,7 @@ export default function DraftPaper({ readonly, children }: Props) {
   const [movingProps, { left, top, dragging }, setDragMovingState] =
     useDragMoving(isInvalidEventTarget, 6);
 
-  const [scale, setScale] = useState(1.0);
+  const [scale, setScale] = useState(initScale);
   const onWheel = (event: WheelEvent) => {
     if (isInvalidEventTarget(event)) return;
 
@@ -75,9 +77,10 @@ export default function DraftPaper({ readonly, children }: Props) {
     const paper = event.currentTarget as HTMLDivElement;
     const { height } = event.currentTarget.getBoundingClientRect();
     const scaleChanged = event.deltaY / 1000;
-    const scaleNew = scale - scaleChanged;
-    const heightNew = (height / scale) * scaleNew;
-    if (heightNew <= 10) return;
+    const scaleNew = scale - scale * scaleChanged;
+    const heightNew = height * scaleNew;
+
+    if (heightNew <= 60) return;
     setScale(scaleNew);
 
     const parentRect =
@@ -93,7 +96,7 @@ export default function DraftPaper({ readonly, children }: Props) {
   const toolBarSlot = ToolBarSlot.useSlot();
   useEffect(() => {
     const resetView = () => {
-      setScale(1.0);
+      setScale(initScale);
       setDragMovingState({
         left: 0,
         top: 0,

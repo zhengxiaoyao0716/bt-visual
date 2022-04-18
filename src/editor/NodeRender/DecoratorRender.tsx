@@ -6,7 +6,7 @@ import type { Composite, Decorator } from "../../behavior-tree/type";
 import { getNodeType } from "../../behavior-tree/utils";
 import { useRefresh } from "../../components/Refresh";
 import { createNodeDropProps } from "../NodeDrop";
-import { useSelector } from "../NodeSelector";
+import { isSelected, useSelector } from "../NodeSelector";
 import Undo from "../Undo";
 import { triggerRedrawLines } from "./LineRender";
 import NodeSvgRender, {
@@ -131,6 +131,7 @@ export default function DecoratorRender({
               btDefine={btDefine}
               type={node.type}
               size={{ width: 150, height: 60 }}
+              selected={isSelected(node)}
               onClick={selector.onClick.bind(null, node)}
               {...baseProps}
               {...createNodeDropProps({

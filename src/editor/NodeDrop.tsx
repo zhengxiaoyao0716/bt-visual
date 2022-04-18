@@ -3,17 +3,20 @@ import { DragEvent } from "react";
 import { nodeDraggingRef } from "./NodeLibs";
 import { anchorDraggingRef, DraggingData } from "./NodeRender/LineRender";
 
+const baseline = 0.2;
+
 export function createAnchorDropProps(
   anchorDrop: (data: DraggingData, index: number, copy: boolean) => void
 ) {
   const onDragOver = (event: DragEvent) => {
     const draggingData = anchorDraggingRef.current;
     if (draggingData == null) return;
-    if (offsetHalfHeight(event) <= 0) return;
+    if (offsetHalfHeight(event) <= -baseline) return;
     event.dataTransfer.dropEffect =
       event.ctrlKey || event.shiftKey ? "copy" : "link";
     event.preventDefault();
   };
+  const onDragEnter = onDragOver;
 
   const onDrop = (event: DragEvent) => {
     event.preventDefault();
@@ -27,7 +30,7 @@ export function createAnchorDropProps(
       anchorDrop(draggingData, anchorIndex, event.ctrlKey || event.shiftKey);
   };
 
-  return { onDragOver, onDrop };
+  return { onDragEnter, onDragOver, onDrop };
 }
 
 export function createNodeDropProps({
@@ -45,17 +48,17 @@ export function createNodeDropProps({
     switch (draggingType) {
       case "Composite": {
         if (appendComposite == null) return;
-        if (offsetHalfHeight(event) <= 0) return;
+        if (offsetHalfHeight(event) <= -baseline) return;
         break;
       }
       case "Decorator": {
         if (prependDecorator == null) return;
-        if (offsetHalfHeight(event) >= 0) return;
+        if (offsetHalfHeight(event) >= baseline) return;
         break;
       }
       case "Action": {
         if (appendAction == null) return;
-        if (offsetHalfHeight(event) <= 0) return;
+        if (offsetHalfHeight(event) <= -baseline) return;
         break;
       }
     }
@@ -63,6 +66,7 @@ export function createNodeDropProps({
     event.dataTransfer.dropEffect = "copy";
     event.preventDefault();
   };
+  const onDragEnter = onDragOver;
 
   const onDrop = (event: DragEvent) => {
     const draggingType = nodeDraggingRef.draggingType;
@@ -79,10 +83,10 @@ export function createNodeDropProps({
     }
   };
 
-  return { onDragOver, onDrop };
+  return { onDragEnter, onDragOver, onDrop };
 }
 
 function offsetHalfHeight(event: DragEvent) {
   const rect = event.currentTarget.getBoundingClientRect();
-  return event.clientY - rect.top - rect.height / 2;
+  return (2 * (event.clientY - rect.top) - rect.height) / rect.height;
 }

@@ -194,8 +194,8 @@ export default function LineRender({
 const DropArea = styled.div`
   position: absolute;
   width: calc(100% + 60px);
-  top: -30px;
-  height: 100px;
+  top: -60px;
+  height: 120px;
   div.active > div > & {
     pointer-events: auto;
     border: 1px dashed #3366ee;

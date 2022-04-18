@@ -64,6 +64,33 @@ interface Selector {
 
 const SelectorContext = createContext<MutableRefObject<Selector> | null>(null);
 
+export function isSelected(node: Node) {
+  return "selected" in node;
+}
+
+function setSelected(node: Node, selected: boolean) {
+  if (selected) {
+    if (!("selected" in node)) {
+      Object.defineProperty(node, "selected", {
+        enumerable: false, // JSON.stringify 时隐藏 selected 字段
+        value: true,
+        configurable: true,
+      });
+    }
+  } else {
+    if ("selected" in node) {
+      delete (node as any).selected;
+    }
+  }
+}
+
+function cancelAllSelected(selector: Selector) {
+  for (const { node } of selector.selected) {
+    setSelected(node, false);
+  }
+  selector.selected = [];
+}
+
 export default function NodeSelector({ children }: { children: ReactNode }) {
   const ref = useRef<Selector>({ selected: [], refresh() {} });
   const containerRef = useRef<HTMLDivElement>(null);
@@ -354,7 +381,7 @@ function NodeMenus({
         };
       });
       hidePropsEditor();
-      selector.selected = [];
+      cancelAllSelected(selector);
       selector.refresh();
     };
 
@@ -376,6 +403,7 @@ function NodeMenus({
     );
 
     const autoSelect = (parent: DeliverParent, node: Node) => {
+      setSelected(node, true);
       selector.selected = [{ parent, node }];
       selector.refresh();
     };
@@ -573,7 +601,7 @@ function NodeMenus({
     if (container == null) return;
     const hide = () => {
       if (selector == null || selector.selected.length <= 0) return;
-      selector.selected = [];
+      cancelAllSelected(selector);
       selector.refresh();
     };
     container.addEventListener("cancelSelector", hide);
@@ -603,7 +631,7 @@ function NodeMenus({
   const moveArgs = getMoveArgs(selector);
 
   const cancel = () => {
-    selector.selected = [];
+    cancelAllSelected(selector);
     selector.refresh();
   };
 
@@ -712,22 +740,29 @@ export function useSelector(
 ) {
   const propsEditor = useNodePropsEditor(trans, refresh);
   const selector = useContext(SelectorContext)?.current;
-  const select = (node: Node, multiSelect: boolean = false) => {
-    propsEditor.show(node);
+  const select = (node: Node | null, multiSelect: boolean = false) => {
     if (selector == null) return;
+    if (node == null) {
+      cancelAllSelected(selector);
+      selector.refresh();
+      return;
+    }
+    propsEditor.show(node);
     if (multiSelect) {
       const filtered = selector.selected.filter(
         (selected) => selected.node !== node
       );
       if (filtered.length < selector.selected.length) {
+        setSelected(node, false);
         selector.selected = filtered;
         selector.refresh();
         return;
       }
     } else {
-      selector.selected = [];
+      cancelAllSelected(selector);
     }
 
+    setSelected(node, true);
     selector.selected.push({
       parent,
       node,
