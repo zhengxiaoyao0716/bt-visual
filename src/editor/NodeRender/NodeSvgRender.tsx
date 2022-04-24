@@ -95,8 +95,9 @@ const NodeSvg = styled.svg`
   transition: transform 0.1s;
   &:hover,
   &.selected {
-    transform: scale(1.2);
+    transform: scale(1.1);
     transition: transform 0.3s;
+    z-index: 1;
   }
 `;
 
@@ -136,7 +137,7 @@ export default function NodeSvgRender({
   const shape =
     nodeType === "Unknown"
       ? nodeTypeShape
-      : btDefine?.[nodeType]?.[type].shape ?? nodeTypeShape;
+      : btDefine?.[nodeType]?.[type]?.shape ?? nodeTypeShape;
   const shapeRef = useRef<SVGSVGElement>(null);
   useEffect(() => {
     const svg = shapeRef.current;
@@ -182,8 +183,14 @@ export default function NodeSvgRender({
     color,
     fillStyle,
   ]);
-  const textColor = "#000000";
-  const alias = children || trans(type).slice(nodeType === "Composite" ? 2 : 1);
+  const textPrimaryColor = "#000000";
+  const textSecondaryColor = "#666666";
+  const alias =
+    children == null
+      ? [trans(type).slice(1)]
+      : typeof children === "string"
+      ? children.split("\n", 2)
+      : null;
 
   return (
     <NodeSvg
@@ -198,7 +205,7 @@ export default function NodeSvgRender({
       onDrop={locked ? undefined : onDrop}
       className={selected ? "selected" : undefined}
     >
-      {children == null || typeof children === "string" ? (
+      {alias ? (
         size.height <= 30 ? (
           <>
             <svg
@@ -210,8 +217,8 @@ export default function NodeSvgRender({
               height={21}
               viewBox="0 0 30 30"
             />
-            <text x={24} y={16} fontSize={12} fill={textColor}>
-              {alias}
+            <text x={24} y={16} fontSize={12} fill={textPrimaryColor}>
+              {alias[0]}
             </text>
           </>
         ) : (
@@ -221,16 +228,21 @@ export default function NodeSvgRender({
             </text>
             <svg
               x={6}
-              y={25}
+              y={21}
               fill={color}
               ref={shapeRef}
               width={35}
               height={35}
               viewBox="0 0 30 30"
             />
-            <text x={32} y={45} fill={textColor} fontSize={18}>
-              {alias}
+            <text x={32} y={42} fill={textPrimaryColor} fontSize={18}>
+              {alias[0]}
             </text>
+            {alias[1] ? (
+              <text x={8} y={65} fill={textSecondaryColor} fontSize={16}>
+                {alias[1]}
+              </text>
+            ) : null}
             {selected ? (
               <svg x="80%" y="0" fill={color}>
                 <polygon points="38.2578,4.5882 13.6995,23.4648 0.2589,12.8583 0,17.7765 13.3437,33.9351 38.5233,9.4998" />

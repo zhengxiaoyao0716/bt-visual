@@ -1,11 +1,11 @@
-import { ReactNode, useMemo, useState } from "react";
+import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
-import DialogTitle from "@mui/material/DialogTitle";
+import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogContentText from "@mui/material/DialogContentText";
+import DialogTitle from "@mui/material/DialogTitle";
 import TextField from "@mui/material/TextField";
-import DialogActions from "@mui/material/DialogActions";
-import Button from "@mui/material/Button";
+import { ReactNode, useMemo, useState } from "react";
 
 export type Props = {
   cancel?: string;
@@ -35,8 +35,9 @@ export function useDialogPrompt() {
     ]
   );
 
+  const showing = !!state;
   const dialog = (
-    <Dialog open={!!state} onClose={state?.cancel}>
+    <Dialog open={showing} onClose={state?.cancel}>
       {props?.title && (
         <DialogTitle sx={{ minWidth: "16em" }}>{props.title}</DialogTitle>
       )}
@@ -77,6 +78,7 @@ export function useDialogPrompt() {
       )}
     </Dialog>
   );
+
   function prompt<T>(
     props: Props & { onSubmit(values: string[]): Promise<T | null> }
   ): Promise<T | null> {
@@ -98,5 +100,5 @@ export function useDialogPrompt() {
     );
   }
   const hide = () => state && state.cancel();
-  return { dialog, prompt, hide };
+  return { showing, dialog, prompt, hide };
 }

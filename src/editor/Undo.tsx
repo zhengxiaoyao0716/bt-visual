@@ -87,6 +87,7 @@ export default function Undo({
 
   useEffect(() => {
     const removeHotkeyListener = addHotkeyListener(
+      document.body,
       {
         ctrlKey: true,
         shiftKey: false,
@@ -149,7 +150,8 @@ export default function Undo({
           return (
             <Button
               key={index}
-              sx={{ textAlign: "left" }}
+              size="small"
+              sx={{ textAlign: "left", textTransform: "none" }}
               disabled={locked || disabled}
               onClick={goto.bind(null, index)}
             >
@@ -161,7 +163,8 @@ export default function Undo({
                 }
                 sx={{ width: "100%" }}
               >
-                {index + 1}.{action?.desc}
+                <small>{index + 1}. </small>
+                {action?.desc}
               </Typography>
             </Button>
           );

@@ -132,7 +132,7 @@ export default function Workspace({
     const tree = {
       name: treeName,
       root: {
-        type: "?=Selector",
+        type: "?Selector",
         nodes: [],
       },
     } as Tree;
@@ -296,6 +296,7 @@ export default function Workspace({
     ]);
 
     const removeHotkeyListeners = addHotkeyListener(
+      document.body,
       {
         code: "KeyS",
         ctrlKey: true,

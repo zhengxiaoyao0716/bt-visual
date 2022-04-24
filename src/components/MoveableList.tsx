@@ -16,7 +16,7 @@ import { useDialogConfirm } from "./DialogConfirm";
 
 export function useMoveableList<T, R>(
   items: T[],
-  appendItem: () => PromiseLike<T | null>,
+  appendItem: (index: number) => PromiseLike<T | null>,
   refreshList: () => void,
   renderItem: (
     item: T,
@@ -59,9 +59,9 @@ export function useMoveableList<T, R>(
     const index = anchorEl?.[0];
     if (index == null) return;
     hideMenu();
-    appendItem().then((item) => {
+    appendItem(1 + index).then((item) => {
       if (item == null) return;
-      items.splice(index + 1, 0, item);
+      items.splice(1 + index, 0, item);
       refreshList();
     });
   };
@@ -155,7 +155,7 @@ export function useMoveableList<T, R>(
   const appender = (
     <MenuItem
       onClick={() =>
-        appendItem().then((item) => {
+        appendItem(items.length).then((item) => {
           if (item == null) return;
           items.push(item);
           refreshList();

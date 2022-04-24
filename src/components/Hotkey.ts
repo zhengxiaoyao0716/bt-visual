@@ -17,9 +17,10 @@ export interface Hotkey {
   callback: () => void;
 }
 
-export function addHotkeyListener(...hotKeys: Hotkey[]) {
+export function addHotkeyListener(target: HTMLElement, ...hotKeys: Hotkey[]) {
   if (hotKeys.length === 0) return () => {};
-  const onKeyDown = (event: KeyboardEvent) => {
+  const handle = (event: KeyboardEvent) => {
+    if (event.target !== target) return;
     const accept = hotKeys.some(({ code, ctrlKey, shiftKey, callback }) => {
       if (code !== event.code) return false;
       if (ctrlKey != null && ctrlKey !== event.ctrlKey) return false;
@@ -31,8 +32,8 @@ export function addHotkeyListener(...hotKeys: Hotkey[]) {
     event.preventDefault();
     event.stopPropagation();
   };
-  window.addEventListener("keydown", onKeyDown);
+  target.addEventListener("keyup", handle);
   return () => {
-    window.removeEventListener("keydown", onKeyDown);
+    target.removeEventListener("keyup", handle);
   };
 }

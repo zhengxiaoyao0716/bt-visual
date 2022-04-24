@@ -24,7 +24,7 @@ export default function ActionRender({
   const nodeDropProps = createNodeDropProps({ prependDecorator });
   const [, refresh] = useRefresh();
   const selector = useSelector(deliverParent, trans, refresh);
-  const onSelected = selector.onClick.bind(null, node);
+  const onSelected = selector.handle(node);
 
   return (
     <ActionCard title={btDefine?.Action[node.type]?.desc || trans(node.type)}>

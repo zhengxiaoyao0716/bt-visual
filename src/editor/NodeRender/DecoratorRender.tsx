@@ -6,7 +6,7 @@ import type { Composite, Decorator } from "../../behavior-tree/type";
 import { getNodeType } from "../../behavior-tree/utils";
 import { useRefresh } from "../../components/Refresh";
 import { createNodeDropProps } from "../NodeDrop";
-import { isSelected, useSelector } from "../NodeSelector";
+import { isSelected, setAutoSelect, useSelector } from "../NodeSelector";
 import Undo from "../Undo";
 import { triggerRedrawLines } from "./LineRender";
 import NodeSvgRender, {
@@ -54,6 +54,8 @@ export default function DecoratorRender({
   const [, refresh] = useRefresh();
 
   const ref = useRef<HTMLDivElement>(null);
+  const selector = useSelector(deliverParent, trans, refresh);
+
   let decorators = [];
   let iter = node;
   let prepend = prependDecorator;
@@ -74,6 +76,7 @@ export default function DecoratorRender({
           triggerRedrawLines(ref.current);
         };
       });
+      setAutoSelect(nodeNew, true);
     };
     const prependDecorator = prepend;
     prepend = (type: string) => {
@@ -90,13 +93,13 @@ export default function DecoratorRender({
           triggerRedrawLines(ref.current);
         };
       });
+      setAutoSelect(nodeNew, true);
     };
     decorators.push([iterFinal, appendComposite, prependDecorator] as const);
     if (getNodeType(iterFinal.node.type) !== "Decorator") break;
     iter = iter.node as Decorator;
   }
 
-  const selector = useSelector(deliverParent, trans, refresh);
   const foldHandler = troggleNodeFoldHandler(node, selector.select, refresh);
 
   return (
@@ -132,7 +135,7 @@ export default function DecoratorRender({
               type={node.type}
               size={{ width: 150, height: 60 }}
               selected={isSelected(node)}
-              onClick={selector.onClick.bind(null, node)}
+              onClick={selector.handle(node)}
               {...baseProps}
               {...createNodeDropProps({
                 appendComposite: append,

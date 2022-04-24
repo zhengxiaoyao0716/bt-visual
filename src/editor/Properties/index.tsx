@@ -20,14 +20,22 @@ import {
   useState,
 } from "react";
 
-import BTDefine, { Item } from "../behavior-tree/Define";
-import type { Action, Composite, Decorator, Node } from "../behavior-tree/type";
-import { getNodeType } from "../behavior-tree/utils";
-import { useDragMoving } from "../components/DragMoving";
-import WidthController from "../components/WidthController";
-import Config from "../storage/Config";
-import { TransFunction, useTrans } from "../storage/Locale";
-import { LockerContext } from "./NodeRender/NodeLocker";
+import BTDefine, { Item } from "../../behavior-tree/Define";
+import type {
+  Action,
+  Composite,
+  Decorator,
+  Node,
+  Store,
+} from "../../behavior-tree/type";
+import { getNodeType } from "../../behavior-tree/utils";
+import { useDragMoving } from "../../components/DragMoving";
+import WidthController from "../../components/WidthController";
+import Config from "../../storage/Config";
+import { TransFunction, useTrans } from "../../storage/Locale";
+import { LockerContext } from "../NodeRender/NodeLocker";
+import { createStatements } from "./Statements";
+import { createStoreReader } from "./StoreReader";
 
 type Option =
   | { type: "component"; Component: ComponentType }
@@ -39,6 +47,8 @@ type Option =
       value?: string;
       submit?: (value: string) => void;
       multiline?: boolean;
+      rows?: number;
+      maxRows?: number;
       disabled?: boolean;
       desc?: string;
     }
@@ -85,12 +95,14 @@ function RenderOption({
           label={option.label}
           fullWidth
           multiline={option.multiline}
+          rows={option.rows}
+          maxRows={option.maxRows}
           defaultValue={option.value}
           onChange={(event) =>
             option.submit && option.submit(event.target.value.trim())
           }
           disabled={option.disabled}
-          sx={{ marginBottom: 2 }}
+          sx={{ mb: 2 }}
           title={option.desc}
         />
       );
@@ -100,9 +112,9 @@ function RenderOption({
         <FormControl
           fullWidth
           key={`${option.key}#${option.value}`}
-          sx={{ marginBottom: 2 }}
+          sx={{ mb: 2 }}
         >
-          <InputLabel>Age</InputLabel>
+          <InputLabel>{option.label}</InputLabel>
           <Select
             label={option.label}
             defaultValue={option.value}
@@ -324,6 +336,8 @@ export function useNodePropsEditor(trans: TransFunction, refresh: () => void) {
         key: depsKey, // 每次切换节点必定刷新
         label: trans("Node Alias"),
         value: node.alias || "",
+        multiline: true,
+        maxRows: 3,
         submit(value: string) {
           if (value === node.alias) return;
           const type = trans(node.type);
@@ -335,15 +349,15 @@ export function useNodePropsEditor(trans: TransFunction, refresh: () => void) {
       },
     ];
 
-    const { props } = nodes[node.type];
-    props == null &&
+    node.type in nodes ||
       options.push({
         type: "error",
         reason: trans("Node define not found!"),
       });
 
-    const propNames = props == null ? [] : Object.keys(props);
-    if (props != null && propNames.length > 0) {
+    const { props = {} } = nodes[node.type] || {};
+    const propNames = Object.keys(props);
+    if (propNames.length > 0) {
       options.push({ type: "divider" });
       options.push({
         type: "subheader",
@@ -352,7 +366,16 @@ export function useNodePropsEditor(trans: TransFunction, refresh: () => void) {
       });
       for (const name of propNames) {
         const item = props[name];
-        options.push(nodeItemOption(trans, depsKey, node, name, item));
+        options.push(
+          nodeItemOption(
+            trans,
+            depsKey,
+            node,
+            name,
+            item,
+            define.value.storeScopes
+          )
+        );
       }
     }
 
@@ -370,6 +393,7 @@ enum ignoredNodeProps {
   nodes,
   node,
   fold,
+  alias,
 }
 
 export function nodeItemOption(
@@ -377,28 +401,39 @@ export function nodeItemOption(
   key: string,
   node: any,
   name: string,
-  item: Item
+  item: Item,
+  storeScopes: { label: string; value: string }[]
 ): Option {
-  const value = node[name];
-  const desc = item.desc || name;
-  const submit = (value: string) => {
-    node[name] = value;
-  };
   // TODO 根据类型定义不同的输入方式
   switch (item.type) {
     // TODO 根据类型定义不同的输入方式
-    case "Store.Key": {
-    }
+    case "Store.Key":
+    case "dict":
     case "Store.Reader": {
-    }
-    case "dict": {
+      const read = () => (node as any)[name];
+      const save = (value: Store.Reader | undefined) => {
+        if (value == null) {
+          name in node && delete (node as any)[name];
+        } else {
+          (node as any)[name] = value;
+        }
+      };
       return {
-        type: "input",
-        key: `${key}.${name}`,
-        label: name,
-        value,
-        desc,
-        submit,
+        type: "component",
+        Component: createStoreReader(
+          trans,
+          name,
+          read,
+          save,
+          item,
+          storeScopes
+        ),
+      };
+    }
+    case "statements": {
+      return {
+        type: "component",
+        Component: createStatements(trans, node, name, item, storeScopes),
       };
     }
   }
@@ -422,9 +457,10 @@ function unknownPropsOptions(
           key={`${key}.${name}`}
           label={name}
           fullWidth
-          value={value}
+          value={JSON.stringify(value)}
           disabled
           size="small"
+          sx={{ mb: 1 }}
         />
       ),
     }));

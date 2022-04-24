@@ -10,6 +10,7 @@ import type {
 import { getNodeType } from "../../behavior-tree/utils";
 import { useRefresh } from "../../components/Refresh";
 import Snack from "../../components/Snack";
+import { setAutoSelect } from "../NodeSelector";
 import Undo from "../Undo";
 import ActionRender from "./ActionRender";
 import CompositeRender from "./CompositeRender";
@@ -42,6 +43,7 @@ export default function NodeRender({
         tree.root = nodeOld;
       };
     });
+    setAutoSelect(nodeNew, true);
   };
 
   const snack = Snack.use();

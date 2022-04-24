@@ -20,6 +20,7 @@ const Anchor = styled.a`
   &:active {
     cursor: grabbing;
   }
+  z-index: 10;
 `;
 
 export const lineToParentClass = "line-to";

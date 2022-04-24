@@ -29,7 +29,7 @@ import {
   Node,
   Tree,
 } from "../behavior-tree/type";
-import { EMPTY_NODE, getNodeType } from "../behavior-tree/utils";
+import { EMPTY_NODE, getNodeAlias, getNodeType } from "../behavior-tree/utils";
 import clipboard from "../components/clipboard";
 import { addHotkeyListener } from "../components/Hotkey";
 import { useRefresh } from "../components/Refresh";
@@ -64,22 +64,43 @@ interface Selector {
 
 const SelectorContext = createContext<MutableRefObject<Selector> | null>(null);
 
-export function isSelected(node: Node) {
-  return "selected" in node;
-}
+const selectedSymbol = Symbol("selected");
+const autoSelectSymbol = Symbol("autoSelect");
 
+export function isSelected(node: Node) {
+  return selectedSymbol in node;
+}
 function setSelected(node: Node, selected: boolean) {
   if (selected) {
-    if (!("selected" in node)) {
-      Object.defineProperty(node, "selected", {
+    if (!(selectedSymbol in node)) {
+      Object.defineProperty(node, selectedSymbol, {
         enumerable: false, // JSON.stringify 时隐藏 selected 字段
         value: true,
         configurable: true,
       });
     }
   } else {
-    if ("selected" in node) {
-      delete (node as any).selected;
+    if (selectedSymbol in node) {
+      delete (node as any)[selectedSymbol];
+    }
+  }
+}
+
+function isAutoSelect(node: Node) {
+  return autoSelectSymbol in node;
+}
+export function setAutoSelect(node: Node, selected: boolean) {
+  if (selected) {
+    if (!(autoSelectSymbol in node)) {
+      Object.defineProperty(node, autoSelectSymbol, {
+        enumerable: false, // JSON.stringify 时隐藏 selected 字段
+        value: true,
+        configurable: true,
+      });
+    }
+  } else {
+    if (autoSelectSymbol in node) {
+      delete (node as any)[autoSelectSymbol];
     }
   }
 }
@@ -155,8 +176,8 @@ function getNodesAlias(
   last: Node
 ) {
   return num == 1
-    ? first.alias || trans(first.type)
-    : `${last.alias || trans(last.type)}${trans(" ... ${num} nodes", { num })}`;
+    ? getNodeAlias(trans, first)
+    : `${getNodeAlias(trans, last)}${trans(" ... ${num} nodes", { num })}`;
 }
 
 function getSelectedAlias(trans: TransFunction, selector: Selector): string {
@@ -246,7 +267,7 @@ function NodeMenus({
       await clipboard.write("nodes", nodes);
       selector.refresh();
     };
-    const removeCopyHotkey = addHotkeyListener({
+    const removeCopyHotkey = addHotkeyListener(document.body, {
       code: "KeyC",
       ctrlKey: true,
       callback: selector.copy,
@@ -270,7 +291,6 @@ function NodeMenus({
       const { parent, node } = selector.selected[0];
       const canPaste = getNodeType(node.type) === "Composite";
       if (!canPaste) return;
-      if ("fold" in node && (node as { fold?: true }).fold) return;
       selector.refresh();
       const alias = getNodesAlias(
         trans,
@@ -280,10 +300,12 @@ function NodeMenus({
       );
       const { nodes } = node as Composite;
       undoManager.execute(`${copyDesc} [${alias}]`, (redo) => {
+        "fold" in node && delete (node as { fold?: true }).fold;
         nodes.push(...copied);
         redo || ("refresh" in parent && parent.refresh());
         "redrawLines" in parent && parent.redrawLines();
         return () => {
+          "fold" in node && delete (node as { fold?: true }).fold;
           nodes.splice(nodes.length - copied.length, copied.length);
           "refresh" in parent && parent.refresh();
           "redrawLines" in parent && parent.redrawLines();
@@ -386,6 +408,7 @@ function NodeMenus({
     };
 
     const removeEditableHotkeys = addHotkeyListener(
+      document.body,
       {
         code: "KeyV",
         ctrlKey: true,
@@ -563,6 +586,7 @@ function NodeMenus({
     };
 
     const removeMoveableHotkeys = addHotkeyListener(
+      document.body,
       {
         code: "ArrowUp",
         ctrlKey: true,
@@ -615,15 +639,10 @@ function NodeMenus({
   if (selNum <= 0) return null;
 
   const selectedAlias = getSelectedAlias(trans, selector);
-  const isSelectedFold = selector.selected.some(
-    ({ node }) => "fold" in node && (node as { fold?: true }).fold
-  );
   const canPaste = getNodeType(selector.selected[0].node.type) === "Composite";
   const pasteDesc =
     selNum > 1
       ? trans("Selected nodes does not support pasting")
-      : isSelectedFold
-      ? trans("Disallow pasting to collapsed node")
       : canPaste
       ? trans("Paste Nodes")
       : trans("Selected nodes does not support pasting");
@@ -656,7 +675,7 @@ function NodeMenus({
       </IconButton>
       {locked ? null : (
         <IconButton onClick={selector.paste} title={pasteDesc}>
-          {selNum === 1 && !isSelectedFold && canPaste ? (
+          {selNum === 1 && canPaste ? (
             <ContentPasteIcon fontSize="small" />
           ) : (
             <ContentPasteOffIcon fontSize="small" />
@@ -720,7 +739,7 @@ function NodeMenus({
           whiteSpace: "nowrap",
         }}
       >
-        {`${trans("Selected")} ${selectedAlias}`}
+        {`${trans("Selected")} [${selectedAlias}]`}
       </Typography>
     </Box>
   );
@@ -771,10 +790,16 @@ export function useSelector(
   };
   return {
     select,
-    onClick(node: Composite | Decorator | Action, event: MouseEvent) {
-      event.stopPropagation();
-      event.preventDefault();
-      select(node, event.ctrlKey || event.shiftKey);
+    handle(node: Composite | Decorator | Action) {
+      if (isAutoSelect(node)) {
+        setAutoSelect(node, false);
+        setTimeout(() => select(node), 0);
+      }
+      return (event: MouseEvent) => {
+        event.stopPropagation();
+        event.preventDefault();
+        select(node, event.ctrlKey || event.shiftKey);
+      };
     },
   };
 }

@@ -24,7 +24,7 @@ function emptyForest(name: string): Forest {
       {
         name,
         root: {
-          type: "?=Selector",
+          type: "?Selector",
           nodes: [],
         } as Composite,
       },

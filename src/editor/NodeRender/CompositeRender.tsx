@@ -1,6 +1,6 @@
 import styled from "@emotion/styled";
-import { useMemo, useRef } from "react";
 import AddIcon from "@mui/icons-material/Add";
+import { useMemo, useRef } from "react";
 
 import { AutoRender } from ".";
 import type {
@@ -9,9 +9,15 @@ import type {
   Decorator,
   Node,
 } from "../../behavior-tree/type";
+import { getNodeAlias } from "../../behavior-tree/utils";
 import { useRefresh } from "../../components/Refresh";
 import { createAnchorDropProps, createNodeDropProps } from "../NodeDrop";
-import { DeliverParent, isSelected, useSelector } from "../NodeSelector";
+import {
+  DeliverParent,
+  isSelected,
+  setAutoSelect,
+  useSelector,
+} from "../NodeSelector";
 import Undo from "../Undo";
 import LineRender, {
   disableDropClass,
@@ -24,7 +30,6 @@ import NodeSvgRender, {
   SubProps,
   troggleNodeFoldHandler,
 } from "./NodeSvgRender";
-import Box from "@mui/material/Box";
 
 const CompositeContainer = styled.div`
   border: 1px dashed #999;
@@ -79,7 +84,7 @@ export default function CompositeRender({
     const action = trans(
       `Move nodes ${index < moveToIndex ? "left" : "right"}`
     );
-    const alias = node.alias || trans(node.type);
+    const alias = getNodeAlias(trans, node);
     undoManager.execute(`${action} [${alias}]`, (redo) => {
       const node = nodes.splice(index, 1)[0];
       nodes.splice(moveToIndex, 0, node);
@@ -136,7 +141,7 @@ export default function CompositeRender({
         ? JSON.parse(JSON.stringify(data.nodes[index]))
         : data.nodes.splice(index, 1)[0];
       const action = trans(copy ? "Copy Nodes" : "Move Nodes");
-      const alias = node.alias || trans(node.type);
+      const alias = getNodeAlias(trans, node);
       undoManager.execute(`${action} [${alias}]`, (redo) => {
         checkUnfold();
         if (!copy && redo) {
@@ -166,44 +171,8 @@ export default function CompositeRender({
     },
   };
 
-  const nodeDropProps = createNodeDropProps({
-    appendComposite(type: string) {
-      const node = { type, nodes: [] } as Composite;
-      const action = trans("Append Composite");
-      const alias = node.alias || trans(node.type);
-      undoManager.execute(`${action} [${alias}]`, (redo) => {
-        checkUnfold();
-        nodes.push(node);
-        redo || refresh();
-        triggerRedrawLines(ref.current);
-        return () => {
-          checkUnfold();
-          nodes.pop();
-          triggerRedrawLines(ref.current);
-        };
-      });
-    },
-    appendAction(type: string) {
-      const node = { type } as Action;
-      const action = trans("Append Action");
-      const alias = node.alias || trans(node.type);
-      undoManager.execute(`${action} [${alias}]`, (redo) => {
-        checkUnfold();
-        nodes.push(node);
-        redo || refresh();
-        triggerRedrawLines(ref.current);
-        return () => {
-          checkUnfold();
-          nodes.pop();
-          triggerRedrawLines(ref.current);
-        };
-      });
-    },
-    prependDecorator,
-  });
-
   const selector = useSelector(deliverParent, trans, refresh);
-  const onSelected = selector.onClick.bind(null, node);
+  const onSelected = selector.handle(node);
 
   const deliverSelf: DeliverParent = {
     composite: node,
@@ -212,6 +181,44 @@ export default function CompositeRender({
       triggerRedrawLines(ref.current);
     },
   };
+
+  const nodeDropProps = createNodeDropProps({
+    appendComposite(type: string) {
+      const node = { type, nodes: [] } as Composite;
+      const action = trans("Append Composite");
+      const alias = getNodeAlias(trans, node);
+      undoManager.execute(`${action} [${alias}]`, (redo) => {
+        checkUnfold();
+        nodes.push(node);
+        redo || refresh();
+        triggerRedrawLines(ref.current);
+        return () => {
+          checkUnfold();
+          nodes.pop();
+          triggerRedrawLines(ref.current);
+        };
+      });
+      setAutoSelect(node, true);
+    },
+    appendAction(type: string) {
+      const node = { type } as Action;
+      const action = trans("Append Action");
+      const alias = getNodeAlias(trans, node);
+      undoManager.execute(`${action} [${alias}]`, (redo) => {
+        checkUnfold();
+        nodes.push(node);
+        redo || refresh();
+        triggerRedrawLines(ref.current);
+        return () => {
+          checkUnfold();
+          nodes.pop();
+          triggerRedrawLines(ref.current);
+        };
+      });
+      setAutoSelect(node, true);
+    },
+    prependDecorator,
+  });
 
   const foldHandler = troggleNodeFoldHandler(node, selector.select, refresh);
 
@@ -277,6 +284,7 @@ export default function CompositeRender({
                     triggerRedrawLines(ref.current);
                   };
                 });
+                setAutoSelect(nodeNew, true);
               }}
               deliverParent={deliverSelf}
             >

@@ -1,4 +1,5 @@
-import type { NodeType } from "./type";
+import type { TransFunction } from "../storage/Locale";
+import type { Node, NodeType } from "./type";
 
 const nodeTypeDict = {
   "?": "Composite",
@@ -18,3 +19,9 @@ export function getNodeType(type: string): NodeType {
 }
 
 export const EMPTY_NODE = { type: "Unknown" };
+
+export function getNodeAlias(trans: TransFunction, node: Node): string {
+  if (!node.alias) return trans(node.type);
+  const alias = node.alias;
+  return alias.split("\n")[0].trim();
+}

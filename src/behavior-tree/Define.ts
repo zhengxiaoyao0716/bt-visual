@@ -12,6 +12,9 @@ export type Item = { desc?: string; optional?: true } & (
       type: "Store.Reader";
     }
   | {
+      type: "statements";
+    }
+  | {
       type: "dict";
       value: Item;
     }
@@ -53,45 +56,47 @@ export type BTDefines = {
   };
 };
 
-const nodes: BTDefines = {
+const Settings = {
+  storeScopes: [
+    { label: "none", value: "" }, // 只读常量，例如直接读取配置
+    { label: "local", value: "." }, // 局部，一般指仅所属单位（例如行为树所控制的怪物）
+    { label: "stage", value: "/" }, // 全局，一般指当前地图（同一地图内各单位的各行为树共享）
+  ],
+};
+
+const nodes: typeof Settings & BTDefines = {
+  ...Settings,
   Composite: {
-    "?=Selector": {},
-    "&=Sequence": {},
-    ">=Parallel": {
+    "?Selector": {},
+    "&Sequence": {},
+    ">Parallel": {
       props: {
         expected: items["Store.Reader.Number"],
       },
     },
-    "?:SelectBy": {
+    "?SelectBy": {
       props: {
         index: items["Store.Reader.Number"],
       },
     },
-    "?:SelectIf": {},
-    "?:SelRandom": {},
-    "&:SeqRandom": {},
-    ">:Complete": {},
-    ">:Success": {},
-    ">:Faliure": {},
-    ">:Priority": {},
+    "?SelectIf": {},
+    "?SelRandom": {},
+    "&SeqRandom": {},
+    ">Complete": {},
+    ">Success": {},
+    ">Faliure": {},
+    ">Priority": {},
   },
   Decorator: {
-    "@CompareEQ": {
+    "@Condition": {
       props: {
-        expected: items["Store.Reader"],
-        subject: items["Store.Reader"],
+        signal: optional(items["Store.Reader.String"]),
+        statements: { type: "statements" },
       },
     },
-    "@CompareGE": {
+    "@Interrupt": {
       props: {
-        expected: items["Store.Reader"],
-        subject: items["Store.Reader"],
-      },
-    },
-    "@CompareLE": {
-      props: {
-        expected: items["Store.Reader"],
-        subject: items["Store.Reader"],
+        signal: items["Store.Reader.String"],
       },
     },
     "@Repeat": {
@@ -105,7 +110,7 @@ const nodes: BTDefines = {
     "@Failure": {},
     "@Delay": {
       props: {
-        failure: items["Store.Reader.Number"],
+        millis: items["Store.Reader.Number"],
       },
     },
     "@Save": {
@@ -124,7 +129,7 @@ const nodes: BTDefines = {
   Action: {
     "+Empty": {
       props: {
-        extra: items["Store.Reader"],
+        extra: optional(items["Store.Reader"]),
       },
     },
     "+Tree": {
@@ -137,10 +142,10 @@ const nodes: BTDefines = {
     "+Dynamic": {
       props: {
         name: items["Store.Reader.String"],
-        args: {
+        args: optional({
           type: "dict",
           value: items["Store.Reader"],
-        },
+        }),
       },
       shape:
         '<path d="M6.2 3.01C4.44 2.89 3 4.42 3 6.19V16c0 2.76 2.24 5 5 5s5-2.24 5-5V8c0-1.66 1.34-3 3-3s3 1.34 3 3v7h-.83c-1.61 0-3.06 1.18-3.17 2.79-.12 1.69 1.16 3.1 2.8 3.21 1.76.12 3.2-1.42 3.2-3.18V8c0-2.76-2.24-5-5-5s-5 2.24-5 5v8c0 1.66-1.34 3-3 3s-3-1.34-3-3V9h.83C7.44 9 8.89 7.82 9 6.21c.11-1.68-1.17-3.1-2.8-3.2z"></path>',
