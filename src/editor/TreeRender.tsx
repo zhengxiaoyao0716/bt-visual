@@ -1,4 +1,4 @@
-import Define from "../behavior-tree/Define";
+import { BTDefines } from "../behavior-tree/Define";
 import type { Tree } from "../behavior-tree/type";
 import Config from "../storage/Config";
 import { TransFunction } from "../storage/Locale";
@@ -10,11 +10,17 @@ interface Props {
   readonly?: true;
   tree: Tree;
   config: ReturnType<typeof Config.use>;
+  define: BTDefines | undefined;
   trans: TransFunction;
 }
 
-export default function TreeRender({ tree, config, trans, readonly }: Props) {
-  const define = Define.use();
+export default function TreeRender({
+  tree,
+  config,
+  define,
+  trans,
+  readonly,
+}: Props) {
   return (
     <NodeSelector>
       <DraftPaper key={tree.name} readonly={readonly}>
@@ -22,7 +28,7 @@ export default function TreeRender({ tree, config, trans, readonly }: Props) {
           tree={tree}
           config={config}
           trans={trans}
-          btDefine={define?.value}
+          btDefine={define}
         />
       </DraftPaper>
     </NodeSelector>

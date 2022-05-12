@@ -5,30 +5,33 @@ import LockOpenIcon from "@mui/icons-material/LockOpen";
 import SaveIcon from "@mui/icons-material/Save";
 import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
-import ListItem from "@mui/material/ListItem";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import Stack from "@mui/material/Stack";
-import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import { MouseEvent, useCallback, useEffect, useRef, useState } from "react";
+import { MouseEvent, useEffect, useRef, useState } from "react";
 
+import Define, { BTDefines } from "../behavior-tree/Define";
 import { Forest } from "../behavior-tree/Forest";
-import type { Store, Tree } from "../behavior-tree/type";
+import type { Tree } from "../behavior-tree/type";
+import { invalidTree } from "../behavior-tree/validator";
 import { useDialogPrompt } from "../components/DialogPrompt";
 import { addHotkeyListener } from "../components/Hotkey";
-import { useMoveableList } from "../components/MoveableList";
-import { useRefresh } from "../components/Refresh";
 import Snack from "../components/Snack";
 import { useTabs } from "../components/Tabs";
 import ToolBarSlot from "../components/ToolBarSlot";
+import { handleInvalidNodes } from "../debugger";
 import Config from "../storage/Config";
 import { useTrans } from "../storage/Locale";
 import { ContextValue } from "../storage/Storage";
 import { LockerContext, useLocker } from "./NodeRender/NodeLocker";
-import Properties, { PropertiesOption } from "./Properties";
+import Properties, {
+  createComponentOption,
+  PropertiesOption,
+} from "./Properties";
+import StorePreset from "./Properties/StorePreset";
 import TreeRender from "./TreeRender";
 import Undo from "./Undo";
 
@@ -149,81 +152,6 @@ export default function Workspace({
   );
   const tree = trees[treeIndex];
 
-  const StoreList = useCallback(
-    function StoreList() {
-      const storeItems = Object.entries(tree.store || {});
-      const [, refresh] = useRefresh();
-
-      const appendStorePrompt = prompt.bind(null, {
-        async onSubmit([name, value]: string[]) {
-          if (!name) {
-            snack.show(trans("Invalid input"));
-            return null;
-          }
-          if (tree.store && name in tree.store) {
-            snack.show(trans("Duplicate store key"));
-            return null;
-          }
-          return [`.${name}`, value as Store.Value];
-        },
-        cancel: trans("CANCEL"),
-        submit: trans("APPEND"),
-        title: trans("Append Item"),
-        message: trans("Please the key and value of the store item"),
-        values: [trans("store key"), trans("store value")],
-      }) as () => Promise<[string, Store.Value] | null>;
-
-      const change = (index: number, value: string) => {
-        const item = storeItems[index];
-        if (item[1] === value) return;
-        item[1] = value;
-        if (tree.store == null) {
-          tree.store = { [item[0]]: value };
-        } else {
-          tree.store[item[0]] = value;
-        }
-        refresh();
-      };
-
-      const moveableList = useMoveableList(
-        storeItems,
-        appendStorePrompt,
-        () => {
-          tree.store = Object.fromEntries(storeItems);
-          refresh();
-        },
-        ([name, value], index, showMenu, anchor) => (
-          <ListItem
-            key={index}
-            button
-            onContextMenu={showMenu}
-            sx={{ padding: 0 }}
-          >
-            <TextField
-              label={name.slice(1)}
-              title={name.slice(1)}
-              fullWidth
-              size="small"
-              defaultValue={value}
-              margin="dense"
-              onChange={(event) => change(index, event.target.value)}
-            />
-            {anchor}
-          </ListItem>
-        )
-      );
-      return (
-        <Box>
-          {moveableList.listItems.length <= 0
-            ? moveableList.appender
-            : moveableList.listItems}
-          {moveableList.itemMenu}
-        </Box>
-      );
-    },
-    [forest, treeIndex]
-  );
-
   const treeOptions = [
     { type: "subheader", value: trans("Tree Properties"), align: "right" },
     {
@@ -243,23 +171,47 @@ export default function Workspace({
       value: `- ${trans("Store List")} -`,
       align: "center",
     },
-    { type: "component", Component: StoreList },
+    createComponentOption(StorePreset, {
+      trans,
+      scope: ".",
+      read() {
+        return tree.store || {};
+      },
+      save(store) {
+        if (store == null) delete tree.store;
+        else tree.store = store;
+      },
+    }),
   ] as PropertiesOption[];
 
   const Locker = useLocker(false, (locked) =>
     snack.show(trans(locked ? "Editor locked" : "Editor unlocked"))
   );
 
-  const toolBarSlot = ToolBarSlot.useSlot();
   const saveRef = useRef({ forest, dirty: (_trees: Tree[]) => "" as string });
   useEffect(() => {
     saveRef.current.forest = forest;
   }, [forest]);
+  const define = Define.use();
+  const toolBarSlot = ToolBarSlot.useSlot();
+
   useEffect(() => {
+    if (define?.value == null) return;
+
     let treesSaved = JSON.stringify(trees);
     const dirty = (trees: Tree[]) => {
       const treesDirty = JSON.stringify(trees);
       return treesDirty == treesSaved ? "" : treesDirty;
+    };
+    const invalidTrees = (define: BTDefines, trees: Tree[]): number => {
+      for (let index = 0; index < trees.length; index++) {
+        const tree = trees[index];
+        const invalidNodes = invalidTree(define, tree);
+        if (invalidNodes.length <= 0) continue;
+        handleInvalidNodes(invalidNodes);
+        return index;
+      }
+      return -1;
     };
     saveRef.current.dirty = dirty;
     const save = async () => {
@@ -268,7 +220,14 @@ export default function Workspace({
         await snack.show(trans("Saving, try again later"));
         return;
       }
-      const treesDirty = dirty(forest.value.trees);
+      const { trees } = forest.value;
+      const invalidIndex = invalidTrees(define.value, trees);
+      if (invalidIndex >= 0) {
+        showTree(name, invalidIndex);
+        snack.show(trans("Found invalid nodes, please check and fix them"));
+        return;
+      }
+      const treesDirty = dirty(trees);
       if (!treesDirty) {
         await snack.show(trans("No modifications"));
         return;
@@ -326,7 +285,7 @@ export default function Workspace({
       removeHotkeyListeners();
       window.removeEventListener("beforeunload", beforeUnload);
     };
-  }, []);
+  }, [define?.value]);
 
   return (
     <Box
@@ -340,7 +299,12 @@ export default function Workspace({
       <LockerContext.Provider value={Locker.locked}>
         <Properties options={treeOptions}>
           <Undo id={`${name}[${treeIndex}]`} trans={trans}>
-            <TreeRender tree={tree} config={config} trans={trans} />
+            <TreeRender
+              tree={tree}
+              config={config}
+              define={define?.value}
+              trans={trans}
+            />
           </Undo>
         </Properties>
       </LockerContext.Provider>

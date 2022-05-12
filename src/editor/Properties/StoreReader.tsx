@@ -5,12 +5,11 @@ import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import FormControlLabel from "@mui/material/FormControlLabel";
-import Stack from "@mui/material/Stack";
 import Switch from "@mui/material/Switch";
 import TextField, { TextFieldProps } from "@mui/material/TextField";
 import { ChangeEvent, useRef, useState } from "react";
 
-import { Store } from "../../behavior-tree/type";
+import type { Store } from "../../behavior-tree/type";
 import Snack from "../../components/Snack";
 import { TransFunction } from "../../storage/Locale";
 
@@ -48,6 +47,8 @@ export function getStoreReaderText(value: Store.Reader | undefined): string {
   else if (typeof value === "number") return value.toString();
   else if (typeof value === "boolean") return value ? "true" : "false";
 
+  if (value.type === "unknown") return value.bind;
+
   const def = value.bind === "_" ? "" : `${value.bind}: `;
   if (value.type === "string") {
     return `${def}\`${value.init}\``;
@@ -65,7 +66,7 @@ export function getStoreReaderText(value: Store.Reader | undefined): string {
 }
 
 function resolveValueByType(
-  type: "number" | "string" | "boolean" | undefined,
+  type: Store.ValueType,
   value: string
 ): number | string | boolean | null {
   switch (type) {
@@ -81,7 +82,7 @@ function resolveValueByType(
       const booleanValue = resolveBooleanValue(value);
       return booleanValue == null ? null : booleanValue === "true";
     }
-    case undefined: {
+    case "unknown": {
       return (
         resolveValueByType("string", value) ??
         resolveValueByType("boolean", value) ??
@@ -93,8 +94,9 @@ function resolveValueByType(
 
 function getScopeOfBind(
   bind: string,
-  storeScopes: { label: string; value: string }[]
+  storeScopes?: { label: string; value: string }[]
 ) {
+  if (storeScopes == null) return "";
   for (const { value } of storeScopes) {
     if (value === "") continue;
     if (bind.startsWith(value)) return value;
@@ -102,343 +104,379 @@ function getScopeOfBind(
   return "";
 }
 
-export function createStoreReader(
-  trans: TransFunction,
-  name: string,
-  read: () => Store.Reader | undefined,
-  save: (value: Store.Reader | undefined) => void,
+interface Props {
+  trans: TransFunction;
+  name: string;
+  read(): Store.Reader | undefined;
+  save(value: Store.Reader | undefined): void;
   item: {
     desc?: string;
     optional?: true;
-    valueType?: "number" | "string" | "boolean";
-  },
-  storeScopes: { label: string; value: string }[]
-) {
-  return function StoreReader() {
-    const rawValue = read();
-    const text = getStoreReaderText(rawValue);
+    valueType: Store.ValueType;
+  };
+  storeScopes?: { label: string; value: string }[];
+}
 
-    const [value, setValue] = useState(
-      null as
-        | null
-        | string
-        | { bind: string; init: string; maximum?: string; scope: string }
-        | undefined
-    );
-    const hideDialog = () => setValue(null);
-    const showDialog = () => {
-      if (typeof rawValue === "object") {
-        setValue({
-          bind: rawValue.bind,
-          init:
-            typeof rawValue.init === "string"
-              ? `\`${rawValue.init}\``
-              : String(rawValue.init),
-          maximum:
-            rawValue.type === "number" && "zoom" in rawValue
-              ? String(
-                  (rawValue as Store.Reader.Random).init +
-                    (rawValue as Store.Reader.Random).zoom
-                )
-              : undefined,
-          scope: getScopeOfBind(rawValue.bind, storeScopes),
-        });
-      } else {
-        setValue(
-          rawValue === undefined
-            ? undefined
-            : typeof rawValue === "string"
-            ? `\`${rawValue}\``
-            : String(rawValue)
-        );
-      }
-    };
+export default function StoreReader({
+  trans,
+  name,
+  read,
+  save,
+  item,
+  storeScopes,
+}: Props) {
+  const rawValue = read();
+  const text = getStoreReaderText(rawValue);
 
-    const onStoreBindChange = (
-      target: HTMLInputElement | HTMLTextAreaElement,
-      newValue: string
-    ) => {
-      if (!newValue) {
-        setValue(undefined);
-        return;
-      }
-
-      const booleanValue = resolveBooleanValue(newValue);
-      if (booleanValue != null) {
-        setValue(newValue.toLowerCase());
-        return;
-      }
-
-      const numberValue = Number(newValue);
-      if (!Number.isNaN(numberValue)) {
-        setValue(newValue.toLowerCase());
-        return;
-      }
-
-      const identityValue = resolveIdentityValue(newValue);
-      if (identityValue != null) {
-        const oldValue = typeof value === "object" ? value : null;
-        const scope = getScopeOfBind(identityValue, storeScopes);
-        switch (item.valueType) {
-          case "number":
-            setValue({ init: "0", ...oldValue, bind: identityValue, scope });
-            return;
-          case "string":
-            setValue({ init: "", ...oldValue, bind: identityValue, scope });
-            return;
-          case "boolean":
-            setValue({
-              init: "false",
-              ...oldValue,
-              bind: identityValue,
-              scope,
-            });
-            return;
-          case undefined:
-            setValue({ init: "", ...oldValue, bind: identityValue, scope });
-            return;
-        }
-      }
-
-      const stringValue = resolveStringValue(newValue);
-      if (stringValue == null) {
-        setValue(newValue);
-        return;
-      }
-      // 从完整的引号中删除一个引号，这种情况不再自动补回引号
-      if (value === "``" && newValue === value[0]) {
-        setValue(newValue);
-        return;
-      }
-      setValue(stringValue);
-      // 自动补全了一个引号，光标移到补全的引号前
-      if (newValue.length === 1) {
-        target.value = stringValue;
-        const index = stringValue.length - 1;
-        target.setSelectionRange(index, index);
-      }
-    };
-    const onStoreInitChange = (
-      target: HTMLInputElement | HTMLTextAreaElement,
-      newValue: string
-    ) => {
-      if (value == null || typeof value !== "object") return;
-
-      if (!newValue) {
-        setValue({ ...value, init: "" });
-        return;
-      }
-
-      const booleanValue = resolveBooleanValue(newValue);
-      if (booleanValue != null) {
-        setValue({ ...value, init: newValue.toLowerCase() });
-        return;
-      }
-
-      const numberValue = Number(newValue);
-      if (!Number.isNaN(numberValue)) {
-        setValue({ ...value, init: newValue.toLowerCase() });
-        return;
-      }
-
-      const stringValue = resolveStringValue(newValue);
-      if (stringValue == null) {
-        setValue({ ...value, init: newValue });
-        return;
-      }
-      // 从完整的引号中删除一个引号，这种情况不再自动补回引号
-      if (value.init === "``" && newValue === value.init[0]) {
-        setValue({ ...value, init: newValue });
-        return;
-      }
-      setValue({ ...value, init: stringValue });
-      // 自动补全了一个引号，光标移到补全的引号前
-      if (newValue.length === 1) {
-        target.value = stringValue;
-        const index = stringValue.length - 1;
-        target.setSelectionRange(index, index);
-      }
-    };
-    const onStoreUseRandomChange = (event: ChangeEvent<HTMLInputElement>) => {
-      if (value == null || typeof value !== "object") return;
-      const init = Number(value.init);
-      if (Number.isNaN(init)) return;
-      const zoom =
-        typeof rawValue === "object" && "zoom" in rawValue
-          ? (rawValue as Store.Reader.Random).zoom
-          : 1;
+  const [value, setValue] = useState(
+    null as
+      | null
+      | string
+      | { bind: string; init: string; maximum?: string; scope: string }
+      | undefined
+  );
+  const hideDialog = () => setValue(null);
+  const showDialog = () => {
+    if (typeof rawValue === "object") {
       setValue({
-        ...value,
-        maximum: event.target.checked ? String(init + zoom) : undefined,
+        bind: rawValue.bind,
+        init:
+          rawValue.type === "unknown"
+            ? ""
+            : typeof rawValue.init === "string"
+            ? `\`${rawValue.init}\``
+            : String(rawValue.init),
+        maximum:
+          rawValue.type === "number" && "zoom" in rawValue
+            ? String(
+                (rawValue as Store.Reader.Random).init +
+                  (rawValue as Store.Reader.Random).zoom
+              )
+            : undefined,
+        scope: getScopeOfBind(rawValue.bind, storeScopes),
       });
-    };
-    const onStoreZoomChange = (
-      _target: HTMLInputElement | HTMLTextAreaElement,
-      newValue: string
-    ) => {
-      if (value == null || typeof value !== "object") return;
-      if (!value.init) return;
-      const init = Number(value.init);
-      if (Number.isNaN(init)) return;
-      setValue({ ...value, maximum: newValue });
-    };
+    } else {
+      setValue(
+        rawValue === undefined
+          ? undefined
+          : typeof rawValue === "string"
+          ? `\`${rawValue}\``
+          : String(rawValue)
+      );
+    }
+  };
 
-    const onStoreScopeChange = (
-      _target: HTMLInputElement | HTMLTextAreaElement,
-      newValue: string
-    ) => {
-      if (value == null || typeof value !== "object") return;
-      if (newValue === value.scope) return;
-      const bind = `${newValue}${value.bind.slice(value.scope.length)}`;
-      setValue({ ...value, bind, scope: newValue });
-    };
+  const onStoreBindChange = (
+    target: HTMLInputElement | HTMLTextAreaElement,
+    newValue: string
+  ) => {
+    if (!newValue) {
+      setValue(undefined);
+      return;
+    }
 
-    const snack = Snack.use();
-    const onSubmit = () => {
-      if (value === null) return; // never
+    const booleanValue = resolveBooleanValue(newValue);
+    if (booleanValue != null) {
+      setValue(newValue.toLowerCase());
+      return;
+    }
 
-      if (value === undefined || value === "``") {
-        if (!item.optional) {
-          snack.show(trans("Invalid input"));
-        } else {
-          save(undefined);
-          hideDialog();
-        }
-        return;
+    const numberValue = Number(newValue);
+    if (!Number.isNaN(numberValue)) {
+      setValue(newValue.toLowerCase());
+      return;
+    }
+
+    const identityValue = resolveIdentityValue(newValue);
+    if (identityValue != null) {
+      const oldValue = typeof value === "object" ? value : null;
+      const scope = getScopeOfBind(identityValue, storeScopes);
+      switch (item.valueType) {
+        case "number":
+          setValue({ init: "0", ...oldValue, bind: identityValue, scope });
+          return;
+        case "string":
+        case "unknown":
+          setValue({ init: "", ...oldValue, bind: identityValue, scope });
+          return;
+        case "boolean":
+          setValue({
+            init: "false",
+            ...oldValue,
+            bind: identityValue,
+            scope,
+          });
+          return;
       }
+    }
 
-      if (typeof value === "string") {
-        const resolved = resolveValueByType(item.valueType, value);
-        if (resolved == null) {
-          snack.show(trans("Invalid input"));
-        } else {
-          save(resolved);
-          hideDialog();
-        }
-        return;
+    const stringValue = resolveStringValue(newValue);
+    if (stringValue == null) {
+      setValue(newValue);
+      return;
+    }
+    // 从完整的引号中删除一个引号，这种情况不再自动补回引号
+    if (value === "``" && newValue === value[0]) {
+      setValue(newValue);
+      return;
+    }
+    setValue(stringValue);
+    // 自动补全了一个引号，光标移到补全的引号前
+    if (newValue.length === 1) {
+      target.value = stringValue;
+      const index = stringValue.length - 1;
+      target.setSelectionRange(index, index);
+    }
+  };
+  const onStoreInitChange = (
+    target: HTMLInputElement | HTMLTextAreaElement,
+    newValue: string
+  ) => {
+    if (value == null || typeof value !== "object") return;
+
+    if (!newValue) {
+      setValue({ ...value, init: "" });
+      return;
+    }
+
+    const booleanValue = resolveBooleanValue(newValue);
+    if (booleanValue != null) {
+      setValue({ ...value, init: newValue.toLowerCase() });
+      return;
+    }
+
+    const numberValue = Number(newValue);
+    if (!Number.isNaN(numberValue)) {
+      setValue({ ...value, init: newValue.toLowerCase() });
+      return;
+    }
+
+    const stringValue = resolveStringValue(newValue);
+    if (stringValue == null) {
+      setValue({ ...value, init: newValue });
+      return;
+    }
+    // 从完整的引号中删除一个引号，这种情况不再自动补回引号
+    if (value.init === "``" && newValue === value.init[0]) {
+      setValue({ ...value, init: newValue });
+      return;
+    }
+    setValue({ ...value, init: stringValue });
+    // 自动补全了一个引号，光标移到补全的引号前
+    if (newValue.length === 1) {
+      target.value = stringValue;
+      const index = stringValue.length - 1;
+      target.setSelectionRange(index, index);
+    }
+  };
+  const onStoreUseRandomChange = (event: ChangeEvent<HTMLInputElement>) => {
+    if (value == null || typeof value !== "object") return;
+    const init = Number(value.init);
+    if (Number.isNaN(init)) return;
+    const zoom =
+      typeof rawValue === "object" && "zoom" in rawValue
+        ? (rawValue as Store.Reader.Random).zoom
+        : 1;
+    setValue({
+      ...value,
+      maximum: event.target.checked ? String(init + zoom) : undefined,
+    });
+  };
+  const onStoreZoomChange = (
+    _target: HTMLInputElement | HTMLTextAreaElement,
+    newValue: string
+  ) => {
+    if (value == null || typeof value !== "object") return;
+    if (!value.init) return;
+    const init = Number(value.init);
+    if (Number.isNaN(init)) return;
+    setValue({ ...value, maximum: newValue });
+  };
+
+  const onStoreScopeChange = (
+    _target: HTMLInputElement | HTMLTextAreaElement,
+    newValue: string
+  ) => {
+    if (value == null || typeof value !== "object") return;
+    if (newValue === value.scope) return;
+    const bind = `${newValue}${value.bind.slice(value.scope.length)}`;
+    setValue({ ...value, bind, scope: newValue });
+  };
+
+  const snack = Snack.use();
+  const onSubmit = () => {
+    if (value === null) return; // never
+
+    if (
+      value === undefined ||
+      value === "" ||
+      value === "`" ||
+      value === "``"
+    ) {
+      if (!item.optional) {
+        snack.show(trans("Invalid input"));
+      } else {
+        save(undefined);
+        hideDialog();
       }
+      return;
+    }
 
-      const resolved = resolveValueByType(item.valueType, value.init);
+    if (typeof value === "string") {
+      const resolved = resolveValueByType(item.valueType, value);
       if (resolved == null) {
+        snack.show(trans("Invalid input"));
+      } else {
+        save(resolved);
+        hideDialog();
+      }
+      return;
+    }
+
+    if (item.valueType === "unknown" && value.init === "") {
+      if (value.bind === "_") {
+        snack.show(trans("Invalid input"));
+      } else {
+        save({ bind: value.bind, type: "unknown" });
+        hideDialog();
+      }
+      return;
+    }
+
+    const resolved = resolveValueByType(item.valueType, value.init);
+    if (resolved == null) {
+      snack.show(trans("Invalid input"));
+      return;
+    }
+
+    const rawValue: Store.Reader = {
+      bind: value.bind,
+      init: resolved,
+      type: typeof resolved as "number" | "string" | "boolean",
+    };
+    if (rawValue.type === "number" && value.maximum) {
+      const maximum = Number(value.maximum);
+      if (Number.isNaN(maximum)) {
         snack.show(trans("Invalid input"));
         return;
       }
+      const zoom = maximum - (resolved as number);
+      zoom == 0 || ((rawValue as Store.Reader.Random).zoom = zoom);
+    }
+    save(rawValue);
+    hideDialog();
+  };
 
-      const rawValue: Store.Reader = {
-        bind: value.bind,
-        init: resolved,
-        type: typeof resolved as "number" | "string" | "boolean",
-      };
-      if (rawValue.type === "number" && value.maximum) {
-        const maximum = Number(value.maximum);
-        if (Number.isNaN(maximum)) {
-          snack.show(trans("Invalid input"));
-          return;
-        }
-        const zoom = maximum - (resolved as number);
-        zoom == 0 || ((rawValue as Store.Reader.Random).zoom = zoom);
-      }
-      save(rawValue);
-      hideDialog();
-    };
-
-    return (
-      <>
-        <Stack onClick={showDialog}>
-          <TextField
-            fullWidth
-            multiline
-            label={name}
-            value={text}
-            error={!item.optional && (rawValue === undefined || value === "``")}
-            variant="standard"
-            sx={{ mb: 1, pointerEvents: "none" }}
-            title={item.desc}
-          />
-        </Stack>
-        {
-          //  这里必须用严格比较，因为 null 和 undefined 在此处含义是不同的，前者是对话框未开启，后者是值为空
-          value === null ? null : (
-            <Dialog open={true}>
-              <DialogTitle sx={{ minWidth: "16em" }}>
-                {trans("Edit Store Value")}
-              </DialogTitle>
-              <DialogContent>
-                <ValueTextField
-                  fullWidth
-                  label={trans("Please input the value of ${name}", { name })}
-                  value={
-                    typeof value === "object"
-                      ? value.bind
-                      : value === undefined
-                      ? ""
-                      : value
-                  }
-                  error={
-                    value === undefined || value === "``"
-                      ? !item.optional
-                      : typeof value === "string"
-                      ? resolveValueByType(item.valueType, value) == null
-                      : false
-                  }
-                  variant="standard"
-                  sx={{ mb: 1 }}
-                  autoFocus
-                  onChange={onStoreBindChange}
-                  type={
-                    item.valueType === "number" ? undefined : item.valueType
-                  }
-                />
-                {typeof value === "object" ? (
-                  <>
-                    <ValueTextField
-                      fullWidth
-                      label={trans(
-                        value.maximum == null
-                          ? "Default value of store ${name}"
-                          : "Minimum default value of store ${name}",
-                        { name: value.bind }
-                      )}
-                      value={value.init}
-                      error={
-                        resolveValueByType(item.valueType, value.init) == null
-                      }
-                      variant="standard"
-                      sx={{ mb: 1 }}
-                      onChange={onStoreInitChange}
-                      type={item.valueType}
-                    />
-                    {!value.init || Number.isNaN(Number(value.init)) ? null : (
-                      <>
-                        {value.maximum == null ? null : (
-                          <ValueTextField
-                            fullWidth
-                            label={trans(
-                              "Maximum default value of store ${name}",
-                              { name: value.bind }
-                            )}
-                            value={value.maximum}
-                            error={
-                              !value.maximum ||
-                              Number.isNaN(Number(value.maximum))
-                            }
-                            variant="standard"
-                            sx={{ mb: 1 }}
-                            onChange={onStoreZoomChange}
-                            type={item.valueType}
-                          />
-                        )}
-                        <FormControlLabel
-                          control={
-                            <Switch
-                              checked={value.maximum != null}
-                              onChange={onStoreUseRandomChange}
-                            />
-                          }
-                          label={trans("use random default value")}
-                        />
-                      </>
+  return (
+    <>
+      <Button
+        fullWidth
+        size="small"
+        sx={{ textAlign: "left", textTransform: "none" }}
+        onClick={showDialog}
+      >
+        <TextField
+          fullWidth
+          multiline
+          label={name}
+          value={text}
+          error={
+            !item.optional &&
+            (rawValue === undefined ||
+              rawValue === "" ||
+              value === "`" ||
+              value === "``")
+          }
+          variant="standard"
+          sx={{ mb: 1, pointerEvents: "none" }}
+          title={item.desc}
+        />
+      </Button>
+      {
+        //  这里必须用严格比较，因为 null 和 undefined 在此处含义是不同的，前者是对话框未开启，后者是值为空
+        value === null ? null : (
+          <Dialog open={true}>
+            <DialogTitle sx={{ minWidth: "16em" }}>
+              {trans("Edit Store Value")}
+            </DialogTitle>
+            <DialogContent>
+              <ValueTextField
+                fullWidth
+                label={trans("Please input the value of ${name}", { name })}
+                value={
+                  typeof value === "object"
+                    ? value.bind
+                    : value === undefined
+                    ? ""
+                    : value
+                }
+                error={
+                  value === undefined || value === "`" || value === "``"
+                    ? !item.optional
+                    : typeof value === "string"
+                    ? resolveValueByType(item.valueType, value) == null
+                    : false
+                }
+                variant="standard"
+                sx={{ mb: 1 }}
+                autoFocus
+                onChange={onStoreBindChange}
+                type={
+                  // 虽然值类型是数字，但因为这里可能输入的是黑板的 key，所以不能限制为只输入数字
+                  item.valueType === "number" ? "unknown" : item.valueType
+                }
+              />
+              {typeof value === "object" ? (
+                <>
+                  <ValueTextField
+                    fullWidth
+                    label={trans(
+                      value.maximum == null
+                        ? "Default value of store ${name}"
+                        : "Minimum default value of store ${name}",
+                      { name: value.bind }
                     )}
+                    value={value.init}
+                    error={
+                      resolveValueByType(item.valueType, value.init) == null
+                    }
+                    variant="standard"
+                    sx={{ mb: 1 }}
+                    onChange={onStoreInitChange}
+                    type={item.valueType}
+                  />
+                  {!value.init || Number.isNaN(Number(value.init)) ? null : (
+                    <>
+                      {value.maximum == null ? null : (
+                        <ValueTextField
+                          fullWidth
+                          label={trans(
+                            "Maximum default value of store ${name}",
+                            { name: value.bind }
+                          )}
+                          value={value.maximum}
+                          error={
+                            !value.maximum ||
+                            Number.isNaN(Number(value.maximum))
+                          }
+                          variant="standard"
+                          sx={{ mb: 1 }}
+                          onChange={onStoreZoomChange}
+                          type={item.valueType}
+                        />
+                      )}
+                      <FormControlLabel
+                        control={
+                          <Switch
+                            checked={value.maximum != null}
+                            onChange={onStoreUseRandomChange}
+                          />
+                        }
+                        label={trans("use random default value")}
+                      />
+                    </>
+                  )}
+                  {storeScopes && (
                     <ValueTextField
                       fullWidth
                       label={trans("Scope of store ${name}", {
@@ -450,19 +488,19 @@ export function createStoreReader(
                       onChange={onStoreScopeChange}
                       type={storeScopes}
                     />
-                  </>
-                ) : null}
-              </DialogContent>
-              <DialogActions>
-                <Button onClick={hideDialog}>{trans("CANCEL")}</Button>
-                <Button onClick={onSubmit}>{trans("SUBMIT")}</Button>
-              </DialogActions>
-            </Dialog>
-          )
-        }
-      </>
-    );
-  };
+                  )}
+                </>
+              ) : null}
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={hideDialog}>{trans("CANCEL")}</Button>
+              <Button onClick={onSubmit}>{trans("SUBMIT")}</Button>
+            </DialogActions>
+          </Dialog>
+        )
+      }
+    </>
+  );
 }
 
 function ValueTextField({
@@ -475,8 +513,8 @@ function ValueTextField({
     | "number"
     | "string"
     | "boolean"
-    | { label: string; value: string }[]
-    | undefined;
+    | "unknown"
+    | { label: string; value: string }[];
   value: string;
   onChange: (
     target: HTMLInputElement | HTMLTextAreaElement,
@@ -498,7 +536,7 @@ function ValueTextField({
         />
       );
     case "string":
-    case undefined:
+    case "unknown":
       return (
         <TextField
           {...props}

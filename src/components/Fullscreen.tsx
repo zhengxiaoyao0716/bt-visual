@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import share from "./share";
+import share from "../common/share";
 
 interface Props {
   children: (fullscreen: boolean, troggle: () => void) => JSX.Element;

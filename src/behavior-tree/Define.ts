@@ -1,22 +1,20 @@
 import { createStorage } from "../storage/Storage";
+import type { Store } from "./type";
 
 export type Item = { desc?: string; optional?: true } & (
   | {
       type: "Store.Key";
+      optional: undefined; // key 不应可空
     }
   | {
       type: "Store.Reader";
-      valueType: "number" | "string" | "boolean";
-    }
-  | {
-      type: "Store.Reader";
+      valueType: Store.ValueType;
     }
   | {
       type: "statements";
     }
   | {
-      type: "dict";
-      value: Item;
+      type: "StorePreset";
     }
 );
 
@@ -27,6 +25,7 @@ export type NodeProps = {
 const items: { [key: string]: Item } = {
   "Store.Key": {
     type: "Store.Key",
+    optional: undefined,
   },
   "Store.Reader.Number": {
     type: "Store.Reader",
@@ -36,18 +35,24 @@ const items: { [key: string]: Item } = {
     type: "Store.Reader",
     valueType: "string",
   },
-  "Store.Reader": {
+  "Store.Reader.Unknown": {
     type: "Store.Reader",
+    valueType: "unknown",
   },
 };
 function optional(item: Item): Item {
-  return { ...item, optional: true };
+  return { optional: true, ...item };
+}
+
+interface ValidOptions {
+  nodesSize?: [number, number]; // 限制节点数量，比如 ?SelectIf 节点要求 nodeSize 必须为 [2, 3]
 }
 
 export interface NodeDefine {
   props?: NodeProps;
   shape?: string;
   desc?: string;
+  valid?: ValidOptions; // 额外校验参数
 }
 
 export type BTDefines = {
@@ -79,7 +84,11 @@ const nodes: typeof Settings & BTDefines = {
         index: items["Store.Reader.Number"],
       },
     },
-    "?SelectIf": {},
+    "?SelectIf": {
+      valid: {
+        nodesSize: [2, 3],
+      },
+    },
     "?SelRandom": {},
     "&SeqRandom": {},
     ">Complete": {},
@@ -129,7 +138,7 @@ const nodes: typeof Settings & BTDefines = {
   Action: {
     "+Empty": {
       props: {
-        extra: optional(items["Store.Reader"]),
+        extra: optional(items["Store.Reader.Unknown"]),
       },
     },
     "+Tree": {
@@ -142,10 +151,7 @@ const nodes: typeof Settings & BTDefines = {
     "+Dynamic": {
       props: {
         name: items["Store.Reader.String"],
-        args: optional({
-          type: "dict",
-          value: items["Store.Reader"],
-        }),
+        args: optional({ type: "StorePreset" }),
       },
       shape:
         '<path d="M6.2 3.01C4.44 2.89 3 4.42 3 6.19V16c0 2.76 2.24 5 5 5s5-2.24 5-5V8c0-1.66 1.34-3 3-3s3 1.34 3 3v7h-.83c-1.61 0-3.06 1.18-3.17 2.79-.12 1.69 1.16 3.1 2.8 3.21 1.76.12 3.2-1.42 3.2-3.18V8c0-2.76-2.24-5-5-5s-5 2.24-5 5v8c0 1.66-1.34 3-3 3s-3-1.34-3-3V9h.83C7.44 9 8.89 7.82 9 6.21c.11-1.68-1.17-3.1-2.8-3.2z"></path>',
@@ -163,5 +169,6 @@ const nodes: typeof Settings & BTDefines = {
 export default createStorage(
   "BTNodes",
   "/behavior-tree-nodes.yaml",
-  Promise.resolve(nodes)
+  Promise.resolve(nodes),
+  { readonly: true }
 );

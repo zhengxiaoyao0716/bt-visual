@@ -11,17 +11,11 @@ import rough from "roughjs";
 import { BTDefines } from "../../behavior-tree/Define";
 import type { Composite, Decorator, Node } from "../../behavior-tree/type";
 import { getNodeType } from "../../behavior-tree/utils";
+import { useNodeStatus } from "../../debugger";
 import Config from "../../storage/Config";
 import { TransFunction } from "../../storage/Locale";
 import { DeliverParent } from "../NodeSelector";
 import { triggerRedrawLines } from "./LineRender";
-
-const statusMapper = {
-  success: { color: "#00FF00" },
-  failure: { color: "#FF0000" },
-  running: { color: "#0000FF" },
-  "": { color: "" },
-};
 
 const nodeTypeMapper = {
   Composite: {
@@ -62,7 +56,6 @@ export type SubProps<N extends Node> = Props & {
   node: N;
   prependDecorator(type: string): void;
   deliverParent: DeliverParent;
-  status?: keyof typeof statusMapper;
 };
 
 export function troggleNodeFoldHandler(
@@ -107,7 +100,6 @@ export default function NodeSvgRender({
   btDefine,
   type,
   size,
-  status: statusKey,
   fold,
   selected,
   children,
@@ -115,6 +107,7 @@ export default function NodeSvgRender({
   onDragEnter,
   onDragOver,
   onDrop,
+  node,
 }: {
   locked: boolean;
   trans: TransFunction;
@@ -122,16 +115,16 @@ export default function NodeSvgRender({
   type: string;
   size: { width: number; height: number };
   children: ReactNode | string;
-  status?: keyof typeof statusMapper;
   fold?: true;
   selected?: boolean;
   onClick?: MouseEventHandler;
   onDragEnter?: DragEventHandler;
   onDragOver?: DragEventHandler;
   onDrop?: DragEventHandler;
+  node?: Node;
 }) {
   const nodeType = getNodeType(type);
-  const status = statusMapper[statusKey || ""];
+  const status = useNodeStatus(btDefine, node);
   const { color, fillStyle, shape: nodeTypeShape } = nodeTypeMapper[nodeType];
 
   const shape =
@@ -183,7 +176,8 @@ export default function NodeSvgRender({
     color,
     fillStyle,
   ]);
-  const textPrimaryColor = "#000000";
+
+  const textPrimaryColor = status.color || "#000000";
   const textSecondaryColor = "#666666";
   const alias =
     children == null

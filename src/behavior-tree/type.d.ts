@@ -1,14 +1,16 @@
 // 基础节点
-export interface Node {
+export type Node = {
   type: string;
   alias?: string; // 别名
-}
+} & {
+  [key: symbol]: any; // 扩展字段，主要是一些编辑器临时用不需要持久化和导出的字段
+};
 
 // 树状节点
 export interface Tree {
   name: string;
   root: Node;
-  store?: { [key: string]: Store.Value };
+  store?: { [key: string]: Store.Reader | undefined };
 }
 
 export type NodeType = "Composite" | "Decorator" | "Action" | "Unknown";
@@ -118,7 +120,7 @@ export module Action {
   export interface Dynamic extends Action {
     type: "+Dynamic"; // 动态行为 // 执行 name 指定的行为
     name: Store.Reader.String; // 行为名称
-    args?: { [name: string]: Store.Reader }; // 透传参数
+    args?: { [name: string]: Store.Reader | undefined }; // 透传参数
   }
 
   export interface Wait extends Action {
@@ -139,7 +141,18 @@ export module Store {
         bind: Store.Key; // 绑定存储空间
         init: V; // 初始默认的值
         type: "number" | "string" | "boolean"; // 读取值的类型
+      }
+    | {
+        bind: Store.Key; // 绑定存储空间
+        type: "unknown"; // 读取值的类型
       };
+
+  export type ValueType = Extract<Reader, { bind: Key }> extends {
+    type: infer T;
+  }
+    ? T
+    : never;
+
   export module Reader {
     export type Random = {
       bind: Store.Key;

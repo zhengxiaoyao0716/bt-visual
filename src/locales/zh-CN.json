@@ -7,10 +7,13 @@
   "REMOVE": "删除",
   "APPEND": "添加",
   "CREATE": "新建",
+  "CONNECT": "连接",
+  "ALL": "全部",
 
   "// 菜单选项": "",
   "HomePage": "首页",
   "EditorPage": "编辑器",
+  "Debugger": "调试器",
   "HelpPage": "帮助",
 
   "// 翻译页面": "",
@@ -69,6 +72,7 @@
   "Node.Composite.desc": "复合节点，可以添加在复合节点下面",
   "Node.Decorator.desc": "装饰节点，可以装饰在任意节点上面",
   "Node.Action.desc": "行为节点，可以添加在复合节点下面",
+  "Found invalid nodes, please check and fix them": "发现非法节点，请检查并修正",
 
   "// 节点列表": "",
   "?Selector": "?选择执行",
@@ -101,9 +105,7 @@
   "Store List": "黑板列表",
   "Duplicate store key": "黑板键冲突",
   "Invalid input": "无效的输入",
-  "Please the key and value of the store item": "请输入要添加的黑板键和值",
-  "store key": "黑板键",
-  "store value": "黑板值",
+  "Please the key of the store item": "请输入要添加的黑板键",
   "Node Properties": "节点属性",
   "Node Alias": "节点别名",
   "Props List": "属性列表",
@@ -123,6 +125,17 @@
   "Compare Operation:": "比较运算：",
   "Numeric Operation:": "数值运算：",
   "Other Operation:": "其他操作：",
+
+  "// 调试器": "",
+  "Connect to the server": "连接服务器",
+  "Server Address": "服务地址",
+  "Server Host": "服务主机",
+  "Server Port": "服务端口",
+  "Server Path": "服务路径",
+  "Remember address": "记住地址",
+  "Select Groups": "选择分组",
+  "Select Trees": "选择行为树",
+  "Please select:": "请选择：",
 
   "// 其他": ""
 }

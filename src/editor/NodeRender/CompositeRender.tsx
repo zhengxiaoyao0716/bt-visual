@@ -161,6 +161,7 @@ export default function CompositeRender({
           triggerRedrawLines(ref.current);
         };
       });
+      setAutoSelect(node, true);
     }
   );
   const draggingRef = {
@@ -240,6 +241,7 @@ export default function CompositeRender({
           onClick={onSelected}
           {...baseProps}
           {...nodeDropProps}
+          node={node}
         >
           {node.alias}
         </NodeSvgRender>

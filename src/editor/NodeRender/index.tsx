@@ -96,7 +96,6 @@ export function AutoRender<N extends Node>({
           btDefine={props.btDefine}
           type="unknown"
           size={{ width: 100, height: 50 }}
-          status="failure"
         >
           {node.alias}
         </NodeSvgRender>

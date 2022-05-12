@@ -22,14 +22,20 @@ import {
   useRef,
 } from "react";
 
-import {
+import type {
   Action,
   Composite,
   Decorator,
   Node,
   Tree,
 } from "../behavior-tree/type";
-import { EMPTY_NODE, getNodeAlias, getNodeType } from "../behavior-tree/utils";
+import {
+  EMPTY_NODE,
+  getNodeAlias,
+  getNodeExt,
+  getNodeType,
+  setNodeExt,
+} from "../behavior-tree/utils";
 import clipboard from "../components/clipboard";
 import { addHotkeyListener } from "../components/Hotkey";
 import { useRefresh } from "../components/Refresh";
@@ -68,46 +74,22 @@ const selectedSymbol = Symbol("selected");
 const autoSelectSymbol = Symbol("autoSelect");
 
 export function isSelected(node: Node) {
-  return selectedSymbol in node;
+  return getNodeExt(node, selectedSymbol) != null;
 }
-function setSelected(node: Node, selected: boolean) {
-  if (selected) {
-    if (!(selectedSymbol in node)) {
-      Object.defineProperty(node, selectedSymbol, {
-        enumerable: false, // JSON.stringify 时隐藏 selected 字段
-        value: true,
-        configurable: true,
-      });
-    }
-  } else {
-    if (selectedSymbol in node) {
-      delete (node as any)[selectedSymbol];
-    }
-  }
+function setSelected(node: Node, selected: true | undefined) {
+  setNodeExt(node, selectedSymbol, selected);
 }
 
 function isAutoSelect(node: Node) {
-  return autoSelectSymbol in node;
+  return getNodeExt(node, autoSelectSymbol) != null;
 }
-export function setAutoSelect(node: Node, selected: boolean) {
-  if (selected) {
-    if (!(autoSelectSymbol in node)) {
-      Object.defineProperty(node, autoSelectSymbol, {
-        enumerable: false, // JSON.stringify 时隐藏 selected 字段
-        value: true,
-        configurable: true,
-      });
-    }
-  } else {
-    if (autoSelectSymbol in node) {
-      delete (node as any)[autoSelectSymbol];
-    }
-  }
+export function setAutoSelect(node: Node, selected: true | undefined) {
+  setNodeExt(node, autoSelectSymbol, selected);
 }
 
 function cancelAllSelected(selector: Selector) {
   for (const { node } of selector.selected) {
-    setSelected(node, false);
+    setSelected(node, undefined);
   }
   selector.selected = [];
 }
@@ -772,7 +754,7 @@ export function useSelector(
         (selected) => selected.node !== node
       );
       if (filtered.length < selector.selected.length) {
-        setSelected(node, false);
+        setSelected(node, undefined);
         selector.selected = filtered;
         selector.refresh();
         return;
@@ -792,7 +774,7 @@ export function useSelector(
     select,
     handle(node: Composite | Decorator | Action) {
       if (isAutoSelect(node)) {
-        setAutoSelect(node, false);
+        setAutoSelect(node, undefined);
         setTimeout(() => select(node), 0);
       }
       return (event: MouseEvent) => {

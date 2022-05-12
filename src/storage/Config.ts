@@ -18,6 +18,7 @@ const defaultConfig = {
     minWidth: 128.0,
   },
   nodeVerticalMargin: 128,
+  serverAddress: "ws://localhost:60013/bt-visual/debug",
 };
 
 export default createStorage(

@@ -1,5 +1,5 @@
-import { Composite, Tree } from "./type";
 import { createStorage, Storage } from "../storage/Storage";
+import type { Composite, Tree } from "./type";
 
 export interface Forest {
   name: string;
@@ -31,3 +31,11 @@ function emptyForest(name: string): Forest {
     ],
   };
 }
+
+export const ForestMainfest = createStorage(
+  "ForestManifest",
+  "/forest-manifest.yaml",
+  Promise.resolve([{ name: "Example" }, { name: "测试中文" }] as {
+    name: string;
+  }[])
+);

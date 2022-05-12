@@ -19,26 +19,27 @@ import {
   useRef,
   useState,
 } from "react";
-
 import BTDefine, { Item } from "../../behavior-tree/Define";
 import type {
   Action,
   Composite,
   Decorator,
   Node,
-  Store,
 } from "../../behavior-tree/type";
 import { getNodeType } from "../../behavior-tree/utils";
 import { useDragMoving } from "../../components/DragMoving";
 import WidthController from "../../components/WidthController";
+import DebugService from "../../service/DebugService";
 import Config from "../../storage/Config";
 import { TransFunction, useTrans } from "../../storage/Locale";
 import { LockerContext } from "../NodeRender/NodeLocker";
-import { createStatements } from "./Statements";
-import { createStoreReader } from "./StoreReader";
+import Statements from "./Statements";
+import StorePreset from "./StorePreset";
+import StoreReader from "./StoreReader";
+import UnkownProps from "./UnkownProps";
 
 type Option =
-  | { type: "component"; Component: ComponentType }
+  | { type: "component"; Component: ComponentType<any>; props: any }
   | { type: "element"; element: ReactElement }
   | {
       type: "input";
@@ -74,6 +75,13 @@ type Option =
 
 export type PropertiesOption = Option;
 
+export function createComponentOption<P>(
+  Component: ComponentType<P>,
+  props: P
+): Option {
+  return { type: "component", Component, props };
+}
+
 function RenderOption({
   trans,
   option,
@@ -83,7 +91,7 @@ function RenderOption({
 }): JSX.Element {
   switch (option.type) {
     case "component": {
-      return <option.Component />;
+      return <option.Component {...option.props} />;
     }
     case "element": {
       return option.element;
@@ -296,14 +304,18 @@ export function useHistoryEditor(
 export function useNodePropsEditor(trans: TransFunction, refresh: () => void) {
   const define = BTDefine.use();
   const context = useContext(PropertiesContext);
+  const debugService = DebugService.use();
 
   const hide = () => context?.setOptions(null);
 
   const depsKey = performance.now().toString();
   const show = (node: Composite | Decorator | Action) => {
+    console.log("debugService", debugService); // TODO
+    if (context == null) return;
+
     if (define?.value == null) return;
     const nodeType = getNodeType(node.type);
-    if (nodeType === "Unknown") return; // NEVER
+    if (nodeType === "Unknown") return;
 
     const nodes = define.value[nodeType];
 
@@ -379,9 +391,9 @@ export function useNodePropsEditor(trans: TransFunction, refresh: () => void) {
       }
     }
 
-    context?.setOptions([
+    context.setOptions([
       ...options,
-      ...unknownPropsOptions(trans, depsKey, node, propNames),
+      ...unknownPropsOptions(trans, node, propNames),
     ]);
   };
 
@@ -398,77 +410,75 @@ enum ignoredNodeProps {
 
 export function nodeItemOption(
   trans: TransFunction,
-  key: string,
+  _key: string,
   node: any,
   name: string,
   item: Item,
   storeScopes: { label: string; value: string }[]
 ): Option {
-  // TODO 根据类型定义不同的输入方式
+  const read = () => node[name];
+  const save = (value: any) => {
+    if (value == null) {
+      name in node && delete node[name];
+    } else {
+      node[name] = value;
+    }
+  };
   switch (item.type) {
-    // TODO 根据类型定义不同的输入方式
-    case "Store.Key":
-    case "dict":
-    case "Store.Reader": {
-      const read = () => (node as any)[name];
-      const save = (value: Store.Reader | undefined) => {
-        if (value == null) {
-          name in node && delete (node as any)[name];
-        } else {
-          (node as any)[name] = value;
-        }
-      };
+    case "Store.Key": {
       return {
-        type: "component",
-        Component: createStoreReader(
-          trans,
-          name,
-          read,
-          save,
-          item,
-          storeScopes
-        ),
+        type: "error",
+        reason: "Not support yet!",
       };
     }
+    case "Store.Reader": {
+      return createComponentOption(StoreReader, {
+        trans,
+        name,
+        read,
+        save,
+        item,
+        storeScopes,
+      });
+    }
+    case "StorePreset": {
+      return createComponentOption(StorePreset, {
+        trans,
+        scope: `${name}.`,
+        read,
+        save,
+      });
+    }
     case "statements": {
-      return {
-        type: "component",
-        Component: createStatements(trans, node, name, item, storeScopes),
-      };
+      return createComponentOption(Statements, {
+        trans,
+        node,
+        name,
+        item,
+        storeScopes,
+      });
     }
   }
 }
 
 function unknownPropsOptions(
   trans: TransFunction,
-  key: string,
-  node: Node,
+  node: any,
   propNames: string[]
 ): Option[] {
-  const unknownProps: Option[] = Object.entries(node)
-    .filter(
-      ([name]) =>
-        !(name in ignoredNodeProps) && propNames.every((pn) => pn !== name)
-    )
-    .map(([name, value]) => ({
-      type: "element",
-      element: (
-        <TextField
-          key={`${key}.${name}`}
-          label={name}
-          fullWidth
-          value={JSON.stringify(value)}
-          disabled
-          size="small"
-          sx={{ mb: 1 }}
-        />
-      ),
-    }));
+  const unknownProps = Object.entries(node).filter(
+    ([name]) =>
+      !(name in ignoredNodeProps) && propNames.every((pn) => pn !== name)
+  );
   if (unknownProps.length === 0) return [];
   const unknownHeader: Option = {
     type: "subheader",
     value: trans("Unknown props:"),
     align: "left",
   };
-  return [{ type: "divider" }, unknownHeader, ...unknownProps];
+  return [
+    { type: "divider" },
+    unknownHeader,
+    createComponentOption(UnkownProps, { trans, node, unknownProps }),
+  ];
 }

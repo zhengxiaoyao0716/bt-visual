@@ -1,11 +1,15 @@
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Link from "@mui/material/Link";
-import { Route, Routes, useParams, useNavigate } from "react-router-dom";
+import { Route, Routes, useNavigate, useParams } from "react-router-dom";
 
-import BTDefine from "../behavior-tree/Define";
-import createForest, { Forest } from "../behavior-tree/Forest";
-import share from "../components/share";
+import {
+  default as BTDefine,
+  default as Define,
+} from "../behavior-tree/Define";
+import createForest, { Forest, ForestMainfest } from "../behavior-tree/Forest";
+import share from "../common/share";
+import Loading from "../components/Loading";
 import Snack from "../components/Snack";
 import Config from "../storage/Config";
 import { useTrans } from "../storage/Locale";
@@ -42,21 +46,19 @@ function ForestRender() {
   };
 
   return (
-    <Snack>
-      <NodeLibs>
-        <Forest>
-          {(forest) =>
-            invalid(forest) ? null : (
-              <Workerspace
-                forest={forest}
-                treeIndex={treeIndex}
-                showTree={showTree}
-              />
-            )
-          }
-        </Forest>
-      </NodeLibs>
-    </Snack>
+    <NodeLibs>
+      <Forest>
+        {(forest) =>
+          invalid(forest) ? null : (
+            <Workerspace
+              forest={forest}
+              treeIndex={treeIndex}
+              showTree={showTree}
+            />
+          )
+        }
+      </Forest>
+    </NodeLibs>
   );
 }
 
@@ -66,35 +68,45 @@ function ReadonlyForestRender() {
   const Forest = createForest(forestName || "");
 
   const config = Config.use();
+  const define = Define.use();
   const trans = useTrans();
 
   return (
-    <Snack>
-      <Forest>
-        {(forest) => {
-          const tree = forest?.value?.trees?.[treeIndex];
-          return tree == null ? null : (
-            <LockerContext.Provider value={true}>
-              <TreeRender
-                tree={tree}
-                config={config}
-                trans={trans}
-                readonly={true}
-              />
-            </LockerContext.Provider>
-          );
-        }}
-      </Forest>
-    </Snack>
+    <Forest>
+      {(forest) => {
+        const tree = forest?.value?.trees?.[treeIndex];
+        return tree == null ? null : (
+          <LockerContext.Provider value={true}>
+            <TreeRender
+              tree={tree}
+              config={config}
+              define={define?.value}
+              trans={trans}
+              readonly={true}
+            />
+          </LockerContext.Provider>
+        );
+      }}
+    </Forest>
   );
 }
 
-function WorkspaceRender() {
+function ForestManager() {
   return (
     <Box sx={{ m: 2 }}>
-      <Link href={`${Editor.route}/Example/0`}>
-        <Button>Example</Button>
-      </Link>
+      <ForestMainfest>
+        {(manifest) =>
+          manifest?.value == null ? (
+            <Loading />
+          ) : (
+            manifest.value.map(({ name }, index) => (
+              <Link href={`${Editor.route}/${name}/0`} key={index}>
+                <Button sx={{ textTransform: "none" }}>{name}</Button>
+              </Link>
+            ))
+          )
+        }
+      </ForestMainfest>
     </Box>
   );
 }
@@ -102,14 +114,16 @@ function WorkspaceRender() {
 export default function Editor() {
   return (
     <BTDefine>
-      <Routes>
-        <Route path={"/"} element={<WorkspaceRender />} />
-        <Route
-          path={`/readonly/:forest/:tree`}
-          element={<ReadonlyForestRender />}
-        />
-        <Route path={`/:forest/:tree`} element={<ForestRender />} />
-      </Routes>
+      <Snack>
+        <Routes>
+          <Route path={"/"} element={<ForestManager />} />
+          <Route
+            path={`/readonly/:forest/:tree`}
+            element={<ReadonlyForestRender />}
+          />
+          <Route path={`/:forest/:tree`} element={<ForestRender />} />
+        </Routes>
+      </Snack>
     </BTDefine>
   );
 }

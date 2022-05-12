@@ -16,148 +16,153 @@ import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Typography from "@mui/material/Typography";
 import { ChangeEvent, MouseEvent, useState } from "react";
-import { Statement, Store } from "../../behavior-tree/type";
+
+import type { Statement, Store } from "../../behavior-tree/type";
 import { useMoveableList } from "../../components/MoveableList";
 import { useRefresh } from "../../components/Refresh";
 import Snack from "../../components/Snack";
 import { TransFunction } from "../../storage/Locale";
-import { createStoreReader, getStoreReaderText } from "./StoreReader";
+import StoreReader, { getStoreReaderText } from "./StoreReader";
 
-export function createStatements(
-  trans: TransFunction,
-  node: any,
-  name: string,
-  item: { desc?: string },
-  storeScopes: { label: string; value: string }[]
-) {
+interface Props {
+  trans: TransFunction;
+  node: any;
+  name: string;
+  item: { desc?: string; optional?: true };
+  storeScopes: { label: string; value: string }[];
+}
+export default function Statements({
+  trans,
+  node,
+  name,
+  item,
+  storeScopes,
+}: Props) {
   name in node || (node[name] = []);
 
-  return function Statements() {
-    const [dialogState, setDialogState] = useState(
-      null as null | {
-        index: number;
-        resolve(value: Statement | null): void;
-        statement: StatementState;
-      }
-    );
-    const [, refresh] = useRefresh();
+  const [dialogState, setDialogState] = useState(
+    null as null | {
+      index: number;
+      resolve(value: Statement | null): void;
+      statement: StatementState;
+    }
+  );
+  const [, refresh] = useRefresh();
 
-    const appendStatementPrompt = (index: number) =>
-      new Promise<Statement | null>((resolve) => {
-        const statements: Statement[] = node[name];
-        const cid =
+  const appendStatementPrompt = (index: number) =>
+    new Promise<Statement | null>((resolve) => {
+      const statements: Statement[] = node[name];
+      const cid =
+        index > 0
+          ? (statements[index - 1] as { id?: Statement.ID })?.id ?? ""
+          : "";
+      return setDialogState({
+        index,
+        resolve: (value) => {
+          resolve(value);
+          setDialogState(null);
+        },
+        statement: { cid },
+      });
+    });
+
+  const modifyStatement = async (index: number) => {
+    const statement = await new Promise<Statement | null>((resolve) => {
+      const statements: Statement[] = node[name];
+      const statement = statements[index];
+      const define = getStatementDefine(statement);
+      const state = define.logic
+        ? {
+            id: "id" in statement ? statement.id : "",
+            op: logicOperation.operate,
+            logic: statement as { lid: string } & Statement.Logic,
+          }
+        : ({ ...statement } as StatementState);
+      if (!("cid" in state)) {
+        state.cid =
           index > 0
             ? (statements[index - 1] as { id?: Statement.ID })?.id ?? ""
             : "";
-        return setDialogState({
-          index,
-          resolve: (value) => {
-            resolve(value);
-            setDialogState(null);
-          },
-          statement: { cid },
-        });
-      });
+      }
+      return setDialogState({ index, resolve, statement: state });
+    });
+    statement == null || (statements[index] = statement);
+    setDialogState(null);
+    refresh();
+  };
 
-    const modifyStatement = async (index: number) => {
-      const statement = await new Promise<Statement | null>((resolve) => {
-        const statements: Statement[] = node[name];
-        const statement = statements[index];
+  const statements: Statement[] = node[name];
+  const idsTypeDict: StatementsIdDict = Object.fromEntries(
+    statements
+      .map((statement, index) => {
+        if (!("id" in statement)) return ["", ""];
         const define = getStatementDefine(statement);
-        const state = define.logic
-          ? {
-              id: "id" in statement ? statement.id : "",
-              op: logicOperation.operate,
-              logic: statement as { lid: string } & Statement.Logic,
-            }
-          : ({ ...statement } as StatementState);
-        if (!("cid" in state)) {
-          state.cid =
-            index > 0
-              ? (statements[index - 1] as { id?: Statement.ID })?.id ?? ""
-              : "";
-        }
-        return setDialogState({ index, resolve, statement: state });
-      });
-      statement == null || (statements[index] = statement);
-      setDialogState(null);
-      refresh();
-    };
-
-    const statements: Statement[] = node[name];
-    const idsTypeDict: StatementsIdDict = Object.fromEntries(
-      statements
-        .map((statement, index) => {
-          if (!("id" in statement)) return ["", ""];
-          const define = getStatementDefine(statement);
-          switch (define.group) {
-            case "Logic Operation:": // 逻辑运算返回值为 boolean
-            case "Compare Operation:": // 比较运算返回值为 boolean
-              return [statement.id, { index, type: "boolean" }];
-            case "Numeric Operation:": // 算数运算返回值为 number
-              return [statement.id, { index, type: "number" }];
-            case "Other Operation:": {
-              if ("val" in statement) {
-                const type =
-                  typeof statement.val === "object"
-                    ? statement.val.type
-                    : (typeof statement.val as "number" | "string" | "boolean");
-                return [statement.id, { index, type }];
-              } else {
-                return [""];
-              }
+        switch (define.group) {
+          case "Logic Operation:": // 逻辑运算返回值为 boolean
+          case "Compare Operation:": // 比较运算返回值为 boolean
+            return [statement.id, { index, type: "boolean" }];
+          case "Numeric Operation:": // 算数运算返回值为 number
+            return [statement.id, { index, type: "number" }];
+          case "Other Operation:": {
+            if ("val" in statement) {
+              const type =
+                typeof statement.val === "object"
+                  ? statement.val.type
+                  : (typeof statement.val as "number" | "string" | "boolean");
+              return [statement.id, { index, type }];
+            } else {
+              return [""];
             }
           }
-        })
-        .filter(([id]) => id !== "")
-        .reverse() // 倒序遍历，id 重复时保证以第一次的定义为准
-    );
+        }
+      })
+      .filter(([id]) => id !== "")
+      .reverse() // 倒序遍历，id 重复时保证以第一次的定义为准
+  );
 
-    const moveableList = useMoveableList(
-      statements,
-      appendStatementPrompt,
-      refresh,
-      (statement, index, showMenu, anchor) => (
-        <ListItem
-          key={index}
-          button
-          onContextMenu={showMenu}
-          sx={{ padding: 0 }}
-        >
-          <StatementItem
-            index={index}
-            statement={statement}
-            typeDict={idsTypeDict}
-            onClick={modifyStatement.bind(null, index)}
-          />
-          {anchor}
-        </ListItem>
-      )
-    );
+  const moveableList = useMoveableList(
+    statements,
+    appendStatementPrompt,
+    refresh,
+    (statement, index, showMenu, anchor) => (
+      <ListItem key={index} button onContextMenu={showMenu} sx={{ padding: 0 }}>
+        <StatementItem
+          index={index}
+          statement={statement}
+          typeDict={idsTypeDict}
+          onClick={modifyStatement.bind(null, index)}
+        />
+        {anchor}
+      </ListItem>
+    )
+  );
 
-    return (
-      <Box title={item.desc}>
-        <Typography
-          color={({ palette }) => palette.text.secondary}
-          sx={{ m: 1, textAlign: "center" }}
-        >
-          {`- ${trans("Statements List")} -`}
-        </Typography>
-        {moveableList.listItems.length <= 0
-          ? moveableList.appender
-          : moveableList.listItems}
-        {moveableList.itemMenu}
-        {dialogState && (
-          <StatementDialog
-            trans={trans}
-            storeScopes={storeScopes}
-            typeDict={idsTypeDict}
-            {...dialogState}
-          />
-        )}
-      </Box>
-    );
-  };
+  return (
+    <Box title={item.desc}>
+      <Typography
+        color={({ palette }) =>
+          !item.optional && statements.length === 0
+            ? palette.error[palette.mode]
+            : palette.text.secondary
+        }
+        sx={{ m: 1, textAlign: "center" }}
+      >
+        {`- ${trans("Statements List")} -`}
+      </Typography>
+      {moveableList.listItems.length <= 0
+        ? moveableList.appender
+        : moveableList.listItems}
+      {moveableList.itemMenu}
+      {dialogState && (
+        <StatementDialog
+          trans={trans}
+          storeScopes={storeScopes}
+          typeDict={idsTypeDict}
+          {...dialogState}
+        />
+      )}
+    </Box>
+  );
 }
 
 type Operate = Statement extends { op: infer O }
@@ -166,6 +171,7 @@ type Operate = Statement extends { op: infer O }
 
 interface OperateDefine {
   operate: Operate;
+  showOp?: string;
   logic?: true;
   noLeft?: true;
   noRight?: true;
@@ -186,6 +192,7 @@ const compareOperations: OperateDefine[] = [
   },
   {
     operate: "!=",
+    showOp: "≠",
   },
   {
     operate: "<",
@@ -242,7 +249,7 @@ const otherOperations: OperateDefine[] = [
   },
 ];
 const operations = {
-  "Logic Operation:": [logicOperation],
+  "Logic Operation:": [logicOperation as OperateDefine],
   "Compare Operation:": compareOperations,
   "Numeric Operation:": numericOperations,
   "Other Operation:": otherOperations,
@@ -315,7 +322,7 @@ function StatementItem({
       <Typography
         color={({ palette }) =>
           idError || leftError || rightError || conditionError
-            ? palette.error.main
+            ? palette.error[palette.mode]
             : palette.text.primary
         }
         sx={{ width: "100%" }}
@@ -440,13 +447,13 @@ function StatementDialog({
                       value={define.operate}
                       onChange={changeOperate}
                     >
-                      {defines.map(({ operate }, index) => (
+                      {defines.map(({ operate, showOp }, index) => (
                         <ToggleButton
                           key={index}
                           value={operate}
                           sx={{ height: "2em", minWidth: "3em" }}
                         >
-                          {operate}
+                          {showOp ?? operate}
                         </ToggleButton>
                       ))}
                     </ToggleButtonGroup>
@@ -497,11 +504,12 @@ function StatementDialog({
                 />
               )}
               {define.value ? (
-                <StatementStoreReader
+                <StoreReader
                   trans={trans}
                   name="value"
                   read={() => state.val}
                   save={(val) => setState({ ...state, val })}
+                  item={{ valueType: "unknown", optional: true }}
                   storeScopes={storeScopes}
                 />
               ) : null}
@@ -601,30 +609,6 @@ function StatementId({
       onChange={onChange}
     />
   );
-}
-
-function StatementStoreReader({
-  trans,
-  name,
-  read,
-  save,
-  storeScopes,
-}: {
-  trans: TransFunction;
-  name: string;
-  read: () => Store.Reader | undefined;
-  save: (value: Store.Reader | undefined) => void;
-  storeScopes: { label: string; value: string }[];
-}) {
-  const StoreReader = createStoreReader(
-    trans,
-    name,
-    read,
-    save,
-    { optional: true },
-    storeScopes
-  );
-  return <StoreReader />;
 }
 
 function getStatementText(

@@ -1,5 +1,6 @@
 import { ThemeProvider } from "@emotion/react";
 import AccountTreeIcon from "@mui/icons-material/AccountTree";
+import BugReportIcon from "@mui/icons-material/BugReport";
 import HomeIcon from "@mui/icons-material/Home";
 import InfoIcon from "@mui/icons-material/Info";
 import AppBar from "@mui/material/AppBar";
@@ -7,19 +8,20 @@ import Box from "@mui/material/Box";
 import CssBaseline from "@mui/material/CssBaseline";
 import Divider from "@mui/material/Divider";
 import List from "@mui/material/List";
-import Skeleton from "@mui/material/Skeleton";
 import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
 import { Route, Routes } from "react-router-dom";
 
+import globalShare from "./common/share";
+import Loading from "./components/Loading";
 import { useLocaleTheme } from "./components/LocaleTheme";
-import { getShareSideBars } from "./components/share";
 import {
   renderListItem,
   renderMenuIcon,
   useSideBar,
 } from "./components/SideBar";
 import ToolBarSlot from "./components/ToolBarSlot";
+import Debugger from "./debugger";
 import Editor from "./editor";
 import Help from "./pages/Help";
 import Home from "./pages/Home";
@@ -28,7 +30,7 @@ import createLocale, { languages, useTrans } from "./storage/Locale";
 
 function SideBarMenu() {
   const trans = useTrans();
-  const shareSideBars = getShareSideBars();
+  const shareSideBars = globalShare?.sideBars ?? [];
   return (
     <>
       <Toolbar />
@@ -40,22 +42,13 @@ function SideBarMenu() {
           trans("EditorPage"),
           Editor.route,
         ])}
+        {renderListItem([<BugReportIcon />, trans("Debugger"), Debugger.route])}
         {renderListItem(trans("other"))}
         {renderListItem([<InfoIcon />, trans("HelpPage"), Help.route])}
         {shareSideBars.map(({ title, href }, index) =>
           renderListItem([<Box />, title, href], index)
         )}
       </List>
-    </>
-  );
-}
-
-function Loading() {
-  return (
-    <>
-      <Skeleton width="60vw" height="60vh" />
-      <Skeleton width="60vw" height="10vh" />
-      <Skeleton width="45vw" height="10vh" />
     </>
   );
 }
@@ -95,9 +88,7 @@ function App() {
                   <Toolbar />
                 </AppBar>
                 <Toolbar />
-                <Box sx={{ ml: 6 }}>
-                  <Loading />
-                </Box>
+                <Loading />
               </Box>
             ) : (
               <>
@@ -137,6 +128,7 @@ function App() {
                           path={`${Editor.route}/*`}
                           element={<Editor />}
                         />
+                        <Route path={Debugger.route} element={<Debugger />} />
                         <Route path={Help.route} element={<Help />} />
                       </Route>
                     </Routes>

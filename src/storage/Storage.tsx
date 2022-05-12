@@ -25,7 +25,8 @@ const localStorage = new LocalStorage();
 const storage = localStorage; // TODO file system
 
 interface Options {
-  local?: boolean;
+  local?: true;
+  readonly?: true;
 }
 
 interface PathDataCache {
@@ -43,7 +44,7 @@ function computePathPromise<T>(
   path: string,
   init: PromiseLike<T>,
   cached: PathDataCache,
-  { local = false }: Options
+  { local }: Options
 ): PromiseLike<[T, boolean]> {
   if (cached.value != null)
     return Promise.resolve(cached.value as [T, boolean]);
@@ -131,6 +132,7 @@ export function createStorage<T>(
         : {
             value: state[0],
             async update(data) {
+              if (options.readonly) return;
               setState((state) => [
                 (state as [T, boolean])[0],
                 true /* saving */,

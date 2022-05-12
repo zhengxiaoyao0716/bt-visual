@@ -116,6 +116,7 @@ export default function DecoratorRender({
               size={{ width: 100, height: 24 }}
               fold={true}
               {...baseProps}
+              node={node}
             >
               {node.alias}
             </NodeSvgRender>
@@ -141,6 +142,7 @@ export default function DecoratorRender({
                 appendComposite: append,
                 prependDecorator: prepend,
               })}
+              node={node}
             >
               {node.alias}
             </NodeSvgRender>
