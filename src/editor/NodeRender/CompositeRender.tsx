@@ -27,6 +27,7 @@ import LineRender, {
   triggerRedrawLines,
 } from "./LineRender";
 import NodeSvgRender, {
+  autoAttachKey,
   SubProps,
   troggleNodeFoldHandler,
 } from "./NodeSvgRender";
@@ -267,7 +268,7 @@ export default function CompositeRender({
           <LineDropArea onMoved={onMoved} />
           {nodes.map((node, index) => (
             <AutoRender
-              key={index}
+              key={autoAttachKey(node)}
               node={node}
               locked={locked}
               config={config}

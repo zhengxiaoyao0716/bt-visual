@@ -10,7 +10,7 @@ import rough from "roughjs";
 
 import { BTDefines } from "../../behavior-tree/Define";
 import type { Composite, Decorator, Node } from "../../behavior-tree/type";
-import { getNodeType } from "../../behavior-tree/utils";
+import { getNodeExt, getNodeType, setNodeExt } from "../../behavior-tree/utils";
 import { useNodeStatus } from "../../debugger";
 import Config from "../../storage/Config";
 import { TransFunction } from "../../storage/Locale";
@@ -73,6 +73,16 @@ export function troggleNodeFoldHandler(
     triggerRedrawLines(event.currentTarget);
   };
   return handler;
+}
+
+let autoAttachKeyIndex = 0;
+const autoAttachKeySymbol = Symbol("autoAttachKey");
+export function autoAttachKey(node: Node): string {
+  const exist = getNodeExt(node, autoAttachKeySymbol);
+  if (exist != null) return exist as string;
+  const key = `${node.type}-${autoAttachKeyIndex++}`;
+  setNodeExt(node, autoAttachKeySymbol, key);
+  return key;
 }
 
 const NodeSvg = styled.svg`

@@ -1,3 +1,4 @@
+import { useAutoAnimate } from "@formkit/auto-animate/react";
 import Box from "@mui/material/Box";
 import ListItem from "@mui/material/ListItem";
 
@@ -30,11 +31,11 @@ export default function StorePreset({ trans, scope, read, save }: Props) {
         return null;
       }
       const presets = read();
-      if (presets && name in presets) {
+      const storeKey = `${scope}${name}`;
+      if (presets && storeKey in presets) {
         snack.show(trans("Duplicate store key"));
         return null;
       }
-      const storeKey = `${scope}${name}`;
       // 虽然是 undefined，但也必须 put 进去，不然再次添加相同 key 时去重判定会有问题
       if (presets == null) save({ [storeKey]: undefined });
       else presets[storeKey] = undefined;
@@ -70,7 +71,7 @@ export default function StorePreset({ trans, scope, read, save }: Props) {
     },
     ([name, value], index, showMenu, anchor) => (
       <ListItem
-        key={index}
+        key={name}
         button
         onContextMenu={showMenu}
         sx={{
@@ -91,8 +92,11 @@ export default function StorePreset({ trans, scope, read, save }: Props) {
       </ListItem>
     )
   );
+
+  const [animateRef] = useAutoAnimate();
+
   return (
-    <Box>
+    <Box ref={animateRef}>
       {moveableList.listItems.length <= 0
         ? moveableList.appender
         : moveableList.listItems}

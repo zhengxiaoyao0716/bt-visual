@@ -1,5 +1,6 @@
 import styled from "@emotion/styled";
-import { useRef } from "react";
+import autoAnimate from "@formkit/auto-animate";
+import { useEffect, useRef } from "react";
 
 import { AutoRender } from ".";
 import type { Composite, Decorator } from "../../behavior-tree/type";
@@ -10,6 +11,7 @@ import { isSelected, setAutoSelect, useSelector } from "../NodeSelector";
 import Undo from "../Undo";
 import { triggerRedrawLines } from "./LineRender";
 import NodeSvgRender, {
+  autoAttachKey,
   SubProps,
   troggleNodeFoldHandler,
 } from "./NodeSvgRender";
@@ -102,6 +104,10 @@ export default function DecoratorRender({
 
   const foldHandler = troggleNodeFoldHandler(node, selector.select, refresh);
 
+  useEffect(() => {
+    ref.current && autoAnimate(ref.current);
+  }, [ref]);
+
   return (
     <DecoratorContainer ref={ref}>
       {node.fold ? (
@@ -123,9 +129,9 @@ export default function DecoratorRender({
           ))}
         </DecoratorCard>
       ) : (
-        decorators.map(([node, append, prepend], index) => (
+        decorators.map(([node, append, prepend], _index) => (
           <DecoratorCard
-            key={index}
+            key={autoAttachKey(node)}
             title={btDefine?.Decorator[node.type]?.desc || trans(node.type)}
             onDoubleClick={foldHandler}
           >
