@@ -32,8 +32,8 @@ export function addHotkeyListener(target: HTMLElement, ...hotKeys: Hotkey[]) {
     event.preventDefault();
     event.stopPropagation();
   };
-  target.addEventListener("keyup", handle);
+  target.addEventListener("keydown", handle);
   return () => {
-    target.removeEventListener("keyup", handle);
+    target.removeEventListener("keydown", handle);
   };
 }

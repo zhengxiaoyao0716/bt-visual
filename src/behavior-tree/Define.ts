@@ -99,13 +99,31 @@ const nodes: typeof Settings & BTDefines = {
   Decorator: {
     "@Condition": {
       props: {
-        signal: optional(items["Store.Reader.String"]),
         statements: { type: "statements" },
+        // signal: optional(items["Store.Reader.String"]),
       },
     },
     "@Interrupt": {
       props: {
-        signal: items["Store.Reader.String"],
+        // signal: items["Store.Reader.String"],
+      },
+    },
+    "@SwarmShout": {
+      props: {
+        flag: items["Store.Reader.String"],
+        goal: items["Store.Reader.String"],
+      },
+    },
+    "@SwarmReply": {
+      props: {
+        flag: items["Store.Reader.String"],
+        least: items["Store.Reader.Number"],
+      },
+    },
+    "@SwarmAssign": {
+      props: {
+        seats: optional(items["Store.Reader.Number"]),
+        ratio: optional(items["Store.Reader.Number"]),
       },
     },
     "@Repeat": {
@@ -114,14 +132,14 @@ const nodes: typeof Settings & BTDefines = {
         failure: optional(items["Store.Reader.Number"]),
       },
     },
-    "@Inverse": {},
-    "@Success": {},
-    "@Failure": {},
     "@Delay": {
       props: {
         millis: items["Store.Reader.Number"],
       },
     },
+    "@Inverse": {},
+    "@Success": {},
+    "@Failure": {},
     "@Save": {
       props: {
         bind: items["Store.Key"],
@@ -136,6 +154,14 @@ const nodes: typeof Settings & BTDefines = {
     },
   },
   Action: {
+    "+Dynamic": {
+      props: {
+        name: items["Store.Reader.String"],
+        args: optional({ type: "StorePreset" }),
+      },
+      shape:
+        '<path d="M6.2 3.01C4.44 2.89 3 4.42 3 6.19V16c0 2.76 2.24 5 5 5s5-2.24 5-5V8c0-1.66 1.34-3 3-3s3 1.34 3 3v7h-.83c-1.61 0-3.06 1.18-3.17 2.79-.12 1.69 1.16 3.1 2.8 3.21 1.76.12 3.2-1.42 3.2-3.18V8c0-2.76-2.24-5-5-5s-5 2.24-5 5v8c0 1.66-1.34 3-3 3s-3-1.34-3-3V9h.83C7.44 9 8.89 7.82 9 6.21c.11-1.68-1.17-3.1-2.8-3.2z"></path>',
+    },
     "+Empty": {
       props: {
         extra: optional(items["Store.Reader.Unknown"]),
@@ -147,14 +173,6 @@ const nodes: typeof Settings & BTDefines = {
       },
       shape:
         '<path d="M17 12h2L12 2 5.05 12H7l-3.9 6h6.92v4h3.96v-4H21z"></path>',
-    },
-    "+Dynamic": {
-      props: {
-        name: items["Store.Reader.String"],
-        args: optional({ type: "StorePreset" }),
-      },
-      shape:
-        '<path d="M6.2 3.01C4.44 2.89 3 4.42 3 6.19V16c0 2.76 2.24 5 5 5s5-2.24 5-5V8c0-1.66 1.34-3 3-3s3 1.34 3 3v7h-.83c-1.61 0-3.06 1.18-3.17 2.79-.12 1.69 1.16 3.1 2.8 3.21 1.76.12 3.2-1.42 3.2-3.18V8c0-2.76-2.24-5-5-5s-5 2.24-5 5v8c0 1.66-1.34 3-3 3s-3-1.34-3-3V9h.83C7.44 9 8.89 7.82 9 6.21c.11-1.68-1.17-3.1-2.8-3.2z"></path>',
     },
     "+Wait": {
       props: {

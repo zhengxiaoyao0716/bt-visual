@@ -15,7 +15,7 @@ export interface Tree {
 
 export type NodeType = "Composite" | "Decorator" | "Action" | "Unknown";
 
-// 复合节点
+//#region 复合节点
 export interface Composite extends Node {
   nodes: Node[];
   fold?: true; // 折叠
@@ -55,8 +55,9 @@ export module Composition {
       | ">Priority"; // 并行优先 // 同时执行 nodes 内的子节点，任意子节点完成时，其右侧的子节点立刻停止。全部子节点结束后，返回最左子节点的结果。
   }
 }
+//#endregion
 
-// 装饰节点
+//#region 装饰节点
 export interface Decorator extends Node {
   node: Node;
   fold?: true; // 折叠
@@ -65,18 +66,41 @@ export module Decorator {
   export interface Condition extends Decorator {
     type: "@Condition"; // 条件侦听 // 当观测变量的值变化时重新计算条件，条件满足时发出 signal 并执行 node，不满足时中断 node。
     statements: Statement[]; // 条件语句
-    signal?: Signal; // 当条件满足时，向父节点递归发出该信号
+    // signal?: Signal; // 当条件满足时，向父节点递归发出该信号
   }
 
   export interface Interrupt extends Decorator {
     type: "@Interrupt"; // 中断侦听 // 当收到指定 signal 时中断 node
-    signal: Signal; // 当收到该信号时中断 node
+    // signal: Signal; // 当收到该信号时中断 node
+  }
+
+  export interface SwarmShout extends Decorator {
+    type: "@SwarmShout"; // 群体呼唤 // 根据策略选定目标，选定成功则激发群体讯号并执行 node
+    flag: Store.Reader.String; // 识别讯号
+    goal: Store.Reader.String; // 目标策略
+  }
+
+  export interface SwarmReply extends Decorator {
+    type: "@SwarmReply"; // 群体响应 // 响应周围的群体讯号，目标一致则加入该群体并执行 node
+    flag: Store.Reader.String; // 识别讯号
+    least: Store.Reader.Number; // 最少单位数目，群体单位过少时将拒绝加入
+  }
+
+  export interface SwarmAssign extends Decorator {
+    type: "@SwarmAssign"; // 群体分派 // 满足条件则占用一个名额并执行 node，执行失败时释放名额
+    seats?: Store.Reader.Number; // 最大分派名额，留空则不限制
+    ratio?: Store.Reader.Number; // 最大分派比例，留空则不限制
   }
 
   export interface Repeat extends Decorator {
     type: "@Repeat"; // 重复执行 node，直到成功次数达到 success 时返回成功，或失败次数达到 failure 时返回失败
     success?: Store.Reader.Number;
     failure?: Store.Reader.Number;
+  }
+
+  export interface Delay extends Decorator {
+    type: "@Delay"; // 延迟执行 // 延迟 millis 毫秒后执行 node 并返回 node 的执行结果
+    millis: Store.Reader.Number; // 延迟时长，单位毫秒
   }
 
   export interface Pipeline extends Decorator {
@@ -86,27 +110,29 @@ export module Decorator {
       | "@Failure"; // 必定失败 // 当 node 执行完成后，永远返回失败
   }
 
-  export interface Delay extends Decorator {
-    type: "@Delay"; // 延迟执行 // 延迟 millis 毫秒后执行 node 并返回 node 的执行结果
-    millis: Store.Reader.Number; // 延迟时长，单位毫秒
-  }
-
-  export interface Save extends Decorator {
+  export interface PipeSave extends Decorator {
     type: "@Save"; // 保存结果 // 将 node 的执行结果存储到 store 中，返回 node 的执行结果
     bind: Store.Key; // 绑定存储空间
   }
 
-  export interface Acc extends Action {
+  export interface PipeAcc extends Decorator {
     type: "@Acc"; // 累加结果 // node 执行完毕后，根据成功或失败累加对应的增量，返回 node 的执行结果。
     bind: Store.Key; // 绑定存储空间
     success: Store.Reader.Number; // 成功时累加值
     failure: Store.Reader.Number; // 失败时累加值
   }
 }
+//#endregion
 
-// 行为节点
+//#region 行为节点
 export interface Action extends Node {}
 export module Action {
+  export interface Dynamic extends Action {
+    type: "+Dynamic"; // 动态行为 // 执行 name 指定的行为
+    name: Store.Reader.String; // 行为名称
+    args?: { [name: string]: Store.Reader | undefined }; // 透传参数
+  }
+
   export interface Empty extends Action {
     type: "+Empty"; // 空白节点 // 默认什么都不做
     extra?: Store.Reader; // 额外参数
@@ -117,17 +143,12 @@ export module Action {
     name: Store.Reader.String; // 子树名称
   }
 
-  export interface Dynamic extends Action {
-    type: "+Dynamic"; // 动态行为 // 执行 name 指定的行为
-    name: Store.Reader.String; // 行为名称
-    args?: { [name: string]: Store.Reader | undefined }; // 透传参数
-  }
-
   export interface Wait extends Action {
     type: "+Wait"; // 定时等待 // 等待 millis 毫秒后返回成功
     millis: Store.Reader.Number; // 等待时长，单位毫秒
   }
 }
+//#endregion
 
 // 存储空间
 export module Store {
