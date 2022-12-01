@@ -1,6 +1,15 @@
+import AddIcon from "@mui/icons-material/Add";
+import DeleteIcon from "@mui/icons-material/Delete";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Link from "@mui/material/Link";
+import ListItemIcon from "@mui/material/ListItemIcon";
+import ListItemText from "@mui/material/ListItemText";
+import Menu from "@mui/material/Menu";
+import MenuItem from "@mui/material/MenuItem";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
+import { MouseEvent, useState } from "react";
 import { Route, Routes, useNavigate, useParams } from "react-router-dom";
 
 import {
@@ -9,6 +18,7 @@ import {
 } from "../behavior-tree/Define";
 import createForest, { Forest, ForestMainfest } from "../behavior-tree/Forest";
 import share from "../common/share";
+import { useDialogPrompt } from "../components/DialogPrompt";
 import Loading from "../components/Loading";
 import Snack from "../components/Snack";
 import Config from "../storage/Config";
@@ -92,6 +102,68 @@ function ReadonlyForestRender() {
 }
 
 function ForestManager() {
+  const trans = useTrans();
+  const snack = Snack.use();
+  const { dialog, prompt } = useDialogPrompt();
+
+  const [anchorEl, setAnchorEl] = useState<null | [number, HTMLElement]>(null);
+  const showMenu = (event: MouseEvent<HTMLElement>, index: number) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setAnchorEl([index, event.currentTarget]);
+  };
+  const hideMenu = () => setAnchorEl(null);
+  const removeTree = async (manifest: ContextValue<{ name: string }[]>) => {
+    if (!manifest?.value) return;
+    if (anchorEl == null) return; // never
+    hideMenu();
+    const treeIndex = anchorEl[0];
+    const confirm = await prompt({
+      onSubmit: async () => true,
+      cancel: trans("CANCEL"),
+      submit: trans("REMOVE"),
+      title: trans("Confirm to remove the tree?"),
+    });
+    if (!confirm) return;
+    if (manifest.saving) {
+      await snack.show(trans("Saving, try again later"));
+      return;
+    }
+    manifest.value.splice(treeIndex, 1);
+    await manifest.update(manifest.value);
+  };
+
+  const createForest = async (manifest: ContextValue<{ name: string }[]>) => {
+    if (!manifest?.value) return;
+    const treeName = await prompt({
+      title: trans("Create Tree"),
+      message: trans("Please input the name of the behavior tree"),
+      values: [trans("Tree Name")],
+      cancel: trans("CANCEL"),
+      submit: trans("CREATE"),
+      async onSubmit([treeName]) {
+        return treeName;
+      },
+    });
+    if (!treeName) {
+      await snack.show(trans("Invalid tree name"));
+      return;
+    }
+    const duplicateName = manifest.value.some(
+      ({ name }) => name.toUpperCase() === treeName.toUpperCase()
+    );
+    if (duplicateName) {
+      await snack.show(trans("Duplicate tree name"));
+      return;
+    }
+    if (manifest.saving) {
+      await snack.show(trans("Saving, try again later"));
+      return;
+    }
+    manifest.value.push({ name: treeName });
+    await manifest.update(manifest.value);
+  };
+
   return (
     <Box sx={{ m: 2 }}>
       <ForestMainfest>
@@ -99,11 +171,38 @@ function ForestManager() {
           manifest?.value == null ? (
             <Loading />
           ) : (
-            manifest.value.map(({ name }, index) => (
-              <Link href={`${Editor.route}/${name}/0`} key={index}>
-                <Button sx={{ textTransform: "none" }}>{name}</Button>
-              </Link>
-            ))
+            <>
+              {manifest.value.map(({ name }, index) => (
+                <Link href={`${Editor.route}/${name}/0`} key={index}>
+                  <Button
+                    sx={{ textTransform: "none" }}
+                    onContextMenu={(event) => showMenu(event, index)}
+                  >
+                    {name}
+                  </Button>
+                </Link>
+              ))}
+              <Button onClick={() => createForest(manifest)}>
+                <Stack direction="row">
+                  <AddIcon />
+                  <Typography>{trans("CREATE")}</Typography>
+                </Stack>
+              </Button>
+              {dialog}
+              <Menu
+                open={anchorEl != null}
+                anchorEl={anchorEl && anchorEl[1]}
+                anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+                onClose={hideMenu}
+              >
+                <MenuItem onClick={() => removeTree(manifest)}>
+                  <ListItemIcon>
+                    <DeleteIcon />
+                  </ListItemIcon>
+                  <ListItemText>{trans("Remove Tree")}</ListItemText>
+                </MenuItem>
+              </Menu>
+            </>
           )
         }
       </ForestMainfest>

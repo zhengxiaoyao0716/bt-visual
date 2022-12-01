@@ -1,14 +1,16 @@
 import {
   ComponentType,
   createContext,
+  PropsWithChildren,
   ReactNode,
   useContext,
   useMemo,
 } from "react";
 
+import globalShare, { StorageLike } from "../common/share";
 import { usePromise } from "../components/Async";
 
-class LocalStorage {
+class LocalStorage implements StorageLike {
   async load<T>(path: string, init: T): Promise<T> {
     const value = window.localStorage.getItem(path);
     if (value == null) return init;
@@ -22,7 +24,9 @@ class LocalStorage {
 }
 
 const localStorage = new LocalStorage();
-const storage = localStorage; // TODO file system
+function getStorage(): PromiseLike<StorageLike> {
+  return globalShare?.storage ?? Promise.resolve(localStorage);
+}
 
 interface Options {
   local?: true;
@@ -40,7 +44,7 @@ function computePathDataCache(path: string) {
   if (cached != null) return cached;
   return (pathDataCache[path] = {});
 }
-function computePathPromise<T>(
+function computePathPromise<T extends {}>(
   path: string,
   init: PromiseLike<T>,
   cached: PathDataCache,
@@ -49,8 +53,8 @@ function computePathPromise<T>(
   if (cached.value != null)
     return Promise.resolve(cached.value as [T, boolean]);
   if (cached.promise != null) return cached.promise as Promise<[T, boolean]>;
-  const promise = init.then((init) =>
-    (local ? localStorage : storage).load(path, init).then(
+  const promise = init.then(async (init) =>
+    (local ? localStorage : await getStorage()).load(path, init).then(
       (data) => {
         if (cached.value != null) return cached.value as [T, boolean];
         const value = [data, false /* saving */] as [T, boolean];
@@ -104,7 +108,7 @@ export interface Storage<T> {
   displayName: string;
 }
 
-export function createStorage<T>(
+export function createStorage<T extends {}>(
   name: string,
   path: string,
   init: PromiseLike<T>,
@@ -137,6 +141,7 @@ export function createStorage<T>(
                 (state as [T, boolean])[0],
                 true /* saving */,
               ]);
+              const storage = options.local ? localStorage : await getStorage();
               await storage.save(path, data);
               setState([data, false /* saving */]);
             },
@@ -149,7 +154,7 @@ export function createStorage<T>(
     );
   }
   Storage.hoc = function <P>(Component: ComponentType<P>) {
-    function WrappedComponent(props: P) {
+    function WrappedComponent(props: PropsWithChildren<P>) {
       return (
         <Storage>
           <Component {...props} />

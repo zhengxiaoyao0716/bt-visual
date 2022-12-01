@@ -132,7 +132,7 @@ export default function Statements({
           typeDict={idsTypeDict}
           onClick={modifyStatement.bind(null, index)}
         />
-        {anchor}
+        {anchor(index)}
       </ListItem>
     )
   );

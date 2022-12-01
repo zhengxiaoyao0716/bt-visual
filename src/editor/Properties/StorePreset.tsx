@@ -88,7 +88,7 @@ export default function StorePreset({ trans, scope, read, save }: Props) {
           save={(value) => change(index, value || "")}
           item={{ valueType: "unknown" }}
         />
-        {anchor}
+        {anchor(index)}
       </ListItem>
     )
   );

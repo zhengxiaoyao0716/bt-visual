@@ -16,6 +16,8 @@ import { useDialogPrompt } from "../components/DialogPrompt";
 import { useWindowSize } from "../components/WindowSize";
 import { useRefresh } from "../components/Refresh";
 import Snack from "../components/Snack";
+import Accordion from "@mui/material/Accordion";
+import { AccordionDetails, AccordionSummary } from "@mui/material";
 
 function Content({ hide, appBar }: Props) {
   const locale = useLocale();
@@ -54,28 +56,32 @@ function Content({ hide, appBar }: Props) {
     refresh,
     ([text, translated], index, showMenu, _anchor) => {
       const newTab = text.startsWith("//") && !translated;
-      return [
-        newTab,
+      const listItem = (
+        <ListItem button onContextMenu={showMenu}>
+          <TextField
+            label={text}
+            title={saved?.[text]}
+            fullWidth
+            multiline
+            InputProps={{
+              endAdornment:
+                saved?.[text] === translated ? null : (
+                  <InputAdornment position="end">●</InputAdornment>
+                ),
+            }}
+            defaultValue={translated}
+            onChange={(event) => change(index, event.target.value)}
+          />
+          {/* {anchor} */}
+        </ListItem>
+      );
+      return newTab ? (
+        listItem
+      ) : (
         <Grid item xs={gridXs} key={`${text}#${index}`}>
-          <ListItem button onContextMenu={showMenu}>
-            <TextField
-              label={text}
-              title={saved?.[text]}
-              fullWidth
-              multiline
-              InputProps={{
-                endAdornment:
-                  saved?.[text] === translated ? null : (
-                    <InputAdornment position="end">●</InputAdornment>
-                  ),
-              }}
-              defaultValue={translated}
-              onChange={(event) => change(index, event.target.value)}
-            />
-            {/* {anchor} */}
-          </ListItem>
-        </Grid>,
-      ] as const;
+          {listItem}
+        </Grid>
+      );
     }
   );
 
@@ -117,15 +123,15 @@ function Content({ hide, appBar }: Props) {
     refresh();
   };
 
-  const listTabs = moveableList.listItems.reduce((tabs, [newTab, item]) => {
-    if (newTab) tabs.push([]);
+  const listTabs = moveableList.listItems.reduce((tabs, item) => {
+    if (!("item" in item.props)) tabs.push([]);
     if (tabs.length <= 0) tabs.push([]);
     const tab = tabs[tabs.length - 1];
     tab.push(item);
     return tabs;
   }, [] as JSX.Element[][]);
   return (
-    <Box>
+    <Box style={{ overflowY: "hidden" }}>
       {appBar(
         <>
           <Typography sx={{ ml: 2, flex: 1 }} variant="h6" component="div">
@@ -136,13 +142,16 @@ function Content({ hide, appBar }: Props) {
           </Button>
         </>
       )}
-      <Box>
+      <Box style={{ overflowY: "auto", maxHeight: "100%" }}>
         {listTabs.length <= 0
           ? moveableList.appender
           : listTabs.map((tab, index) => (
-              <List key={index}>
-                <Grid container>{tab}</Grid>
-              </List>
+              <Accordion key={index} TransitionProps={{ unmountOnExit: true }}>
+                <AccordionSummary>{tab[0]}</AccordionSummary>
+                <AccordionDetails>
+                  <Grid container>{tab.slice(1)}</Grid>
+                </AccordionDetails>
+              </Accordion>
             ))}
       </Box>
       {dialogPrompt.dialog}

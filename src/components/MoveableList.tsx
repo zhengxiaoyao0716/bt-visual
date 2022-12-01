@@ -22,7 +22,7 @@ export function useMoveableList<T, R>(
     item: T,
     index: number,
     showMenu: (event: MouseEvent<HTMLElement>) => void,
-    anchor: JSX.Element
+    anchor: (index: number) => JSX.Element
   ) => R
 ) {
   const trans = useTrans();
@@ -91,22 +91,20 @@ export function useMoveableList<T, R>(
     refreshList();
   };
 
+  const renderAnchor = (index: number) => (
+    <Stack>
+      <ArrowDropUpIcon
+        onClick={() => moveUp(index)}
+        color={index <= 0 ? "disabled" : "inherit"}
+      />
+      <ArrowDropDownIcon
+        onClick={() => moveDown(index)}
+        color={index >= items.length - 1 ? "disabled" : "inherit"}
+      />
+    </Stack>
+  );
   const listItems = items.map((item, index) =>
-    renderItem(
-      item,
-      index,
-      showMenu.bind(null, index),
-      <Stack>
-        <ArrowDropUpIcon
-          onClick={() => moveUp(index)}
-          color={index <= 0 ? "disabled" : "inherit"}
-        />
-        <ArrowDropDownIcon
-          onClick={() => moveDown(index)}
-          color={index >= items.length - 1 ? "disabled" : "inherit"}
-        />
-      </Stack>
-    )
+    renderItem(item, index, showMenu.bind(null, index), renderAnchor)
   );
 
   const itemsMenu = (

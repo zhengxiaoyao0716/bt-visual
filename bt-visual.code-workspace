@@ -10,24 +10,27 @@
 		},
 		"npm.packageManager": "yarn",
 		"[javascript]": {
-			"editor.defaultFormatter": "esbenp.prettier-vscode"
+			"editor.defaultFormatter": "esbenp.prettier-vscode",
+			"editor.formatOnSave": true
 		},
 		"[typescript]": {
-			"editor.defaultFormatter": "esbenp.prettier-vscode"
+			"editor.defaultFormatter": "esbenp.prettier-vscode",
+			"editor.formatOnSave": true
 		},
 		"[javascriptreact]": {
-			"editor.defaultFormatter": "esbenp.prettier-vscode"
+			"editor.defaultFormatter": "esbenp.prettier-vscode",
+			"editor.formatOnSave": true
 		},
 		"[typescriptreact]": {
-			"editor.defaultFormatter": "esbenp.prettier-vscode"
+			"editor.defaultFormatter": "esbenp.prettier-vscode",
+			"editor.formatOnSave": true
 		},
 		"[jsonc]": {
 			"editor.defaultFormatter": "esbenp.prettier-vscode"
 		},
 		"[html]": {
 			"editor.defaultFormatter": "esbenp.prettier-vscode"
-		},
-		"editor.formatOnSave": true
+		}
 	},
 	"launch": {
 		"version": "0.2.0",
@@ -35,7 +38,7 @@
 			// 启动开发服务器
 			{
 				"name": "vite dev",
-				"type": "pwa-node",
+				"type": "node",
 				"request": "launch",
 				"cwd": "${workspaceFolder}",
 				"runtimeExecutable": "yarn",
@@ -44,13 +47,14 @@
 				],
 				"skipFiles": [
 					"<node_internals>/**"
-				]
+				],
+				"console": "integratedTerminal"
 			},
 			// 打开浏览器页面
 			{
 				"name": "Launch Edge",
 				"request": "launch",
-				"type": "pwa-msedge",
+				"type": "msedge",
 				"url": "http://localhost:3000",
 				"webRoot": "${workspaceFolder}"
 			}
