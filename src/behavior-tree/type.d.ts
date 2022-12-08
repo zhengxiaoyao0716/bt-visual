@@ -52,7 +52,7 @@ export module Composition {
       | ">Complete" // 并行完成 // 同时执行 nodes 内的子节点，任一节点完成时立刻完成，并停止其他正在运行的节点，返回值与抢先完成的节点保持一致。
       | ">Success" // 并行成功 // 同时执行 nodes 内的子节点，任一节点成功时立刻返回成功，并停止其他正在运行的子节点。全部子节点失败时返回失败。
       | ">Faliure" // 并行失败 // 同时执行 nodes 内的子节点，任一节点失败时立刻返回失败，并停止其他正在运行的子节点。全部子节点成功时返回成功。
-      | ">Priority"; // 并行优先 // 同时执行 nodes 内的子节点，任意子节点完成时，其右侧的子节点立刻停止。全部子节点结束后，返回最左子节点的结果。
+      | ">Priority"; // 并行优先 // 同时执行 nodes 内的子节点，第一个节点为主节点，其他为副节点，主节点完成时打断副节点，返回值与主节点保持一致。
   }
 }
 //#endregion
@@ -93,7 +93,7 @@ export module Decorator {
   }
 
   export interface Repeat extends Decorator {
-    type: "@Repeat"; // 重复执行 node，直到成功次数达到 success 时返回成功，或失败次数达到 failure 时返回失败
+    type: "@Repeat"; // 重复执行 // 重复执行 node，直到成功次数达到 success 时返回成功，或失败次数达到 failure 时返回失败
     success?: Store.Reader.Number;
     failure?: Store.Reader.Number;
   }
@@ -124,11 +124,11 @@ export module Decorator {
 }
 //#endregion
 
-//#region 行为节点
+//#region 动作节点
 export interface Action extends Node {}
 export module Action {
   export interface Dynamic extends Action {
-    type: "+Dynamic"; // 动态行为 // 执行 name 指定的行为
+    type: "+Dynamic"; // 动态节点 // 执行 name 指定的行为
     name: Store.Reader.String; // 行为名称
     args?: { [name: string]: Store.Reader | undefined }; // 透传参数
   }
@@ -139,7 +139,8 @@ export module Action {
   }
 
   export interface Tree extends Action {
-    type: "+Tree"; // 子树节点 // 执行 name 指定的子树
+    type: "+Tree"; // 子树节点 // 执行 file#name 指定的子树
+    file: Store.Reader.String; // 所在文件
     name: Store.Reader.String; // 子树名称
   }
 
