@@ -121,6 +121,13 @@ export module Decorator {
     success: Store.Reader.Number; // 成功时累加值
     failure: Store.Reader.Number; // 失败时累加值
   }
+
+  export interface DebugLog extends Decorator {
+    type: "@DebugLog"; // 调试日志 // node 执行前后追加日志，仅后端开启 Debug 级别时生效。
+    prepare?: Store.Reader.String; // 准备执行日志
+    success?: Store.Reader.String; // 执行成功日志
+    failure?: Store.Reader.String; // 执行失败日志
+  }
 }
 //#endregion
 

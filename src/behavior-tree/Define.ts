@@ -152,6 +152,13 @@ const nodes: typeof Settings & BTDefines = {
         failure: items["Store.Reader.Number"],
       },
     },
+    "@DebugLog": {
+      props: {
+        prepare: optional(items["Store.Reader.String"]),
+        success: optional(items["Store.Reader.String"]),
+        failure: optional(items["Store.Reader.String"]),
+      },
+    },
   },
   Action: {
     "+Dynamic": {
