@@ -57,6 +57,7 @@
   "Swap nodes": "交换节点",
   "Copy Nodes": "复制节点",
   "Paste Nodes": "粘贴节点",
+  "Clipboard unavailable": "剪贴板不可用",
   "Selected nodes does not support pasting": "选择的节点不支持粘贴",
   "Move Nodes": "移动节点",
   "Remove Nodes": "删除节点",

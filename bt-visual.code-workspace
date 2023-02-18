@@ -8,7 +8,7 @@
 		"files.exclude": {
 			"**/node_modules": true
 		},
-		"npm.packageManager": "yarn",
+		"npm.packageManager": "pnpm",
 		"[javascript]": {
 			"editor.defaultFormatter": "esbenp.prettier-vscode",
 			"editor.formatOnSave": true
@@ -41,7 +41,7 @@
 				"type": "node",
 				"request": "launch",
 				"cwd": "${workspaceFolder}",
-				"runtimeExecutable": "yarn",
+				"runtimeExecutable": "pnpm",
 				"runtimeArgs": [
 					"dev"
 				],

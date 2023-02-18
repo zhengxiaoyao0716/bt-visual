@@ -1,6 +1,7 @@
 import {
   ComponentType,
   createContext,
+  FunctionComponent,
   PropsWithChildren,
   ReactNode,
   useContext,
@@ -103,7 +104,7 @@ export interface Props<T> {
 }
 export interface Storage<T> {
   (props: Props<T>): JSX.Element;
-  hoc<P>(Component: ComponentType<P>): ComponentType<P>;
+  hoc<P>(Component: ComponentType<P>): FunctionComponent<P>;
   use(): ContextValue<T>;
   displayName: string;
 }
@@ -164,7 +165,7 @@ export function createStorage<T extends {}>(
     WrappedComponent.displayName = `Storage(${
       Component.displayName || Component.name || "Component"
     })`;
-    return WrappedComponent;
+    return WrappedComponent as FunctionComponent<P>;
   };
   Storage.use = () => useContext(Context);
   Storage.displayName = name;

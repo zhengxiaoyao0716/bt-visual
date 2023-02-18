@@ -243,10 +243,27 @@ function NodeMenus({
     if (selector == null) return;
     selector.refresh = refresh;
 
+    const unavailable = async (text?: string) => {
+      showSnack(trans("Clipboard unavailable"));
+      if (text == null) return;
+      const page = window.open(
+        "",
+        "_blank",
+        "location=no,menubar=no,status=no,toolbar=no,width=800,height=600"
+      );
+      if (page == null) return;
+      const $textarea = page.window.document.createElement("textarea");
+      $textarea.innerHTML = text;
+      $textarea.style.width = "100%";
+      $textarea.style.height = "100%";
+      page.window.document.body.appendChild($textarea);
+      $textarea.select();
+    };
+
     selector.copy = async () => {
       if (selector == null || selector.selected.length <= 0) return;
       const nodes = selector.selected.map(({ node }) => node);
-      await clipboard.write("nodes", nodes);
+      await clipboard.write("nodes", nodes, unavailable);
       selector.refresh();
     };
     const removeCopyHotkey = addHotkeyListener(document.body, {
@@ -266,7 +283,7 @@ function NodeMenus({
     }
 
     selector.paste = async () => {
-      const copied: Node[] | null = await clipboard.read("nodes");
+      const copied: Node[] | null = await clipboard.read("nodes", unavailable);
       if (copied == null) return;
       if (selector == null || selector.selected.length <= 0) return;
       if (selector.selected.length > 1) return;
@@ -571,22 +588,22 @@ function NodeMenus({
       document.body,
       {
         code: "ArrowUp",
-        ctrlKey: true,
+        // ctrlKey: true,
         callback: selector.moveUp,
       },
       {
         code: "ArrowDown",
-        ctrlKey: true,
+        // ctrlKey: true,
         callback: selector.moveDown,
       },
       {
         code: "ArrowLeft",
-        ctrlKey: true,
+        // ctrlKey: true,
         callback: selector.moveLeft,
       },
       {
         code: "ArrowRight",
-        ctrlKey: true,
+        // ctrlKey: true,
         callback: selector.moveRight,
       }
     );

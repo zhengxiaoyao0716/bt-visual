@@ -374,6 +374,7 @@ export default function StoreReader({
         size="small"
         sx={{ textAlign: "left", textTransform: "none" }}
         onClick={showDialog}
+        title={item.desc || `${name} : ${item.valueType}`}
       >
         <TextField
           fullWidth
@@ -389,7 +390,6 @@ export default function StoreReader({
           }
           variant="standard"
           sx={{ mb: 1, pointerEvents: "none" }}
-          title={item.desc}
         />
       </Button>
       {

@@ -143,6 +143,7 @@ function NodeLib({ config, trans, define, keyword, type }: NodeLibProps) {
   if (type === "Unknown") return null;
   if (config?.value == null) return null;
   if (define?.value == null) return null;
+  const label = trans(`Node.${type}.name`);
 
   const { nodeLibs } = config.value;
   const nodes = useMemo(() => {
@@ -150,7 +151,7 @@ function NodeLib({ config, trans, define, keyword, type }: NodeLibProps) {
       type,
       translated: {
         type: trans(type),
-        desc: define.desc || trans(type),
+        desc: define.desc || `${trans(type)} : ${label}`,
       },
     }));
     if (!keyword) return nodes;
@@ -174,8 +175,6 @@ function NodeLib({ config, trans, define, keyword, type }: NodeLibProps) {
         },
       },
     });
-
-  const label = trans(`Node.${type}.name`);
 
   return (
     <Accordion
@@ -214,7 +213,7 @@ function NodeLib({ config, trans, define, keyword, type }: NodeLibProps) {
               trans={trans}
               btDefine={define.value}
               type={node.type}
-              size={{ width: 100, height: 30 }}
+              size={{ width: 90, height: 25 }}
             >
               {trans(node.translated.type)}
             </NodeSvgRender>

@@ -2,7 +2,7 @@ import { useMemo, useState, MouseEvent } from "react";
 import { createTheme, useTheme as useMUITheme } from "@mui/material/styles";
 import { enUS, Localization, zhCN } from "@mui/material/locale";
 import LanguageIcon from "@mui/icons-material/Language";
-import Box from "@mui/system/Box";
+import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
@@ -24,6 +24,7 @@ export function useLocaleTheme() {
 
   const language = config?.value?.language || languages[0];
   const locale = locales[language];
+  const fontFamily = config?.value?.fontFamily || [];
 
   const theme = useMUITheme();
   const themeWithLocale = useMemo(
@@ -32,7 +33,13 @@ export function useLocaleTheme() {
         {
           ...theme,
           typography: {
-            fontFamily: ["monospace"].join(","),
+            fontFamily: [
+              ...fontFamily,
+              "Sarasa Mono SC",
+              "YouYuan",
+              "FangSong",
+              "monospace",
+            ].join(","),
           },
         },
         locale

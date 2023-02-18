@@ -211,21 +211,23 @@ export default function NodeSvgRender({
     >
       {alias ? (
         size.height <= 30 ? (
+          // node libraries
           <>
             <svg
-              x={6}
-              y={6}
+              x={3}
+              y={3}
               fill={color}
               ref={shapeRef}
               width={21}
               height={21}
               viewBox="0 0 30 30"
             />
-            <text x={24} y={16} fontSize={12} fill={textPrimaryColor}>
+            <text x={20} y={18} fontSize={14} fill={textPrimaryColor}>
               {alias[0]}
             </text>
           </>
         ) : (
+          // node renderer
           <>
             <text x={24} y={20} fontSize={12} fill={color}>
               {trans(type)}

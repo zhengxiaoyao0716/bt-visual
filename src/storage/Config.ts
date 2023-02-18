@@ -19,6 +19,7 @@ const defaultConfig = {
   },
   nodeVerticalMargin: 128,
   serverAddress: "ws://localhost:60013/bt-visual/debug",
+  fontFamily: [],
 };
 
 export default createStorage(

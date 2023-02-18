@@ -1,11 +1,23 @@
 const clipboardSalt = "// bt-visual-clipboard: ";
 
 export default {
-  async write<T>(key: string, data: T) {
+  async write<T>(
+    key: string,
+    data: T,
+    unavailable?: (dumps: string) => Promise<void>
+  ): Promise<void> {
     const dumps = `${clipboardSalt}${key}\r\n${JSON.stringify(data)}`;
+    if (navigator.clipboard == null) unavailable && (await unavailable(dumps));
     await navigator.clipboard.writeText(dumps);
   },
-  async read<T>(key: string): Promise<T | null> {
+  async read<T>(
+    key: string,
+    unavailable?: () => Promise<void>
+  ): Promise<T | null> {
+    if (navigator.clipboard == null) {
+      unavailable && (await unavailable());
+      return null;
+    }
     const loads = (await navigator.clipboard.readText()).replace("\r", "");
     if (!loads) return null;
     if (!loads.startsWith(clipboardSalt)) return null;

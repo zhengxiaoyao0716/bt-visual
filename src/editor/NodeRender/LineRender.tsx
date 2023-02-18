@@ -254,14 +254,14 @@ function findLineRoot(
 }
 
 function createLineTo(left: string, top: string) {
-  const lineTo = document.createElement("a");
-  lineTo.innerText = "◎";
-  lineTo.style.position = "absolute";
-  lineTo.style.marginLeft = left;
-  lineTo.style.left = "50%";
-  lineTo.style.top = top;
-  lineTo.style.transform = "translate(-50%)";
-  return lineTo;
+  const $lineTo = document.createElement("a");
+  $lineTo.innerText = "◎";
+  $lineTo.style.position = "absolute";
+  $lineTo.style.marginLeft = left;
+  $lineTo.style.left = "50%";
+  $lineTo.style.top = top;
+  $lineTo.style.transform = "translate(-50%)";
+  return $lineTo;
 }
 
 function getOrCreateLineSvg(root: HTMLElement): SVGSVGElement {
@@ -273,14 +273,14 @@ function getOrCreateLineSvg(root: HTMLElement): SVGSVGElement {
       return child as SVGSVGElement;
     }
   }
-  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-  svg.classList.add("line-container");
-  svg.style.position = "absolute";
-  svg.style.left = "0";
-  svg.style.top = "0";
-  svg.style.width = "100%";
-  svg.style.height = "100%";
-  svg.style.pointerEvents = "none";
-  root.appendChild(svg);
-  return svg as SVGSVGElement;
+  const $svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  $svg.classList.add("line-container");
+  $svg.style.position = "absolute";
+  $svg.style.left = "0";
+  $svg.style.top = "0";
+  $svg.style.width = "100%";
+  $svg.style.height = "100%";
+  $svg.style.pointerEvents = "none";
+  root.appendChild($svg);
+  return $svg as SVGSVGElement;
 }
