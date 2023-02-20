@@ -35,7 +35,9 @@ function emptyForest(name: string): Forest {
 export const ForestMainfest = createStorage(
   "ForestManifest",
   "/forest-manifest.yaml",
-  Promise.resolve([{ name: "Example" }, { name: "测试中文" }] as {
-    name: string;
-  }[])
+  Promise.resolve(
+    [] as {
+      name: string;
+    }[]
+  )
 );

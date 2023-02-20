@@ -28,8 +28,8 @@ export module Composition {
     type: "&Sequence"; // 顺序执行 // 依次执行 nodes 内的子节点，直到任意某个子节点执行失败，返回失败。当全部子节点执行成功时，返回成功。
   }
   export interface Parallel extends Composite {
-    type: ">Parallel"; // 并行执行 // 同时执行 nodes 内的子节点，待全部完成后根据执行成功的节点的数量，大于等于 expected 返回成功，否则失败。
-    expected: Store.Reader.Number; // 期望的执行成功节点数
+    type: ">Parallel"; // 并行执行 // 同时执行 nodes 内的子节点，待全部完成后根据统计成功失败数，根据 expected 配置的值，返回成功或失败。
+    expected?: Store.Reader.Number; // >0: 成功子节点数大于等于该值则成功, <0: 失败子节点数大于等于该值的绝对值则失败, 0: 必定成功
   }
 
   export interface SelectBy extends Composite {
@@ -64,14 +64,10 @@ export interface Decorator extends Node {
 }
 export module Decorator {
   export interface Condition extends Decorator {
-    type: "@Condition"; // 条件侦听 // 当观测变量的值变化时重新计算条件，条件满足时发出 signal 并执行 node，不满足时中断 node。
+    type: "@Condition"; // 条件侦听 // 条件满足时执行 node，执行完毕返回其执行结果，期间监听条件变化，若条件不满足了则中断 node 返回失败。
+    suspend?: Store.Reader.Boolean; // 是否需要挂起 // false: 直接失败, true: 暂时挂起
+    interrupt?: Store.Reader.Boolean; // 是否需要中断 // false: 不监听中断, true: 监听条件变化，条件不满足时挂起
     statements: Statement[]; // 条件语句
-    // signal?: Signal; // 当条件满足时，向父节点递归发出该信号
-  }
-
-  export interface Interrupt extends Decorator {
-    type: "@Interrupt"; // 中断侦听 // 当收到指定 signal 时中断 node
-    // signal: Signal; // 当收到该信号时中断 node
   }
 
   export interface SwarmShout extends Decorator {
@@ -79,13 +75,11 @@ export module Decorator {
     flag: Store.Reader.String; // 识别讯号
     goal: Store.Reader.String; // 目标策略
   }
-
   export interface SwarmReply extends Decorator {
     type: "@SwarmReply"; // 群体响应 // 响应周围的群体讯号，目标一致则加入该群体并执行 node
     flag: Store.Reader.String; // 识别讯号
     least: Store.Reader.Number; // 最少单位数目，群体单位过少时将拒绝加入
   }
-
   export interface SwarmAssign extends Decorator {
     type: "@SwarmAssign"; // 群体分派 // 满足条件则占用一个名额并执行 node，执行失败时释放名额
     seats?: Store.Reader.Number; // 最大分派名额，留空则不限制
@@ -108,18 +102,6 @@ export module Decorator {
       | "@Inverse" // 节点逆变 // 当 node 执行成功时返回失败，node 执行失败时返回成功
       | "@Success" // 必定成功 // 当 node 执行完成后，永远返回成功
       | "@Failure"; // 必定失败 // 当 node 执行完成后，永远返回失败
-  }
-
-  export interface PipeSave extends Decorator {
-    type: "@Save"; // 保存结果 // 将 node 的执行结果存储到 store 中，返回 node 的执行结果
-    bind: Store.Key; // 绑定存储空间
-  }
-
-  export interface PipeAcc extends Decorator {
-    type: "@Acc"; // 累加结果 // node 执行完毕后，根据成功或失败累加对应的增量，返回 node 的执行结果。
-    bind: Store.Key; // 绑定存储空间
-    success: Store.Reader.Number; // 成功时累加值
-    failure: Store.Reader.Number; // 失败时累加值
   }
 
   export interface DebugLog extends Decorator {
@@ -146,9 +128,9 @@ export module Action {
   }
 
   export interface Tree extends Action {
-    type: "+Tree"; // 子树节点 // 执行 file#name 指定的子树
-    file: Store.Reader.String; // 所在文件
+    type: "+Tree"; // 子树节点 // 执行 file 指定的文件中的 name 子树
     name: Store.Reader.String; // 子树名称
+    file?: Store.Reader.String; // 所在文件，留空则默认为当前文件
   }
 
   export interface Wait extends Action {
@@ -230,6 +212,3 @@ export module Statement {
     | { op: "?"; cid: ID; ret: boolean }; // cid 对应表达式为真时，中断计算并返回 ret
 }
 export type Statement = Statement.Value;
-
-// 信号 key
-export type Signal = Store.Reader.String;

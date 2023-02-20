@@ -367,6 +367,7 @@ export default function StoreReader({
     hideDialog();
   };
 
+  const title = item.desc || `${name} : ${item.valueType}`;
   return (
     <>
       <Button
@@ -374,7 +375,7 @@ export default function StoreReader({
         size="small"
         sx={{ textAlign: "left", textTransform: "none" }}
         onClick={showDialog}
-        title={item.desc || `${name} : ${item.valueType}`}
+        title={title}
       >
         <TextField
           fullWidth
@@ -425,6 +426,7 @@ export default function StoreReader({
                   // 虽然值类型是数字，但因为这里可能输入的是黑板的 key，所以不能限制为只输入数字
                   item.valueType === "number" ? "unknown" : item.valueType
                 }
+                title={title}
               />
               {typeof value === "object" ? (
                 <>

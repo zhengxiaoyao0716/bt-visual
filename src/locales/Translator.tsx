@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import Button from "@mui/material/Button";
-import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
 import Typography from "@mui/material/Typography";
 import CircularProgress from "@mui/material/CircularProgress";

@@ -177,6 +177,7 @@ interface OperateDefine {
   noRight?: true;
   value?: true;
   noId?: true;
+  optId?: true;
   condition?: true;
   returns?: true;
 }
@@ -189,22 +190,28 @@ const logicOperation = {
 const compareOperations: OperateDefine[] = [
   {
     operate: "==",
+    optId: true,
   },
   {
     operate: "!=",
     showOp: "≠",
+    optId: true,
   },
   {
     operate: "<",
+    optId: true,
   },
   {
     operate: "<=",
+    optId: true,
   },
   {
     operate: ">",
+    optId: true,
   },
   {
     operate: ">=",
+    optId: true,
   },
 ];
 const numericOperations: OperateDefine[] = [
@@ -351,7 +358,6 @@ function StatementDialog({
 }) {
   const [state, setState] = useState(statement as StatementState);
   const define = statementsDict[state.op ?? "="];
-  console.log(state);
 
   const changeOperate = (
     _event: MouseEvent<HTMLElement>,
@@ -375,11 +381,11 @@ function StatementDialog({
   const submit = () => {
     const statement: StatementState | Statement = { op: define.operate };
     if (!define.noId) {
-      if (invalidId(state.id)) {
+      if (invalidId(state.id, define.optId)) {
         snack.show(trans("Invalid input"));
         return;
       }
-      statement.id = state.id;
+      statement.id = state.id || "_";
     }
     if (!define.noLeft) {
       if (invalidIdType(index, state.lid, typeDict, define)) {
@@ -452,6 +458,7 @@ function StatementDialog({
                           key={index}
                           value={operate}
                           sx={{ height: "2em", minWidth: "3em" }}
+                          title={trans(operate + " operator")}
                         >
                           {showOp ?? operate}
                         </ToggleButton>
@@ -471,6 +478,7 @@ function StatementDialog({
                   value={state.id || ""}
                   submit={onIDSubmit.bind(null, "id")}
                   typeDict={typeDict}
+                  optId={define.optId}
                 />
               )}
               {define.logic ? (
@@ -525,7 +533,7 @@ function StatementDialog({
               ) : null}
               {define.returns ? (
                 <Stack direction="row" spacing={1} alignItems="center">
-                  <Typography>returns</Typography>
+                  <Typography>returns: </Typography>
                   <Switch
                     checked={state.ret ?? false}
                     onChange={changeReturns}
@@ -545,8 +553,8 @@ function StatementDialog({
   );
 }
 
-function invalidId(id: string | undefined) {
-  if (!id) return true;
+function invalidId(id: string | undefined, allowEmpty?: true) {
+  if (!id) return !allowEmpty;
   return id.match(/^[a-zA-Z_]+[a-zA-Z_0-9]*$/) == null;
 }
 
@@ -559,7 +567,7 @@ function invalidIdType(
   if (!value) return true;
   const not = value[0] === "!";
   const id = not ? value.slice(1) : value;
-  if (invalidId(id)) return true;
+  if (invalidId(id, define.optId)) return true;
   if (!(id in dict)) return true;
   const { index: foundIndex, type } = dict[id];
   if (index <= foundIndex) return true;
@@ -585,6 +593,7 @@ function StatementId({
   submit,
   typeDict,
   define,
+  optId,
 }: {
   index: number;
   label: string;
@@ -592,10 +601,11 @@ function StatementId({
   submit(value: string): void;
   typeDict: StatementsIdDict;
   define?: StatementDefine;
+  optId?: true;
 }) {
   const error = define
     ? invalidIdType(index, value, typeDict, define)
-    : invalidId(value);
+    : invalidId(value, optId);
   const onChange = (event: ChangeEvent<HTMLInputElement>) =>
     submit(event.target.value.trim());
   return (

@@ -10,12 +10,8 @@ export type Item = { desc?: string; optional?: true } & (
       type: "Store.Reader";
       valueType: Store.ValueType;
     }
-  | {
-      type: "statements";
-    }
-  | {
-      type: "StorePreset";
-    }
+  | { type: "statements" }
+  | { type: "StorePreset" }
 );
 
 export type NodeProps = {
@@ -34,6 +30,10 @@ const items: { [key: string]: Item } = {
   "Store.Reader.String": {
     type: "Store.Reader",
     valueType: "string",
+  },
+  "Store.Reader.Boolean": {
+    type: "Store.Reader",
+    valueType: "boolean",
   },
   "Store.Reader.Unknown": {
     type: "Store.Reader",
@@ -76,7 +76,7 @@ const nodes: typeof Settings & BTDefines = {
     "&Sequence": {},
     ">Parallel": {
       props: {
-        expected: items["Store.Reader.Number"],
+        expected: optional(items["Store.Reader.Number"]),
       },
     },
     "?SelectBy": {
@@ -99,18 +99,9 @@ const nodes: typeof Settings & BTDefines = {
   Decorator: {
     "@Condition": {
       props: {
+        suspend: optional(items["Store.Reader.Boolean"]),
+        interrupt: optional(items["Store.Reader.Boolean"]),
         statements: { type: "statements" },
-        // signal: optional(items["Store.Reader.String"]),
-      },
-    },
-    "@Interrupt": {
-      props: {
-        // signal: items["Store.Reader.String"],
-      },
-    },
-    "@AIStatus": {
-      props: {
-        expected: items["Store.Reader.String"],
       },
     },
     "@SwarmShout": {
@@ -145,18 +136,6 @@ const nodes: typeof Settings & BTDefines = {
     "@Inverse": {},
     "@Success": {},
     "@Failure": {},
-    "@Save": {
-      props: {
-        bind: items["Store.Key"],
-      },
-    },
-    "@Acc": {
-      props: {
-        bind: items["Store.Key"],
-        success: items["Store.Reader.Number"],
-        failure: items["Store.Reader.Number"],
-      },
-    },
     "@DebugLog": {
       props: {
         prepare: optional(items["Store.Reader.String"]),
@@ -182,6 +161,7 @@ const nodes: typeof Settings & BTDefines = {
     "+Tree": {
       props: {
         name: items["Store.Reader.String"],
+        file: optional(items["Store.Reader.String"]),
       },
       shape:
         '<path d="M17 12h2L12 2 5.05 12H7l-3.9 6h6.92v4h3.96v-4H21z"></path>',
@@ -192,11 +172,6 @@ const nodes: typeof Settings & BTDefines = {
       },
       shape:
         '<path d="m6 2 .01 6L10 12l-3.99 4.01L6 22h12v-6l-4-4 4-3.99V2H6zm10 14.5V20H8v-3.5l4-4 4 4z"></path>',
-    },
-    "+Skill": {
-      props: {
-        param: items["Store.Reader.String"],
-      },
     },
   },
 };
