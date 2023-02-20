@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import Button from "@mui/material/Button";
 import ListItem from "@mui/material/ListItem";
 import Typography from "@mui/material/Typography";
@@ -16,7 +16,9 @@ import { useWindowSize } from "../components/WindowSize";
 import { useRefresh } from "../components/Refresh";
 import Snack from "../components/Snack";
 import Accordion from "@mui/material/Accordion";
-import { AccordionDetails, AccordionSummary } from "@mui/material";
+import AccordionDetails from "@mui/material/AccordionDetails";
+import AccordionSummary from "@mui/material/AccordionSummary";
+import Toolbar from "@mui/material/Toolbar";
 
 function Content({ hide, appBar }: Props) {
   const locale = useLocale();
@@ -130,7 +132,7 @@ function Content({ hide, appBar }: Props) {
     return tabs;
   }, [] as JSX.Element[][]);
   return (
-    <Box style={{ overflowY: "hidden" }}>
+    <Box sx={{ overflowY: "hidden" }}>
       {appBar(
         <>
           <Typography sx={{ ml: 2, flex: 1 }} variant="h6" component="div">
@@ -141,7 +143,7 @@ function Content({ hide, appBar }: Props) {
           </Button>
         </>
       )}
-      <Box style={{ overflowY: "auto", maxHeight: "100%" }}>
+      <Box sx={{ overflowY: "auto", height: "100%" }}>
         {listTabs.length <= 0
           ? moveableList.appender
           : listTabs.map((tab, index) => (
@@ -152,6 +154,7 @@ function Content({ hide, appBar }: Props) {
                 </AccordionDetails>
               </Accordion>
             ))}
+        <Toolbar />
       </Box>
       {dialogPrompt.dialog}
       {moveableList.itemMenu}
