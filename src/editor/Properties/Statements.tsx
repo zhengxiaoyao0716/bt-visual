@@ -125,7 +125,7 @@ export default function Statements({
     appendStatementPrompt,
     refresh,
     (statement, index, showMenu, anchor) => (
-      <ListItem key={index} button onContextMenu={showMenu} sx={{ padding: 0 }}>
+      <ListItem key={index} onContextMenu={showMenu} sx={{ padding: 0 }}>
         <StatementItem
           index={index}
           statement={statement}
@@ -186,6 +186,7 @@ const logicOperation = {
   logic: true,
   noLeft: true,
   noRight: true,
+  optId: true,
 };
 const compareOperations: OperateDefine[] = [
   {
@@ -422,7 +423,7 @@ function StatementDialog({
       snack.show(trans("Invalid input"));
       return;
     }
-    resolve?.({ id: state.id!, ...state.logic });
+    resolve?.({ ...state.logic, id: statement.id! });
   };
 
   return (
