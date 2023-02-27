@@ -112,6 +112,7 @@
   "Store List": "黑板列表",
   "Duplicate store key": "黑板键冲突",
   "Invalid input": "无效的输入",
+  "Duplicate id": "id 冲突",
   "Please the key of the store item": "请输入要添加的黑板键",
   "Node Properties": "节点属性",
   "Node Alias": "节点别名",

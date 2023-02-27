@@ -29,13 +29,8 @@ import type {
   Node,
   Tree,
 } from "../behavior-tree/type";
-import {
-  EMPTY_NODE,
-  getNodeAlias,
-  getNodeExt,
-  getNodeType,
-  setNodeExt,
-} from "../behavior-tree/utils";
+import { EMPTY_NODE, getNodeAlias, getNodeType } from "../behavior-tree/utils";
+import ExtValue from "../common/ExtValue";
 import clipboard from "../components/clipboard";
 import { addHotkeyListener } from "../components/Hotkey";
 import { useRefresh } from "../components/Refresh";
@@ -74,17 +69,17 @@ const selectedSymbol = Symbol("selected");
 const autoSelectSymbol = Symbol("autoSelect");
 
 export function isSelected(node: Node) {
-  return getNodeExt(node, selectedSymbol) != null;
+  return ExtValue.getValue(node, selectedSymbol) != null;
 }
 function setSelected(node: Node, selected: true | undefined) {
-  setNodeExt(node, selectedSymbol, selected);
+  ExtValue.setValue(node, selectedSymbol, selected);
 }
 
 function isAutoSelect(node: Node) {
-  return getNodeExt(node, autoSelectSymbol) != null;
+  return ExtValue.getValue(node, autoSelectSymbol) != null;
 }
 export function setAutoSelect(node: Node, selected: true | undefined) {
-  setNodeExt(node, autoSelectSymbol, selected);
+  ExtValue.setValue(node, autoSelectSymbol, selected);
 }
 
 function cancelAllSelected(selector: Selector) {

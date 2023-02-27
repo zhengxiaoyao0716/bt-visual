@@ -2,7 +2,7 @@ import { Dispatch, useEffect, useState } from "react";
 
 import { BTDefines } from "../behavior-tree/Define";
 import { Node } from "../behavior-tree/type";
-import { getNodeExt, setNodeExt } from "../behavior-tree/utils";
+import ExtValue from "../common/ExtValue";
 
 const statusMapper = {
   success: { color: "#00FF00" },
@@ -26,17 +26,17 @@ export function useNodeStatus(
 
   useEffect(() => {
     if (node == null || defines == null) return;
-    setNodeExt(node, debugDefinesExtKey, defines);
+    ExtValue.setValue(node, debugDefinesExtKey, defines);
     return () => {
-      setNodeExt(node, debugDefinesExtKey, undefined);
+      ExtValue.setValue(node, debugDefinesExtKey, undefined);
     };
   }, [node, defines]);
 
   useEffect(() => {
     if (node == null || setStatus == null) return;
-    setNodeExt(node, debugSetStatusExtKey, setStatus);
+    ExtValue.setValue(node, debugSetStatusExtKey, setStatus);
     return () => {
-      setNodeExt(node, debugSetStatusExtKey, undefined);
+      ExtValue.setValue(node, debugSetStatusExtKey, undefined);
     };
   }, [node, setStatus]);
 
@@ -44,9 +44,9 @@ export function useNodeStatus(
 }
 
 export function getBTDefines(node: Node): BTDefines | undefined {
-  return getNodeExt(node, debugDefinesExtKey);
+  return ExtValue.getValue(node, debugDefinesExtKey);
 }
 
 export function getStatusSetter(node: Node): Dispatch<Status.Key> | undefined {
-  return getNodeExt(node, debugSetStatusExtKey);
+  return ExtValue.getValue(node, debugSetStatusExtKey);
 }

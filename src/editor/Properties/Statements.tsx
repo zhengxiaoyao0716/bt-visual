@@ -1,3 +1,4 @@
+import { useAutoAnimate } from "@formkit/auto-animate/react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
@@ -18,6 +19,7 @@ import Typography from "@mui/material/Typography";
 import { ChangeEvent, MouseEvent, useState } from "react";
 
 import type { Statement, Store } from "../../behavior-tree/type";
+import { autoAttachKey } from "../../common/ExtValue";
 import { useMoveableList } from "../../components/MoveableList";
 import { useRefresh } from "../../components/Refresh";
 import Snack from "../../components/Snack";
@@ -125,7 +127,11 @@ export default function Statements({
     appendStatementPrompt,
     refresh,
     (statement, index, showMenu, anchor) => (
-      <ListItem key={index} onContextMenu={showMenu} sx={{ padding: 0 }}>
+      <ListItem
+        key={autoAttachKey(statement, "op")}
+        onContextMenu={showMenu}
+        sx={{ padding: 0 }}
+      >
         <StatementItem
           index={index}
           statement={statement}
@@ -137,8 +143,10 @@ export default function Statements({
     )
   );
 
+  const [animateRef] = useAutoAnimate();
+
   return (
-    <Box title={item.desc}>
+    <Box title={item.desc} ref={animateRef}>
       <Typography
         color={({ palette }) =>
           !item.optional && statements.length === 0
@@ -386,6 +394,10 @@ function StatementDialog({
         snack.show(trans("Invalid input"));
         return;
       }
+      if (duplicatedId(index, state.id, typeDict)) {
+        snack.show(trans("Duplicate id"));
+        return;
+      }
       statement.id = state.id || "_";
     }
     if (!define.noLeft) {
@@ -426,6 +438,45 @@ function StatementDialog({
     resolve?.({ ...state.logic, id: statement.id! });
   };
 
+  const operatorTable = (
+    <Table size="small" sx={{ mb: 1 }}>
+      <TableBody>
+        {Object.entries(operations).map(([group, defines]) => (
+          <TableRow key={group}>
+            <TableCell>
+              <Typography
+                whiteSpace="nowrap"
+                alignItems="center"
+                fontSize="small"
+              >
+                {trans(group)}
+              </Typography>
+            </TableCell>
+            <TableCell>
+              <ToggleButtonGroup
+                exclusive
+                value={define.operate}
+                onChange={changeOperate}
+              >
+                {defines.map(({ operate, showOp }, index) => (
+                  <ToggleButton
+                    key={index}
+                    value={operate}
+                    sx={{ height: "2em", minWidth: "3em" }}
+                    title={trans(operate + " operator")}
+                    tabIndex={-1}
+                  >
+                    {showOp ?? operate}
+                  </ToggleButton>
+                ))}
+              </ToggleButtonGroup>
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  );
+
   return (
     resolve && (
       <Dialog open={true}>
@@ -435,41 +486,7 @@ function StatementDialog({
           )}
         </DialogTitle>
         <DialogContent>
-          <Table size="small" sx={{ mb: 1 }}>
-            <TableBody>
-              {Object.entries(operations).map(([group, defines]) => (
-                <TableRow key={group}>
-                  <TableCell>
-                    <Typography
-                      whiteSpace="nowrap"
-                      alignItems="center"
-                      fontSize="small"
-                    >
-                      {trans(group)}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <ToggleButtonGroup
-                      exclusive
-                      value={define.operate}
-                      onChange={changeOperate}
-                    >
-                      {defines.map(({ operate, showOp }, index) => (
-                        <ToggleButton
-                          key={index}
-                          value={operate}
-                          sx={{ height: "2em", minWidth: "3em" }}
-                          title={trans(operate + " operator")}
-                        >
-                          {showOp ?? operate}
-                        </ToggleButton>
-                      ))}
-                    </ToggleButtonGroup>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          {operatorTable}
           {define && (
             <>
               {define.noId ? null : (
@@ -520,7 +537,7 @@ function StatementDialog({
                   save={(val) => setState({ ...state, val })}
                   item={{ valueType: "unknown", optional: true }}
                   storeScopes={storeScopes}
-                  focusAsClick={true}
+                  embedded={true}
                 />
               ) : null}
               {define.condition ? (
@@ -560,6 +577,17 @@ function invalidId(id: string | undefined, allowEmpty?: true) {
   return id.match(/^[a-zA-Z_]+[a-zA-Z_0-9]*$/) == null;
 }
 
+function duplicatedId(
+  index: number,
+  id: string | undefined,
+  dict: StatementsIdDict
+) {
+  if (!id || id === "_") return false;
+  if (!(id in dict)) return false;
+  const { index: foundIndex } = dict[id];
+  return index !== foundIndex;
+}
+
 function invalidIdType(
   index: number,
   value: string | undefined,
@@ -569,7 +597,7 @@ function invalidIdType(
   if (!value) return true;
   const not = value[0] === "!";
   const id = not ? value.slice(1) : value;
-  if (invalidId(id, define.optId)) return true;
+  if (invalidId(id)) return true;
   if (!(id in dict)) return true;
   const { index: foundIndex, type } = dict[id];
   if (index <= foundIndex) return true;
@@ -607,7 +635,7 @@ function StatementId({
 }) {
   const error = define
     ? invalidIdType(index, value, typeDict, define)
-    : invalidId(value, optId);
+    : invalidId(value, optId) || duplicatedId(index, value, typeDict);
   const onChange = (event: ChangeEvent<HTMLInputElement>) =>
     submit(event.target.value.trim());
   return (

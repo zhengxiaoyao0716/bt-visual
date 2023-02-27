@@ -5,13 +5,13 @@ import { useEffect, useRef } from "react";
 import { AutoRender } from ".";
 import type { Composite, Decorator } from "../../behavior-tree/type";
 import { getNodeType } from "../../behavior-tree/utils";
+import { autoAttachKey } from "../../common/ExtValue";
 import { useRefresh } from "../../components/Refresh";
 import { createNodeDropProps } from "../NodeDrop";
 import { isSelected, setAutoSelect, useSelector } from "../NodeSelector";
 import Undo from "../Undo";
 import { triggerRedrawLines } from "./LineRender";
 import NodeSvgRender, {
-  autoAttachKey,
   SubProps,
   troggleNodeFoldHandler,
 } from "./NodeSvgRender";
@@ -131,7 +131,7 @@ export default function DecoratorRender({
       ) : (
         decorators.map(([node, append, prepend], _index) => (
           <DecoratorCard
-            key={autoAttachKey(node)}
+            key={autoAttachKey(node, node.type)}
             title={btDefine?.Decorator[node.type]?.desc || trans(node.type)}
             onDoubleClick={foldHandler}
           >

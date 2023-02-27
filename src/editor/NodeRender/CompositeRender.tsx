@@ -1,4 +1,5 @@
 import styled from "@emotion/styled";
+import { useAutoAnimate } from "@formkit/auto-animate/react";
 import AddIcon from "@mui/icons-material/Add";
 import { useMemo, useRef } from "react";
 
@@ -10,6 +11,7 @@ import type {
   Node,
 } from "../../behavior-tree/type";
 import { getNodeAlias } from "../../behavior-tree/utils";
+import { autoAttachKey } from "../../common/ExtValue";
 import { useRefresh } from "../../components/Refresh";
 import { createAnchorDropProps, createNodeDropProps } from "../NodeDrop";
 import {
@@ -27,7 +29,6 @@ import LineRender, {
   triggerRedrawLines,
 } from "./LineRender";
 import NodeSvgRender, {
-  autoAttachKey,
   SubProps,
   troggleNodeFoldHandler,
 } from "./NodeSvgRender";
@@ -223,6 +224,7 @@ export default function CompositeRender({
   });
 
   const foldHandler = troggleNodeFoldHandler(node, selector.select, refresh);
+  const [animateRef] = useAutoAnimate();
 
   return (
     <CompositeContainer className={lineToParentClass} ref={ref}>
@@ -264,11 +266,12 @@ export default function CompositeRender({
           style={{
             margin: `${config.value.nodeVerticalMargin}px 8px 8px 8px`,
           }}
+          ref={animateRef}
         >
           <LineDropArea onMoved={onMoved} />
           {nodes.map((node, index) => (
             <AutoRender
-              key={autoAttachKey(node)}
+              key={autoAttachKey(node, node.type)}
               node={node}
               locked={locked}
               config={config}

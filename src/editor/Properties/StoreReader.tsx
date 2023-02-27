@@ -115,7 +115,7 @@ interface Props {
     valueType: Store.ValueType;
   };
   storeScopes?: { label: string; value: string }[];
-  focusAsClick?: true;
+  embedded?: true;
 }
 
 export default function StoreReader({
@@ -125,7 +125,7 @@ export default function StoreReader({
   save,
   item,
   storeScopes,
-  focusAsClick,
+  embedded,
 }: Props) {
   const rawValue = read();
   const text = getStoreReaderText(rawValue);
@@ -139,9 +139,9 @@ export default function StoreReader({
   );
   const hideDialog = () => setValue(null);
   const showDialog = (event: MouseEvent | FocusEvent<HTMLOrSVGElement>) => {
-    if (focusAsClick && "blur" in event.target) {
-      (event.target as HTMLOrSVGElement).blur();
-    }
+    // if (embedded && "blur" in event.target) {
+    //   (event.target as HTMLOrSVGElement).blur();
+    // }
     if (typeof rawValue === "object") {
       setValue({
         bind: rawValue.bind,
@@ -378,9 +378,13 @@ export default function StoreReader({
       <Button
         fullWidth
         size="small"
-        sx={{ textAlign: "left", textTransform: "none" }}
+        sx={{
+          textAlign: "left",
+          textTransform: "none",
+          ...(embedded ? { p: 0 } : {}),
+        }}
         onClick={showDialog}
-        onFocus={focusAsClick ? showDialog : undefined}
+        // onFocus={embedded ? showDialog : undefined}
         title={title}
       >
         <TextField
