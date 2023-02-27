@@ -520,6 +520,7 @@ function StatementDialog({
                   save={(val) => setState({ ...state, val })}
                   item={{ valueType: "unknown", optional: true }}
                   storeScopes={storeScopes}
+                  focusAsClick={true}
                 />
               ) : null}
               {define.condition ? (

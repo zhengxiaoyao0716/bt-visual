@@ -52,8 +52,9 @@ export default function Workspace({
   const { dialog, prompt } = useDialogPrompt();
 
   const [anchorEl, setAnchorEl] = useState<null | [number, HTMLElement]>(null);
-  const showMenu = (index: number) => {
-    if (trees.length <= 1 || index >= trees.length) {
+  const showMenu = (tab: number) => {
+    const index = tab - 1;
+    if (index < 0 || index >= trees.length) {
       return (event: MouseEvent<HTMLElement>) => event.preventDefault();
     }
     return (event: MouseEvent<HTMLElement>) => {
@@ -63,50 +64,12 @@ export default function Workspace({
     };
   };
   const hideMenu = () => setAnchorEl(null);
-  const removeTree = async () => {
-    if (anchorEl == null) return; // never
-    hideMenu();
-    const treeIndex = anchorEl[0];
-    const confirm = await prompt({
-      onSubmit: async () => true,
-      cancel: trans("CANCEL"),
-      submit: trans("REMOVE"),
-      title: trans("Confirm to remove the tree?"),
-    });
-    if (!confirm) return;
-    trees.splice(treeIndex, 1);
-    showTree(name, 0);
-  };
-
-  const createTreeButton = (
-    <Stack direction="row">
-      <AddIcon />
-      <Typography>{trans("CREATE")}</Typography>
-    </Stack>
-  );
-  const labels = [...trees.map(({ name }) => name), createTreeButton];
-  async function setTab(tab: number, event: MouseEvent) {
-    if (tab < trees.length) {
-      if (event.ctrlKey || event.shiftKey) {
-        const forest = saveRef.current.forest;
-        if (forest.saving) {
-          await snack.show(trans("Saving, try again later"));
-          return;
-        }
-        const treesDirty = saveRef.current.dirty(forest.value.trees);
-        if (treesDirty) {
-          await snack.show(trans("Modification has not been saved!"));
-          return;
-        }
-        showTree(name, tab, true);
-        return;
-      }
-      if (tab === treeIndex) return;
-      showTree(name, tab);
-      return;
-    }
+  const createTree = async (index: number, tree?: Tree) => {
     const treeName = await prompt({
-      title: trans("Create Tree"),
+      title:
+        tree == null
+          ? trans("Create Tree")
+          : `${trans("Clone Tree")} - ${tree.name}`,
       message: trans("Please input the name of the behavior tree"),
       values: [trans("Tree Name")],
       cancel: trans("CANCEL"),
@@ -121,32 +84,85 @@ export default function Workspace({
       await snack.show(trans("Invalid tree name"));
       return;
     }
-    const duplicateName = labels
-      .slice(0, -1)
-      .some(
-        (name) =>
-          typeof name === "string" &&
-          name.toUpperCase() === treeName.toUpperCase()
-      );
+    const duplicateName = labels.some(
+      (name) =>
+        typeof name === "string" &&
+        name.toUpperCase() === treeName.toUpperCase()
+    );
     if (duplicateName) {
       await snack.show(trans("Duplicate tree name"));
       return;
     }
-    const tree = {
+    trees.splice(index, 0, {
+      ...((tree || {
+        root: {
+          type: "?Selector",
+          nodes: [],
+        },
+      }) as Tree),
       name: treeName,
-      root: {
-        type: "?Selector",
-        nodes: [],
-      },
-    } as Tree;
-    trees.push(tree);
-    labels[labels.length - 1] = treeName;
-    labels.push(createTreeButton);
-    showTree(name, tab);
+    });
+    labels.splice(index, 0, treeName);
+    showTree(name, index);
+  };
+  const removeTree = async () => {
+    if (anchorEl == null) return; // never
+    hideMenu();
+    if (trees.length <= 1) {
+      snack.show(trans("Can not remove the last tree"));
+      return;
+    }
+    const treeIndex = anchorEl[0];
+    const confirm = await prompt({
+      onSubmit: async () => true,
+      cancel: trans("CANCEL"),
+      submit: trans("REMOVE"),
+      title: trans("Confirm to remove the tree?"),
+    });
+    if (!confirm) return;
+    trees.splice(treeIndex, 1);
+    showTree(name, 0);
+  };
+  const cloneTree = async () => {
+    if (anchorEl == null) return; // never
+    hideMenu();
+    const index = anchorEl[0];
+    createTree(1 + index, JSON.parse(JSON.stringify(trees[index])));
+  };
+
+  const createTreeButton = (
+    <Stack direction="row">
+      <AddIcon />
+      <Typography>{trans("CREATE")}</Typography>
+    </Stack>
+  );
+  const labels = [createTreeButton, ...trees.map(({ name }) => name)];
+  async function setTab(tab: number, event: MouseEvent) {
+    if (tab === 0) {
+      createTree(trees.length);
+      return;
+    }
+    const index = tab - 1;
+    if (!event.ctrlKey && !event.shiftKey) {
+      if (index !== treeIndex) showTree(name, index);
+      return;
+    }
+    // split view
+    const forest = saveRef.current.forest;
+    if (forest.saving) {
+      await snack.show(trans("Saving, try again later"));
+      return;
+    }
+    const treesDirty = saveRef.current.dirty(forest.value.trees);
+    if (treesDirty) {
+      await snack.show(trans("Modification has not been saved!"));
+      return;
+    }
+    showTree(name, index, true);
   }
   const { tabs, refresh: refreshTab } = useTabs(
     labels,
-    treeIndex,
+    1 + treeIndex,
     setTab,
     showMenu
   );
@@ -329,6 +345,12 @@ export default function Workspace({
             <DeleteIcon />
           </ListItemIcon>
           <ListItemText>{trans("Remove Tree")}</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={cloneTree}>
+          <ListItemIcon>
+            <AddIcon />
+          </ListItemIcon>
+          <ListItemText>{trans("Clone Tree")}</ListItemText>
         </MenuItem>
       </Menu>
     </Box>

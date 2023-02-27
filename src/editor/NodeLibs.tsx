@@ -1,20 +1,18 @@
 import styled from "@emotion/styled";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import SearchIcon from "@mui/icons-material/Search";
 import Accordion from "@mui/material/Accordion";
 import AccordionDetails from "@mui/material/AccordionDetails";
 import AccordionSummary from "@mui/material/AccordionSummary";
 import Box from "@mui/material/Box";
 import Container from "@mui/material/Container";
-import Input from "@mui/material/Input";
-import InputAdornment from "@mui/material/InputAdornment";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { DragEvent, useEffect, useMemo, useRef, useState } from "react";
+import { DragEvent, useEffect, useMemo, useRef } from "react";
 
 import BTDefine from "../behavior-tree/Define";
 import type { Node, NodeType } from "../behavior-tree/type";
 import { useDragMoving } from "../components/DragMoving";
+import { useFilterKeyword } from "../components/FilterKeyword";
 import WidthController from "../components/WidthController";
 import Config from "../storage/Config";
 import { TransFunction, useTrans } from "../storage/Locale";
@@ -58,11 +56,7 @@ function NodeLibs({ children }: { children: JSX.Element }) {
       config.update({ ...config.value, nodeLibs: { ...nodeLibs, width } });
   };
 
-  const [filterKeyword, setFilterKeyword] = useState("");
-  const onSearchKeywordChange = (value: string) => {
-    const keyword = value.trim().toLowerCase();
-    keyword === filterKeyword || setFilterKeyword(keyword);
-  };
+  const [filterKeyword, FilterKeyword] = useFilterKeyword();
 
   const nodeLibProps = {
     config,
@@ -94,7 +88,9 @@ function NodeLibs({ children }: { children: JSX.Element }) {
             },
           }}
         >
-          <SearchNode onChange={onSearchKeywordChange} />
+          <Container>
+            <FilterKeyword />
+          </Container>
           <NodeLib {...nodeLibProps} type="Composite" />
           <NodeLib {...nodeLibProps} type="Decorator" />
           <NodeLib {...nodeLibProps} type="Action" />
@@ -221,22 +217,6 @@ function NodeLib({ config, trans, define, keyword, type }: NodeLibProps) {
         ))}
       </AccordionDetails>
     </Accordion>
-  );
-}
-
-function SearchNode({ onChange }: { onChange(keyword: string): void }) {
-  return (
-    <Container>
-      <Input
-        fullWidth
-        startAdornment={
-          <InputAdornment position="start">
-            <SearchIcon />
-          </InputAdornment>
-        }
-        onChange={(event) => onChange(event.target.value)}
-      />
-    </Container>
   );
 }
 

@@ -7,7 +7,7 @@ import DialogTitle from "@mui/material/DialogTitle";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Switch from "@mui/material/Switch";
 import TextField, { TextFieldProps } from "@mui/material/TextField";
-import { ChangeEvent, useRef, useState } from "react";
+import { ChangeEvent, useRef, useState, MouseEvent, FocusEvent } from "react";
 
 import type { Store } from "../../behavior-tree/type";
 import Snack from "../../components/Snack";
@@ -115,6 +115,7 @@ interface Props {
     valueType: Store.ValueType;
   };
   storeScopes?: { label: string; value: string }[];
+  focusAsClick?: true;
 }
 
 export default function StoreReader({
@@ -124,6 +125,7 @@ export default function StoreReader({
   save,
   item,
   storeScopes,
+  focusAsClick,
 }: Props) {
   const rawValue = read();
   const text = getStoreReaderText(rawValue);
@@ -136,7 +138,10 @@ export default function StoreReader({
       | undefined
   );
   const hideDialog = () => setValue(null);
-  const showDialog = () => {
+  const showDialog = (event: MouseEvent | FocusEvent<HTMLOrSVGElement>) => {
+    if (focusAsClick && "blur" in event.target) {
+      (event.target as HTMLOrSVGElement).blur();
+    }
     if (typeof rawValue === "object") {
       setValue({
         bind: rawValue.bind,
@@ -375,6 +380,7 @@ export default function StoreReader({
         size="small"
         sx={{ textAlign: "left", textTransform: "none" }}
         onClick={showDialog}
+        onFocus={focusAsClick ? showDialog : undefined}
         title={title}
       >
         <TextField
@@ -391,6 +397,7 @@ export default function StoreReader({
           }
           variant="standard"
           sx={{ mb: 1, pointerEvents: "none" }}
+          inputProps={{ tabIndex: -1 }}
         />
       </Button>
       {

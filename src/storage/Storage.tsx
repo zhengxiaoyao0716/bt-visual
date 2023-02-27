@@ -25,13 +25,13 @@ class LocalStorage implements StorageLike {
 }
 
 const localStorage = new LocalStorage();
-function getStorage(): PromiseLike<StorageLike> {
-  return globalShare?.storage ?? Promise.resolve(localStorage);
-}
-
 interface Options {
   local?: true;
   readonly?: true;
+}
+async function getStorage(options: Options): Promise<StorageLike> {
+  if (options.local) return localStorage;
+  return globalShare?.storage ?? Promise.resolve(localStorage);
 }
 
 interface PathDataCache {
@@ -49,13 +49,13 @@ function computePathPromise<T extends {}>(
   path: string,
   init: PromiseLike<T>,
   cached: PathDataCache,
-  { local }: Options
+  options: Options
 ): PromiseLike<[T, boolean]> {
   if (cached.value != null)
     return Promise.resolve(cached.value as [T, boolean]);
   if (cached.promise != null) return cached.promise as Promise<[T, boolean]>;
   const promise = init.then(async (init) =>
-    (local ? localStorage : await getStorage()).load(path, init).then(
+    (await getStorage(options)).load(path, init).then(
       (data) => {
         if (cached.value != null) return cached.value as [T, boolean];
         const value = [data, false /* saving */] as [T, boolean];
@@ -107,6 +107,8 @@ export interface Storage<T> {
   hoc<P>(Component: ComponentType<P>): FunctionComponent<P>;
   use(): ContextValue<T>;
   displayName: string;
+  load(): Promise<T>;
+  save(data: T): Promise<void>;
 }
 
 export function createStorage<T extends {}>(
@@ -142,7 +144,7 @@ export function createStorage<T extends {}>(
                 (state as [T, boolean])[0],
                 true /* saving */,
               ]);
-              const storage = options.local ? localStorage : await getStorage();
+              const storage = await getStorage(options);
               await storage.save(path, data);
               setState([data, false /* saving */]);
             },
@@ -169,5 +171,13 @@ export function createStorage<T extends {}>(
   };
   Storage.use = () => useContext(Context);
   Storage.displayName = name;
+  Storage.load = async () => {
+    const storage = await getStorage(options);
+    return await storage.load(path, init);
+  };
+  Storage.save = async (data: T) => {
+    const storage = await getStorage(options);
+    return await storage.save(path, data);
+  };
   return Storage;
 }

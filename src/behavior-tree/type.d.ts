@@ -88,8 +88,8 @@ export module Decorator {
 
   export interface Repeat extends Decorator {
     type: "@Repeat"; // 重复执行 // 重复执行 node，直到成功次数达到 success 时返回成功，或失败次数达到 failure 时返回失败
-    success?: Store.Reader.Number;
-    failure?: Store.Reader.Number;
+    success?: Store.Reader.Number; // 成功次数达到该次数时返回成功，留空则不限成功次数
+    failure?: Store.Reader.Number; // 失败次数达到该次数时返回失败，留空则不限失败次数
   }
 
   export interface Delay extends Decorator {
