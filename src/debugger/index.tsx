@@ -14,7 +14,7 @@ export function handleInvalidNodes(invalidNodes: InvalidNode[]) {
   for (const { node, invalids } of invalidNodes) {
     if ("fold" in node) delete (node as { fold?: true }).fold; // 展开节点
     if (invalids == null || invalids.length <= 0) continue;
-    console.warn(`Found invalid node:`, node);
+    console.warn(`Found invalid node:`, node, invalids);
 
     function updateStatus(failedCount = 0) {
       const setStatus = getStatusSetter(node);

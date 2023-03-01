@@ -16,6 +16,7 @@ import { MouseEvent, useEffect, useRef, useState } from "react";
 import Define, { BTDefines } from "../behavior-tree/Define";
 import { Forest } from "../behavior-tree/Forest";
 import type { Tree } from "../behavior-tree/type";
+import { defaultRootNode } from "../behavior-tree/utils";
 import { invalidTree } from "../behavior-tree/validator";
 import { useDialogPrompt } from "../components/DialogPrompt";
 import { addHotkeyListener } from "../components/Hotkey";
@@ -27,6 +28,7 @@ import Config from "../storage/Config";
 import { useTrans } from "../storage/Locale";
 import { ContextValue } from "../storage/Storage";
 import { LockerContext, useLocker } from "./NodeRender/NodeLocker";
+import { getDeliverParent } from "./NodeSelector";
 import Properties, {
   createComponentOption,
   PropertiesOption,
@@ -94,12 +96,7 @@ export default function Workspace({
       return;
     }
     trees.splice(index, 0, {
-      ...((tree || {
-        root: {
-          type: "?Selector",
-          nodes: [],
-        },
-      }) as Tree),
+      ...(tree || { root: defaultRootNode() }),
       name: treeName,
     });
     labels.splice(index, 0, treeName);
@@ -177,8 +174,10 @@ export default function Workspace({
       value: tree.name,
       submit(value: string) {
         tree.name = value;
-        labels[treeIndex] = value;
-        refreshTab(treeIndex);
+        labels[1 + treeIndex] = value;
+        refreshTab(1 + treeIndex);
+        const parent = getDeliverParent(tree.root);
+        parent.refresh();
       },
     },
     { type: "divider" },

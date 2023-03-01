@@ -1,5 +1,6 @@
+import { getDeliverParent } from "../editor/NodeSelector";
 import { BTDefines, Item } from "./Define";
-import type { Composite, Decorator, Node, NodeType, Store, Tree } from "./type";
+import type { Composite, Node, NodeType, Store, Tree } from "./type";
 import { getNodeType } from "./utils";
 
 type Invalid = string;
@@ -14,31 +15,19 @@ export function invalidTree(defines: BTDefines, tree: Tree): InvalidNode[] {
 function invalidNodeRec(defines: BTDefines, node: Node): InvalidNode[] {
   const type = getNodeType(node.type);
   const invalids = invalidNode(defines, node, type);
-  const invalidNodes = invalidNodeNested(defines, node, type);
+  const invalidDecks =
+    "deck" in node
+      ? (node.deck as Node[]).flatMap((node) => invalidNodeRec(defines, node))
+      : [];
+  const invalidNodes =
+    "nodes" in node
+      ? (node.nodes as Node[]).flatMap((node) => invalidNodeRec(defines, node))
+      : [];
   return invalids.length > 0
-    ? [...invalidNodes, { node, invalids }]
-    : invalidNodes.length > 0
-    ? [...invalidNodes, { node }]
+    ? [...invalidDecks, ...invalidNodes, { node, invalids }]
+    : invalidDecks.length > 0 || invalidNodes.length > 0
+    ? [...invalidDecks, ...invalidNodes, { node }]
     : [];
-}
-
-function invalidNodeNested(
-  defines: BTDefines,
-  node: Node,
-  type: NodeType
-): InvalidNode[] {
-  switch (type) {
-    case "Composite": {
-      return (node as Composite).nodes // 展开组合节点下所有子节点
-        .flatMap((node) => invalidNodeRec(defines, node));
-    }
-    case "Decorator": {
-      return invalidNodeRec(defines, (node as Decorator).node);
-    }
-    case "Action":
-    case "Unknown":
-      return [];
-  }
 }
 
 export function invalidNode(
@@ -49,19 +38,18 @@ export function invalidNode(
   if (type === "Unknown") return ["Unknown node type"];
   const define = defines[type]?.[node.type];
   if (!define) return ["Unknown node type"];
-
   const allInvalids: Invalid[] = [];
-  switch (type) {
-    case "Composite":
-      ("nodes" in node && (node as Composite).nodes?.length > 0) ||
-        allInvalids.push("missing nodes");
-      break;
-    case "Decorator":
-      ("node" in node && (node as Decorator).node !== null) ||
-        allInvalids.push("missing node");
-      break;
-    case "Action":
-      break;
+
+  // 校验根节点
+  const parent = getDeliverParent(node);
+  if (parent && "tree" in parent && getNodeType(node.type) !== "Composite") {
+    allInvalids.push("invalid root node");
+  }
+  // 校验节点数量
+  if (type === "Composite") {
+    if (!("nodes" in node) || (node as Composite).nodes?.length <= 0) {
+      allInvalids.push("missing nodes");
+    }
   }
 
   const { valid = {} } = define;
@@ -151,7 +139,6 @@ function invalidStatements(value: any, optional?: true): Invalid[] {
     if (optional) return [];
     return ["statements should not be empty"];
   }
-  // TODO
   return [];
 }
 

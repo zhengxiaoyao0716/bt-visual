@@ -1,4 +1,5 @@
-import { Composite, Tree } from "../behavior-tree/type";
+import { Tree } from "../behavior-tree/type";
+import { defaultRootNode } from "../behavior-tree/utils";
 import Socket, {
   MockedSession,
   MockedSocket,
@@ -108,9 +109,6 @@ function mockLoadTree(
 ) {
   ms.mockDone({
     name: `mock://${groupId}/${treeId}`,
-    root: {
-      type: "?Selector",
-      nodes: [],
-    } as Composite,
+    root: defaultRootNode(),
   });
 }

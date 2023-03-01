@@ -1,5 +1,6 @@
 import { createStorage, Storage } from "../storage/Storage";
-import type { Composite, Tree } from "./type";
+import type { Tree } from "./type";
+import { defaultRootNode } from "./utils";
 
 export interface Forest {
   name: string;
@@ -23,10 +24,7 @@ function emptyForest(name: string): Forest {
     trees: [
       {
         name,
-        root: {
-          type: "?Selector",
-          nodes: [],
-        } as Composite,
+        root: defaultRootNode(),
       },
     ],
   };

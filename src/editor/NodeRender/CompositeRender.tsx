@@ -3,7 +3,6 @@ import { useAutoAnimate } from "@formkit/auto-animate/react";
 import AddIcon from "@mui/icons-material/Add";
 import { useMemo, useRef } from "react";
 
-import { AutoRender } from ".";
 import type {
   Action,
   Composite,
@@ -15,12 +14,14 @@ import { autoAttachKey } from "../../common/ExtValue";
 import { useRefresh } from "../../components/Refresh";
 import { createAnchorDropProps, createNodeDropProps } from "../NodeDrop";
 import {
-  DeliverParent,
+  getDeliverParent,
   isSelected,
   setAutoSelect,
+  setDeliverParent,
   useSelector,
 } from "../NodeSelector";
 import Undo from "../Undo";
+import DecoratorRender from "./DecoratorRender";
 import LineRender, {
   disableDropClass,
   DraggingData,
@@ -65,8 +66,6 @@ export default function CompositeRender({
   trans,
   btDefine,
   children,
-  prependDecorator,
-  deliverParent,
   ...baseProps
 }: CompositeProps) {
   if (config?.value == null) return null; // never
@@ -174,16 +173,16 @@ export default function CompositeRender({
     },
   };
 
-  const selector = useSelector(deliverParent, trans, refresh);
+  const selector = useSelector(getDeliverParent(node), trans, refresh);
   const onSelected = selector.handle(node);
 
-  const deliverSelf: DeliverParent = {
+  setDeliverParent(nodes, {
     composite: node,
     refresh,
     redrawLines() {
       triggerRedrawLines(ref.current);
     },
-  };
+  });
 
   const nodeDropProps = createNodeDropProps({
     appendComposite(type: string) {
@@ -220,7 +219,21 @@ export default function CompositeRender({
       });
       setAutoSelect(node, true);
     },
-    prependDecorator,
+    prependDecorator(type: string) {
+      const nodeNew = { type } as Decorator;
+      const action = trans("Prepend Decorator");
+      const alias = nodeNew.alias || trans(nodeNew.type);
+      const { refresh } = getDeliverParent(node);
+      undoManager.execute(`${action} [${alias}]`, (redo) => {
+        if (!node.deck) node.deck = [];
+        node.deck.push(nodeNew);
+        redo || refresh();
+        return () => {
+          node.deck?.pop();
+        };
+      });
+      setAutoSelect(nodeNew, true);
+    },
   });
 
   const foldHandler = troggleNodeFoldHandler(node, selector.select, refresh);
@@ -270,29 +283,13 @@ export default function CompositeRender({
         >
           <LineDropArea onMoved={onMoved} />
           {nodes.map((node, index) => (
-            <AutoRender
+            <DecoratorRender
               key={autoAttachKey(node, node.type)}
               node={node}
               locked={locked}
               config={config}
               trans={trans}
               btDefine={btDefine}
-              prependDecorator={(type) => {
-                const nodeNew = { type, node } as Decorator;
-                const action = trans("Prepend Decorator");
-                const alias = nodeNew.alias || trans(nodeNew.type);
-                undoManager.execute(`${action} [${alias}]`, (redo) => {
-                  nodes[index] = nodeNew;
-                  redo || refresh();
-                  triggerRedrawLines(ref.current);
-                  return () => {
-                    nodes[index] = node;
-                    triggerRedrawLines(ref.current);
-                  };
-                });
-                setAutoSelect(nodeNew, true);
-              }}
-              deliverParent={deliverSelf}
             >
               <LineRender
                 locked={locked}
@@ -304,7 +301,7 @@ export default function CompositeRender({
                 draggingRef={draggingRef}
                 {...svgSize}
               />
-            </AutoRender>
+            </DecoratorRender>
           ))}
         </CompositeNodes>
       )}

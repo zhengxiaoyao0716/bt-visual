@@ -3,12 +3,21 @@ import autoAnimate from "@formkit/auto-animate";
 import { useEffect, useRef } from "react";
 
 import { AutoRender } from ".";
-import type { Composite, Decorator } from "../../behavior-tree/type";
-import { getNodeType } from "../../behavior-tree/utils";
+import type { Action, Composite, Decorator } from "../../behavior-tree/type";
+import {
+  getDecoratedNode,
+  getNodeAlias,
+  setDecoratedNode,
+} from "../../behavior-tree/utils";
 import { autoAttachKey } from "../../common/ExtValue";
 import { useRefresh } from "../../components/Refresh";
 import { createNodeDropProps } from "../NodeDrop";
-import { isSelected, setAutoSelect, useSelector } from "../NodeSelector";
+import {
+  getDeliverParent,
+  isSelected,
+  setAutoSelect,
+  useSelector,
+} from "../NodeSelector";
 import Undo from "../Undo";
 import { triggerRedrawLines } from "./LineRender";
 import NodeSvgRender, {
@@ -21,20 +30,12 @@ const DecoratorContainer = styled.div`
   flex-direction: column;
   align-items: center;
   position: relative;
+  padding-top: 16px;
 `;
 const DecoratorCard = styled.div`
+  padding: 0px 8px 0 8px;
   display: flex;
   flex-direction: column;
-  &:first-of-type {
-    padding: 16px 8px 0 8px;
-  }
-
-  &.fold {
-    flex-direction: row;
-    flex-wrap: wrap;
-    justify-content: center;
-    max-width: 316px;
-  }
   &.fold svg > text {
     user-select: none;
   }
@@ -49,60 +50,23 @@ export default function DecoratorRender({
   trans,
   btDefine,
   children,
-  prependDecorator,
-  deliverParent,
   ...baseProps
-}: SubProps<Decorator>) {
+}: SubProps<Composite | Action>) {
+  const decorators = node.deck || [];
+  setDecoratedNode(decorators, node);
+
   const [, refresh] = useRefresh();
 
   const ref = useRef<HTMLDivElement>(null);
-  const selector = useSelector(deliverParent, trans, refresh);
+  const selector = useSelector(getDeliverParent(node), trans, refresh);
 
-  let decorators = [];
-  let iter = node;
-  let prepend = prependDecorator;
   const undoManager = Undo.use();
-  while (iter) {
-    const iterFinal = iter;
-    const appendComposite = (type: string) => {
-      const nodeOld = iterFinal.node;
-      const nodeNew = { type, nodes: [nodeOld] } as Composite;
-      const action = trans("Append Composite");
-      const alias = nodeNew.alias || trans(nodeNew.type);
-      undoManager.execute(`${action} [${alias}]`, (redo) => {
-        iterFinal.node = nodeNew;
-        redo || refresh();
-        triggerRedrawLines(ref.current);
-        return () => {
-          iterFinal.node = nodeOld;
-          triggerRedrawLines(ref.current);
-        };
-      });
-      setAutoSelect(nodeNew, true);
-    };
-    const prependDecorator = prepend;
-    prepend = (type: string) => {
-      const nodeOld = iterFinal.node;
-      const nodeNew = { type, node: nodeOld } as Decorator;
-      const action = trans("Prepend Decorator");
-      const alias = nodeNew.alias || trans(nodeNew.type);
-      undoManager.execute(`${action} [${alias}]`, (redo) => {
-        iterFinal.node = nodeNew;
-        redo || refresh();
-        triggerRedrawLines(ref.current);
-        return () => {
-          iterFinal.node = nodeOld;
-          triggerRedrawLines(ref.current);
-        };
-      });
-      setAutoSelect(nodeNew, true);
-    };
-    decorators.push([iterFinal, appendComposite, prependDecorator] as const);
-    if (getNodeType(iterFinal.node.type) !== "Decorator") break;
-    iter = iter.node as Decorator;
-  }
 
-  const foldHandler = troggleNodeFoldHandler(node, selector.select, refresh);
+  const foldHandler = troggleNodeFoldHandler(
+    decorators[0],
+    selector.select,
+    refresh
+  );
 
   useEffect(() => {
     ref.current && autoAnimate(ref.current);
@@ -110,26 +74,35 @@ export default function DecoratorRender({
 
   return (
     <DecoratorContainer ref={ref}>
-      {node.fold ? (
-        <DecoratorCard className="fold" onDoubleClick={foldHandler}>
-          {decorators.map(([node], index) => (
-            <NodeSvgRender
-              locked={locked}
-              trans={trans}
-              btDefine={btDefine}
-              key={index}
-              type={node.type}
-              size={{ width: 100, height: 24 }}
-              fold={true}
-              {...baseProps}
-              node={node}
-            >
-              {node.alias}
-            </NodeSvgRender>
-          ))}
-        </DecoratorCard>
+      {decorators[0]?.fold ? (
+        <>
+          <DecoratorCard className="fold" onDoubleClick={foldHandler}>
+            {(decorators.length > 3
+              ? [
+                  decorators[0],
+                  { type: "@......" },
+                  decorators[decorators.length - 1],
+                ]
+              : decorators
+            ).map((node, index) => (
+              <NodeSvgRender
+                locked={locked}
+                trans={trans}
+                btDefine={btDefine}
+                key={index}
+                type={node.type}
+                size={{ width: 120, height: 24 }}
+                fold={true}
+                {...baseProps}
+                node={node}
+              >
+                {node.alias}
+              </NodeSvgRender>
+            ))}
+          </DecoratorCard>
+        </>
       ) : (
-        decorators.map(([node, append, prepend], _index) => (
+        decorators.map((node, index) => (
           <DecoratorCard
             key={autoAttachKey(node, node.type)}
             title={btDefine?.Decorator[node.type]?.desc || trans(node.type)}
@@ -145,8 +118,61 @@ export default function DecoratorRender({
               onClick={selector.handle(node)}
               {...baseProps}
               {...createNodeDropProps({
-                appendComposite: append,
-                prependDecorator: prepend,
+                appendComposite(type: string) {
+                  const nodeNew = { type, nodes: [] } as Composite;
+                  const action = trans("Append Composite");
+                  const alias = getNodeAlias(trans, node);
+
+                  const decorated = getDecoratedNode(node);
+                  const parent = getDeliverParent(decorated);
+                  undoManager.execute(`${action} [${alias}]`, (redo) => {
+                    const retains = decorators.splice(
+                      1 + index,
+                      decorators.length
+                    );
+                    decorated.deck = retains;
+                    nodeNew.deck = decorators;
+                    nodeNew.nodes.push(decorated);
+
+                    if ("tree" in parent) {
+                      parent.tree.root = nodeNew;
+                      parent.refresh();
+                    } else {
+                      const index = parent.composite.nodes.indexOf(decorated);
+                      parent.composite.nodes[index] = nodeNew;
+                      redo || parent.refresh();
+                    }
+                    triggerRedrawLines(ref.current);
+                    return () => {
+                      decorators.push(...retains);
+                      decorated.deck = decorators;
+                      nodeNew.nodes.shift();
+
+                      if ("tree" in parent) {
+                        parent.tree.root = decorated;
+                        parent.refresh();
+                      } else {
+                        const index = parent.composite.nodes.indexOf(nodeNew);
+                        parent.composite.nodes[index] = decorated;
+                      }
+                      triggerRedrawLines(ref.current);
+                    };
+                  });
+                  setAutoSelect(node, true);
+                },
+                prependDecorator(type: string) {
+                  const nodeNew = { type } as Decorator;
+                  const action = trans("Prepend Decorator");
+                  const alias = nodeNew.alias || trans(nodeNew.type);
+                  undoManager.execute(`${action} [${alias}]`, (redo) => {
+                    decorators.splice(index, 0, nodeNew);
+                    redo || refresh();
+                    return () => {
+                      decorators.splice(index, 1);
+                    };
+                  });
+                  setAutoSelect(nodeNew, true);
+                },
               })}
               node={node}
             >
@@ -157,13 +183,11 @@ export default function DecoratorRender({
       )}
       <DecoratorNode>
         <AutoRender
-          node={iter.node}
+          node={node}
           locked={locked}
           trans={trans}
           btDefine={btDefine}
           {...baseProps}
-          prependDecorator={prepend}
-          deliverParent={deliverParent}
         />
       </DecoratorNode>
       {children}

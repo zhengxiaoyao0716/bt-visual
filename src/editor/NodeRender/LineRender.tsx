@@ -8,10 +8,11 @@ import { useRefresh } from "../../components/Refresh";
 const Anchor = styled.a`
   position: absolute;
   left: 50%;
-  transform: translate(-50%, -50%);
   top: 16px;
   width: 32px;
   height: 32px;
+  margin-left: -16px;
+  margin-top: -16px;
   text-align: center;
   line-height: 32px;
   font-size: 24px;
@@ -63,39 +64,45 @@ export default function LineRender({
 
   // 这里需要等 react 绘制完毕后再同步调用，不能用 useEffect，否则连接线会闪烁
   useLayoutEffect(() => {
-    const anchor = ref.current;
-    if (anchor == null) return;
-    const root = findLineRoot(anchor, anchor);
-    if (root == null) return;
-    root.classList.remove("active"); // anchor 拖拽移动后，onDragEnd 方法可能没触发，手动移除 active 状态
+    const $anchor = ref.current;
+    if ($anchor == null) return;
+    const $root = findLineRoot($anchor, $anchor);
+    if ($root == null) return;
+    $root.classList.remove("active"); // anchor 拖拽移动后，onDragEnd 方法可能没触发，手动移除 active 状态
     anchorDraggingRef.current = null; // 跟上面同理
-    anchors[index] = anchor;
+    anchors[index] = $anchor;
 
-    const lineTo = createLineTo(
-      `${((index - total / 2 + 0.5) / total) * width}px`,
-      `${height}px`
-    );
-    root.appendChild(lineTo);
+    const lineTo = ((index + 0.5) / total) * width;
+    const $lineTo = createLineTo(`${lineTo - width / 2}px`, `${height}px`);
+    $root.appendChild($lineTo);
 
-    const svg = getOrCreateLineSvg(root);
-    const line = rough.svg(svg).line(
-      lineTo.offsetLeft,
-      lineTo.offsetTop + lineTo.offsetHeight / 2,
-      anchor.offsetLeft + (anchor.parentElement?.offsetLeft ?? 0) + 8, // 8 个像素是容器的 margin 造成的位移
-      anchor.offsetTop + (anchor.parentElement?.parentElement?.offsetTop ?? 0),
+    const $svg = getOrCreateLineSvg($root);
+    $svg.style.width = `${width}px`;
+
+    const $line = rough.svg($svg).line(
+      lineTo,
+      $lineTo.offsetTop + $lineTo.offsetHeight / 2,
+      lineTo +
+        ($anchor.offsetLeft - $lineTo.offsetLeft) +
+        16 + // 16 个像素是锚点半宽
+        8 + // 8 个像素是容器的 margin 造成的位移
+        ($anchor.parentElement?.offsetLeft ?? 0),
+      $anchor.offsetTop +
+        16 + // 16 个像素是锚点半高
+        ($anchor.parentElement?.parentElement?.offsetTop ?? 0),
       {
         strokeWidth: 0.5,
         strokeLineDash: [8, 16],
         ...(color ? { stroke: color } : null),
       }
     );
-    svg.appendChild(line);
+    $svg.appendChild($line);
 
     return () => {
-      root.classList.remove("active"); // anchor 拖拽移动后，onDragEnd 方法可能没触发，手动移除 active 状态
+      $root.classList.remove("active"); // anchor 拖拽移动后，onDragEnd 方法可能没触发，手动移除 active 状态
       anchorDraggingRef.current = null; // 跟上面同理
-      root.removeChild(lineTo);
-      svg.removeChild(line);
+      $root.removeChild($lineTo);
+      $svg.removeChild($line);
     };
   }, [
     ref.current,
@@ -224,7 +231,7 @@ export function LineDropArea(props: {
 }
 
 export async function triggerRedrawLines(element: Element | null) {
-  await new Promise((resolve) => setTimeout(resolve, 0)); // 延迟一帧，等待 react 绘制完毕再重绘连接线
+  await new Promise((resolve) => setTimeout(resolve, 500)); // 延迟一帧，等待 react 绘制完毕再重绘连接线
   if (element) {
     element.dispatchEvent(new CustomEvent("redrawLines", { bubbles: true }));
     return;
@@ -264,23 +271,30 @@ function createLineTo(left: string, top: string) {
   return $lineTo;
 }
 
-function getOrCreateLineSvg(root: HTMLElement): SVGSVGElement {
-  for (const child of root.childNodes) {
+function getOrCreateLineSvg($root: HTMLElement): SVGSVGElement {
+  for (const child of $root.childNodes) {
     if (
-      child instanceof SVGSVGElement &&
+      child instanceof HTMLDivElement &&
       child.classList.contains("line-container")
     ) {
-      return child as SVGSVGElement;
+      return child.getElementsByTagName("svg")[0] as SVGSVGElement;
     }
   }
+
+  const $container = document.createElement("div");
+  $container.classList.add("line-container");
+  $container.style.position = "absolute";
+  $container.style.left = "0";
+  $container.style.top = "0";
+  $container.style.width = "100%";
+  $container.style.height = "100%";
+  $root.appendChild($container);
+
   const $svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-  $svg.classList.add("line-container");
-  $svg.style.position = "absolute";
-  $svg.style.left = "0";
-  $svg.style.top = "0";
-  $svg.style.width = "100%";
-  $svg.style.height = "100%";
+  $svg.style.position = "relative";
+  $svg.style.overflow = "visible";
   $svg.style.pointerEvents = "none";
-  root.appendChild($svg);
+  $svg.style.display = "inline-block";
+  $container.appendChild($svg);
   return $svg as SVGSVGElement;
 }

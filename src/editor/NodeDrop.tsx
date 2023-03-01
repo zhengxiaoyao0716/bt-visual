@@ -3,7 +3,7 @@ import { DragEvent } from "react";
 import { nodeDraggingRef } from "./NodeLibs";
 import { anchorDraggingRef, DraggingData } from "./NodeRender/LineRender";
 
-const baseline = 0.2;
+const baseline = 0.3;
 
 export function createAnchorDropProps(
   anchorDrop: (data: DraggingData, index: number, copy: boolean) => void
@@ -11,7 +11,9 @@ export function createAnchorDropProps(
   const onDragOver = (event: DragEvent) => {
     const draggingData = anchorDraggingRef.current;
     if (draggingData == null) return;
-    if (offsetHalfHeight(event) <= -baseline) return;
+    const offset = offsetHalfHeight(event);
+
+    if (offset <= -baseline) return;
     event.dataTransfer.dropEffect =
       event.ctrlKey || event.shiftKey ? "copy" : "link";
     event.preventDefault();
@@ -45,20 +47,22 @@ export function createNodeDropProps({
   const onDragOver = (event: DragEvent) => {
     const draggingType = nodeDraggingRef.draggingType;
     if (draggingType == null) return;
+    const offset = offsetHalfHeight(event);
+
     switch (draggingType) {
       case "Composite": {
         if (appendComposite == null) return;
-        if (offsetHalfHeight(event) <= -baseline) return;
+        if (offset <= -baseline) return;
         break;
       }
       case "Decorator": {
         if (prependDecorator == null) return;
-        if (offsetHalfHeight(event) >= baseline) return;
+        if (offset >= baseline) return;
         break;
       }
       case "Action": {
         if (appendAction == null) return;
-        if (offsetHalfHeight(event) <= -baseline) return;
+        if (offset <= -baseline) return;
         break;
       }
     }

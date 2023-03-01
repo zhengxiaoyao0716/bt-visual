@@ -7,6 +7,7 @@ export interface Hotkey {
     | "KeyY"
     | "KeyD"
     | "KeyC"
+    | "KeyX"
     | "KeyV"
     | "KeyS"
     | "KeyL"

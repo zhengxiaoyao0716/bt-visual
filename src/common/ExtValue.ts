@@ -34,7 +34,7 @@ export function autoAttachKey(
   label: string = ""
 ): string {
   const exist = ExtValue.getValue(container, autoAttachKeySymbol);
-  if (exist != null) return exist as string;
+  if (exist != null) return `${label}_${exist}`;
   const key = autoAttachKeyIndex++;
   ExtValue.setValue(container, autoAttachKeySymbol, key);
   return `${label}_${key}`;

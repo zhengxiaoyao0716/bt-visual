@@ -24,7 +24,7 @@ import type {
   Action,
   Composite,
   Decorator,
-  Node,
+  Tree,
 } from "../../behavior-tree/type";
 import { getNodeType } from "../../behavior-tree/utils";
 import { useDragMoving } from "../../components/DragMoving";
@@ -309,9 +309,14 @@ export function useNodePropsEditor(trans: TransFunction, refresh: () => void) {
   const hide = () => context?.setOptions(null);
 
   const depsKey = performance.now().toString();
-  const show = (node: Composite | Decorator | Action) => {
+  const show = (node: Composite | Decorator | Action | Tree) => {
     console.log("debugService", debugService); // TODO
     if (context == null) return;
+
+    if ("root" in node) {
+      context.setOptions(null);
+      return;
+    }
 
     if (define?.value == null) return;
     const nodeType = getNodeType(node.type);
@@ -402,6 +407,7 @@ export function useNodePropsEditor(trans: TransFunction, refresh: () => void) {
 
 enum ignoredNodeProps {
   type,
+  deck,
   nodes,
   node,
   fold,

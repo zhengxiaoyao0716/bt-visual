@@ -11,13 +11,13 @@ import rough from "roughjs";
 import { BTDefines } from "../../behavior-tree/Define";
 import type { Composite, Decorator, Node } from "../../behavior-tree/type";
 import { getNodeType } from "../../behavior-tree/utils";
-import ExtValue from "../../common/ExtValue";
 import { useNodeStatus } from "../../debugger";
 import Config from "../../storage/Config";
 import { TransFunction } from "../../storage/Locale";
-import { DeliverParent } from "../NodeSelector";
 import { triggerRedrawLines } from "./LineRender";
 
+const treeShape =
+  '<path d="M22 11V3h-7v3H9V3H2v8h7V8h2v10h4v3h7v-8h-7v3h-2V8h2v3z" />';
 const nodeTypeMapper = {
   Composite: {
     color: "#00CC99",
@@ -40,8 +40,13 @@ const nodeTypeMapper = {
   Unknown: {
     color: "#FFEE00",
     fillStyle: "solid",
-    shape:
-      '<path d="M22 11V3h-7v3H9V3H2v8h7V8h2v10h4v3h7v-8h-7v3h-2V8h2v3z" />',
+    shape: treeShape,
+  },
+  Root: {
+    // color: "#666666",
+    color: "#EE99CC",
+    fillStyle: "solid",
+    shape: treeShape,
   },
 };
 
@@ -53,11 +58,7 @@ export interface Props {
   children?: JSX.Element;
 }
 
-export type SubProps<N extends Node> = Props & {
-  node: N;
-  prependDecorator(type: string): void;
-  deliverParent: DeliverParent;
-};
+export type SubProps<N extends Node> = Props & { node: N };
 
 export function troggleNodeFoldHandler(
   node: Composite | Decorator,
@@ -95,6 +96,8 @@ const NodeSvg = styled.svg`
   }
 `;
 
+export const ROOT_TYPE = "[ R O O T ]";
+
 export default function NodeSvgRender({
   locked,
   trans,
@@ -115,7 +118,7 @@ export default function NodeSvgRender({
   btDefine: BTDefines | undefined;
   type: string;
   size: { width: number; height: number };
-  children: ReactNode | string;
+  children?: ReactNode | string;
   fold?: true;
   selected?: boolean;
   onClick?: MouseEventHandler;
@@ -126,7 +129,11 @@ export default function NodeSvgRender({
 }) {
   const nodeType = getNodeType(type);
   const status = useNodeStatus(btDefine, node);
-  const { color, fillStyle, shape: nodeTypeShape } = nodeTypeMapper[nodeType];
+  const {
+    color,
+    fillStyle,
+    shape: nodeTypeShape,
+  } = type === ROOT_TYPE ? nodeTypeMapper.Root : nodeTypeMapper[nodeType];
 
   const shape =
     nodeType === "Unknown"
@@ -232,7 +239,7 @@ export default function NodeSvgRender({
               height={35}
               viewBox="0 0 30 30"
             />
-            <text x={32} y={42} fill={textPrimaryColor} fontSize={18}>
+            <text x={35} y={42} fill={textPrimaryColor} fontSize={18}>
               {alias[0]}
             </text>
             {alias[1] ? (

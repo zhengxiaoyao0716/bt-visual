@@ -1,9 +1,15 @@
 import styled from "@emotion/styled";
 
-import type { Action } from "../../behavior-tree/type";
+import type { Action, Decorator } from "../../behavior-tree/type";
 import { useRefresh } from "../../components/Refresh";
 import { createNodeDropProps } from "../NodeDrop";
-import { isSelected, useSelector } from "../NodeSelector";
+import {
+  getDeliverParent,
+  isSelected,
+  setAutoSelect,
+  useSelector,
+} from "../NodeSelector";
+import Undo from "../Undo";
 import NodeSvgRender, { SubProps } from "./NodeSvgRender";
 
 const ActionCard = styled.div`
@@ -17,13 +23,30 @@ export default function ActionRender({
   trans,
   btDefine,
   children,
-  prependDecorator,
-  deliverParent,
   ...baseProps
 }: SubProps<Action>) {
-  const nodeDropProps = createNodeDropProps({ prependDecorator });
+  const undoManager = Undo.use();
+
+  const nodeDropProps = createNodeDropProps({
+    prependDecorator(type: string) {
+      const nodeNew = { type } as Decorator;
+      const action = trans("Prepend Decorator");
+      const alias = nodeNew.alias || trans(nodeNew.type);
+      const { refresh } = getDeliverParent(node);
+      undoManager.execute(`${action} [${alias}]`, (redo) => {
+        if (!node.deck) node.deck = [];
+        node.deck.push(nodeNew);
+        redo || refresh();
+        return () => {
+          node.deck?.pop();
+        };
+      });
+      setAutoSelect(nodeNew, true);
+    },
+  });
+
   const [, refresh] = useRefresh();
-  const selector = useSelector(deliverParent, trans, refresh);
+  const selector = useSelector(getDeliverParent(node), trans, refresh);
   const onSelected = selector.handle(node);
 
   return (

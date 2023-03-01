@@ -7,20 +7,26 @@ export type Node = {
 };
 
 // 树状节点
-export interface Tree {
+export type Tree = {
   name: string;
-  root: Node;
+  root: Composite | Action;
   store?: { [key: string]: Store.Reader | undefined };
-}
+} & {
+  [key: symbol]: any; // 扩展字段，主要是一些编辑器临时用不需要持久化和导出的字段
+};
 
-export type NodeType = "Composite" | "Decorator" | "Action" | "Unknown";
+// 树干节点
+export type TreeNodeType = "Composite" | "Action";
+export type DeckNodeType = "Decorator";
+export type NodeType = TreeNodeType | DeckNodeType | "Unknown";
 
 //#region 复合节点
 export interface Composite extends Node {
-  nodes: Node[];
+  nodes: (Composite | Action)[];
+  deck?: Decorator[]; // 装饰列表
   fold?: true; // 折叠
 }
-export module Composition {
+export module Composite {
   export interface Selector extends Composite {
     type: "?Selector"; // 选择执行 // 依次执行 nodes 内的子节点，直到任意某个子节点执行成功，返回成功。当全部子节点执行失败时，返回失败。
   }
@@ -38,7 +44,7 @@ export module Composition {
   }
   export interface SelectIf extends Composite {
     type: "?SelectIf"; // 布尔选择 // 先执行 cond (nodes.first) 节点，cond 成功时执行 nodes.second，cond 失败时执行 nodes.third，返回对应节点的执行结果。
-    nodes: [Node, Node] | [Node, Node, Node]; // [cond, second, third?]，节点数量应当为 2 或 3，第三个节点可省略。
+    nodes: (Composite | Action)[]; // [cond, second, third?]，节点数量应当为 2 或 3，第三个节点可省略。
   }
 
   export interface RandomOrder extends Composite {
@@ -59,7 +65,6 @@ export module Composition {
 
 //#region 装饰节点
 export interface Decorator extends Node {
-  node: Node;
   fold?: true; // 折叠
 }
 export module Decorator {
@@ -114,7 +119,9 @@ export module Decorator {
 //#endregion
 
 //#region 动作节点
-export interface Action extends Node {}
+export interface Action extends Node {
+  deck?: Decorator[]; // 装饰列表
+}
 export module Action {
   export interface Dynamic extends Action {
     type: "+Dynamic"; // 动态节点 // 执行 name 指定的行为
