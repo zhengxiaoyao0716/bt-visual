@@ -28,37 +28,37 @@ export interface Composite extends Node {
 }
 export module Composite {
   export interface Selector extends Composite {
-    type: "?Selector"; // 选择执行 // 依次执行 nodes 内的子节点，直到任意某个子节点执行成功，返回成功。当全部子节点执行失败时，返回失败。
+    type: "$Selector"; // 选择执行 // 依次执行 nodes 内的子节点，直到任意某个子节点执行成功，返回成功。当全部子节点执行失败时，返回失败。
   }
   export interface Sequence extends Composite {
     type: "&Sequence"; // 顺序执行 // 依次执行 nodes 内的子节点，直到任意某个子节点执行失败，返回失败。当全部子节点执行成功时，返回成功。
   }
   export interface Parallel extends Composite {
-    type: ">Parallel"; // 并行执行 // 同时执行 nodes 内的子节点，待全部完成后根据统计成功失败数，根据 expected 配置的值，返回成功或失败。
+    type: "%Parallel"; // 并行执行 // 同时执行 nodes 内的子节点，待全部完成后根据统计成功失败数，根据 expected 配置的值，返回成功或失败。
     expected?: Store.Reader.Number; // >0: 成功子节点数大于等于该值则成功, <0: 失败子节点数大于等于该值的绝对值则失败, 0: 必定成功
   }
 
   export interface SelectBy extends Composite {
-    type: "?SelectBy"; // 条件选择 // 根据 index 给定的值，执行对应位置的节点，返回对应节点的执行结果。
+    type: "$SelectBy"; // 条件选择 // 根据 index 给定的值，执行对应位置的节点，返回对应节点的执行结果。
     index: Store.Reader.Number; // 要执行的节点的位置，0-based
   }
   export interface SelectIf extends Composite {
-    type: "?SelectIf"; // 布尔选择 // 先执行 cond (nodes.first) 节点，cond 成功时执行 nodes.second，cond 失败时执行 nodes.third，返回对应节点的执行结果。
+    type: "$SelectIf"; // 布尔选择 // 先执行 cond (nodes.first) 节点，cond 成功时执行 nodes.second，cond 失败时执行 nodes.third，返回对应节点的执行结果。
     nodes: (Composite | Action)[]; // [cond, second, third?]，节点数量应当为 2 或 3，第三个节点可省略。
   }
 
   export interface RandomOrder extends Composite {
     tupe:
-      | "?SelRandom" // 随机选择执行 // 随机挑选一个子节点执行，成功则返回，失败则随机另一个子节点，重复该流程，直到全部执行失败，返回失败。
+      | "$SelRandom" // 随机选择执行 // 随机挑选一个子节点执行，成功则返回，失败则随机另一个子节点，重复该流程，直到全部执行失败，返回失败。
       | "&SeqRandom"; // 随机顺序执行 // 随机挑选一个子节点执行，失败则返回，成功则随机另一个子节点，重复该流程，直到全部执行完毕，返回成功。
   }
 
   export interface Contention extends Composite {
     type:
-      | ">Complete" // 并行完成 // 同时执行 nodes 内的子节点，任一节点完成时立刻完成，并停止其他正在运行的节点，返回值与抢先完成的节点保持一致。
-      | ">Success" // 并行成功 // 同时执行 nodes 内的子节点，任一节点成功时立刻返回成功，并停止其他正在运行的子节点。全部子节点失败时返回失败。
-      | ">Faliure" // 并行失败 // 同时执行 nodes 内的子节点，任一节点失败时立刻返回失败，并停止其他正在运行的子节点。全部子节点成功时返回成功。
-      | ">Priority"; // 并行优先 // 同时执行 nodes 内的子节点，第一个节点为主节点，其他为副节点，主节点完成时打断副节点，返回值与主节点保持一致。
+      | "%Complete" // 并行完成 // 同时执行 nodes 内的子节点，任一节点完成时立刻完成，并停止其他正在运行的节点，返回值与抢先完成的节点保持一致。
+      | "%Success" // 并行成功 // 同时执行 nodes 内的子节点，任一节点成功时立刻返回成功，并停止其他正在运行的子节点。全部子节点失败时返回失败。
+      | "%Faliure" // 并行失败 // 同时执行 nodes 内的子节点，任一节点失败时立刻返回失败，并停止其他正在运行的子节点。全部子节点成功时返回成功。
+      | "%Priority"; // 并行优先 // 同时执行 nodes 内的子节点，第一个节点为主节点，其他为副节点，主节点完成时打断副节点，返回值与主节点保持一致。
   }
 }
 //#endregion

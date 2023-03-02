@@ -185,8 +185,7 @@ export default function CompositeRender({
   });
 
   const nodeDropProps = createNodeDropProps({
-    appendComposite(type: string) {
-      const node = { type, nodes: [] } as Composite;
+    appendComposite(node) {
       const action = trans("Append Composite");
       const alias = getNodeAlias(trans, node);
       undoManager.execute(`${action} [${alias}]`, (redo) => {
@@ -202,8 +201,7 @@ export default function CompositeRender({
       });
       setAutoSelect(node, true);
     },
-    appendAction(type: string) {
-      const node = { type } as Action;
+    appendAction(node) {
       const action = trans("Append Action");
       const alias = getNodeAlias(trans, node);
       undoManager.execute(`${action} [${alias}]`, (redo) => {
@@ -219,8 +217,7 @@ export default function CompositeRender({
       });
       setAutoSelect(node, true);
     },
-    prependDecorator(type: string) {
-      const nodeNew = { type } as Decorator;
+    prependDecorator(nodeNew) {
       const action = trans("Prepend Decorator");
       const alias = nodeNew.alias || trans(nodeNew.type);
       const { refresh } = getDeliverParent(node);

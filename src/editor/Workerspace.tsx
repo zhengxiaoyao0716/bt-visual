@@ -66,6 +66,12 @@ export default function Workspace({
     };
   };
   const hideMenu = () => setAnchorEl(null);
+  const isDuplicateName = (input: string) => {
+    const name = input.toUpperCase();
+    return labels.some(
+      (label) => typeof label === "string" && label.toUpperCase() === name
+    );
+  };
   const createTree = async (index: number, tree?: Tree) => {
     const treeName = await prompt({
       title:
@@ -86,12 +92,7 @@ export default function Workspace({
       await snack.show(trans("Invalid tree name"));
       return;
     }
-    const duplicateName = labels.some(
-      (name) =>
-        typeof name === "string" &&
-        name.toUpperCase() === treeName.toUpperCase()
-    );
-    if (duplicateName) {
+    if (isDuplicateName(treeName)) {
       await snack.show(trans("Duplicate tree name"));
       return;
     }
@@ -172,7 +173,11 @@ export default function Workspace({
       key: `tree#${treeIndex}`,
       label: trans("Tree Name"),
       value: tree.name,
-      submit(value: string) {
+      async submit(value: string) {
+        if (isDuplicateName(value)) {
+          await snack.show(trans("Duplicate tree name"));
+          return;
+        }
         tree.name = value;
         labels[1 + treeIndex] = value;
         refreshTab(1 + treeIndex);

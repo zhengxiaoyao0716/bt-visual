@@ -205,7 +205,7 @@ export default function NodeSvgRender({
       onDragEnter={locked ? undefined : onDragEnter}
       onDragOver={locked ? undefined : onDragOver}
       onDrop={locked ? undefined : onDrop}
-      className={selected ? "selected" : undefined}
+      className={`${selected ? "selected" : ""} node`}
     >
       {alias ? (
         size.height <= 30 ? (

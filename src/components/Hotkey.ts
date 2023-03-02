@@ -15,7 +15,7 @@ export interface Hotkey {
     | "ArrowUp"
     | "ArrowLeft"
     | "ArrowRight";
-  callback: () => void;
+  callback: (event: KeyboardEvent) => void;
 }
 
 export function addHotkeyListener(target: HTMLElement, ...hotKeys: Hotkey[]) {
@@ -26,7 +26,7 @@ export function addHotkeyListener(target: HTMLElement, ...hotKeys: Hotkey[]) {
       if (code !== event.code) return false;
       if (ctrlKey != null && ctrlKey !== event.ctrlKey) return false;
       if (shiftKey != null && shiftKey !== event.shiftKey) return false;
-      callback();
+      callback(event);
       return true;
     });
     if (!accept) return;

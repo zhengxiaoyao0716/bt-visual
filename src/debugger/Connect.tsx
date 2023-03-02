@@ -51,7 +51,7 @@ export default function Connect({ connect }: Props) {
     }
     if (value && value.match(`^${hostPattern}$`) === null) {
       const { host } = parseAddress(value) ?? { host: value };
-      console.log(value, parseAddress(value), host);
+      console.log(value, parseAddress(value), host); // TODO
       setAddress(host);
       return;
     }
@@ -82,6 +82,7 @@ export default function Connect({ connect }: Props) {
     event.preventDefault();
     if (error) return;
     // const data = new FormData(event.currentTarget);
+    // TODO
     // console.log({
     //   host: data.get("host"),
     //   port: data.get("port"),

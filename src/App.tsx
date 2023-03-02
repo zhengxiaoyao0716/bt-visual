@@ -108,6 +108,7 @@ function App() {
                 {sideBar.drawer}
 
                 <Box
+                  id="main"
                   component="main"
                   sx={{
                     backgroundColor: ({ palette }) =>

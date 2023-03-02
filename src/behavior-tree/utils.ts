@@ -3,9 +3,9 @@ import type { TransFunction } from "../storage/Locale";
 import type { Action, Composite, Decorator, Node, NodeType } from "./type";
 
 const nodeTypeDict = {
-  "?": "Composite",
+  $: "Composite",
   "&": "Composite",
-  ">": "Composite",
+  "%": "Composite",
 
   "@": "Decorator",
 
@@ -13,7 +13,7 @@ const nodeTypeDict = {
 };
 
 export function defaultRootNode(): Composite {
-  return { type: ">Parallel", nodes: [] };
+  return { type: "%Parallel", nodes: [] };
 }
 
 export function getNodeType(type: string): NodeType {

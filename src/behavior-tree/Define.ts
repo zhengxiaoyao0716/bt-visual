@@ -72,29 +72,29 @@ const Settings = {
 const nodes: typeof Settings & BTDefines = {
   ...Settings,
   Composite: {
-    "?Selector": {},
+    $Selector: {},
     "&Sequence": {},
-    ">Parallel": {
+    "%Parallel": {
       props: {
         expected: optional(items["Store.Reader.Number"]),
       },
     },
-    "?SelectBy": {
+    $SelectBy: {
       props: {
         index: items["Store.Reader.Number"],
       },
     },
-    "?SelectIf": {
+    $SelectIf: {
       valid: {
         nodesSize: [2, 3],
       },
     },
-    "?SelRandom": {},
+    $SelRandom: {},
     "&SeqRandom": {},
-    ">Complete": {},
-    ">Success": {},
-    ">Faliure": {},
-    ">Priority": {},
+    "%Complete": {},
+    "%Success": {},
+    "%Faliure": {},
+    "%Priority": {},
   },
   Decorator: {
     "@Condition": {

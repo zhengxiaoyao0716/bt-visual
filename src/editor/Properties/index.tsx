@@ -18,7 +18,9 @@ import {
   useEffect,
   useRef,
   useState,
+  DragEvent,
 } from "react";
+
 import BTDefine, { Item } from "../../behavior-tree/Define";
 import type {
   Action,
@@ -32,6 +34,7 @@ import WidthController from "../../components/WidthController";
 import DebugService from "../../service/DebugService";
 import Config from "../../storage/Config";
 import { TransFunction, useTrans } from "../../storage/Locale";
+import { createTypeDropProps } from "../NodeDrop";
 import { LockerContext } from "../NodeRender/NodeLocker";
 import Statements from "./Statements";
 import StorePreset from "./StorePreset";
@@ -60,6 +63,9 @@ type Option =
       value?: string | number;
       items: [string | number, string][];
       submit?: (value: string | number) => void;
+      onDragEnter?: (event: DragEvent) => void;
+      onDragOver?: (event: DragEvent) => void;
+      onDrop?: (event: DragEvent) => void;
     }
   | {
       type: "subheader";
@@ -129,6 +135,9 @@ function RenderOption({
             onChange={(event) =>
               option.submit && option.submit(event.target.value)
             }
+            onDragEnter={option.onDragEnter}
+            onDragOver={option.onDragOver}
+            onDrop={option.onDrop}
           >
             {option.items.map(([value, text], index) => (
               <MenuItem key={index} value={value}>
@@ -322,6 +331,12 @@ export function useNodePropsEditor(trans: TransFunction, refresh: () => void) {
     const nodeType = getNodeType(node.type);
     if (nodeType === "Unknown") return;
 
+    const submitNodeType = (value: string | number) => {
+      delete node.alias;
+      node.type = value as string;
+      refresh();
+      show(node); // 节点类型变了，需要重新刷新面板
+    };
     const nodes = define.value[nodeType];
 
     const options: Option[] = [
@@ -338,15 +353,11 @@ export function useNodePropsEditor(trans: TransFunction, refresh: () => void) {
       {
         type: "select",
         key: depsKey, // 每次切换节点必定刷新
-        label: trans("Node Type"),
+        label: trans("Node Type"), // TODO
         value: node.type,
         items: Object.keys(nodes).map((type) => [type, trans(type)]),
-        submit(value) {
-          delete node.alias;
-          node.type = value as string;
-          refresh();
-          show(node); // 节点类型变了，需要重新刷新面板
-        },
+        submit: submitNodeType,
+        ...createTypeDropProps(nodeType, submitNodeType),
       },
       {
         type: "input",

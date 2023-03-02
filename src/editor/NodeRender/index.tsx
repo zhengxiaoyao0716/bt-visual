@@ -44,8 +44,7 @@ export default function NodeRender({
 
   const undoManager = Undo.use();
   const nodeDropProps = createNodeDropProps({
-    appendComposite(type: string) {
-      const nodeNew: Composite = { type, nodes: [] };
+    appendComposite(nodeNew) {
       const action = trans("Append Composite");
       const alias = getNodeAlias(trans, nodeNew);
       const root = tree.root;

@@ -118,8 +118,7 @@ export default function DecoratorRender({
               onClick={selector.handle(node)}
               {...baseProps}
               {...createNodeDropProps({
-                appendComposite(type: string) {
-                  const nodeNew = { type, nodes: [] } as Composite;
+                appendComposite(nodeNew) {
                   const action = trans("Append Composite");
                   const alias = getNodeAlias(trans, node);
 
@@ -160,8 +159,7 @@ export default function DecoratorRender({
                   });
                   setAutoSelect(node, true);
                 },
-                prependDecorator(type: string) {
-                  const nodeNew = { type } as Decorator;
+                prependDecorator(nodeNew) {
                   const action = trans("Prepend Decorator");
                   const alias = nodeNew.alias || trans(nodeNew.type);
                   undoManager.execute(`${action} [${alias}]`, (redo) => {

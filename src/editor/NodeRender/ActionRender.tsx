@@ -28,8 +28,7 @@ export default function ActionRender({
   const undoManager = Undo.use();
 
   const nodeDropProps = createNodeDropProps({
-    prependDecorator(type: string) {
-      const nodeNew = { type } as Decorator;
+    prependDecorator(nodeNew) {
       const action = trans("Prepend Decorator");
       const alias = nodeNew.alias || trans(nodeNew.type);
       const { refresh } = getDeliverParent(node);

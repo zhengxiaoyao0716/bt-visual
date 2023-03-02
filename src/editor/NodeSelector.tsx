@@ -36,7 +36,11 @@ import {
   getNodeType,
 } from "../behavior-tree/utils";
 import ExtValue from "../common/ExtValue";
-import clipboard from "../components/clipboard";
+import clipboard, {
+  copySelectedNodes,
+  drawSelectedCapture,
+  exportSelectedCapture,
+} from "../components/clipboard";
 import { addHotkeyListener } from "../components/Hotkey";
 import { useRefresh } from "../components/Refresh";
 import Snack from "../components/Snack";
@@ -142,25 +146,17 @@ export default function NodeSelector({ children }: { children: ReactNode }) {
   );
 }
 
-function getNodesAlias(
-  trans: TransFunction,
-  num: number,
-  first: Node,
-  last: Node
-) {
-  return num == 1
-    ? getNodeAlias(trans, first)
-    : `${getNodeAlias(trans, last)}${trans(" ... ${num} nodes", { num })}`;
-}
-
 function getSelectedAlias(trans: TransFunction, selector: Selector): string {
   if (selector.tree) return selector.tree.name;
-  if (selector.selected == null || selector.selected.length <= 0) return "";
+  const selected = selector.selected;
+  if (selected == null || selected.length <= 0) return "";
 
-  const selNum = selector.selected.length;
-  const { node: first } = selector.selected[0];
-  const { node: last } = selector.selected[selNum - 1];
-  return getNodesAlias(trans, selNum, first, last);
+  if (selected.length === 1) return getNodeAlias(trans, selected[0].node);
+  const last = selected[selected.length - 1];
+  const suffix = trans(" ... ${num} nodes", {
+    num: selected.length,
+  });
+  return `${getNodeAlias(trans, last.node)}${suffix}`;
 }
 
 function getMoveArgs(selector: Selector | undefined): {
@@ -180,8 +176,8 @@ function getMoveArgs(selector: Selector | undefined): {
   const decorated =
     nodeType === "Decorator" ? getDecoratedNode(node as Decorator) : null;
   // 装饰节点，可上下移动
-  if (decorated != null) {
-    const deck = decorated.deck || [];
+  if (decorated?.deck) {
+    const deck = decorated.deck;
     const index = deck.indexOf(node);
     result.vertical = { index, deck };
   }
@@ -240,11 +236,23 @@ function NodeMenus({
       $textarea.select();
     };
 
-    selector.copy = async () => {
-      if (selector == null || selector.selected.length <= 0) return;
-      const nodes = selector.selected.map(({ node }) => node);
-      await clipboard.write("nodes", nodes, unavailable);
+    selector.copy = async (event?: KeyboardEvent) => {
+      if (selector == null) return;
+      if (selector.selected.length <= 0 && selector.tree == null) return;
+      const nodes =
+        selector.tree == null
+          ? selector.selected.map(({ node }) => node)
+          : selector.tree;
+      const dumps = await clipboard.write("nodes", nodes, unavailable);
+      if (!dumps) return;
       selector.refresh();
+      const capture = await drawSelectedCapture();
+      if (capture == null) return;
+      await copySelectedNodes(dumps, capture);
+      if (event?.ctrlKey && event?.shiftKey) {
+        const alias = getSelectedAlias(trans, selector);
+        exportSelectedCapture(alias, dumps, capture);
+      }
     };
     const removeCopyHotkey = addHotkeyListener(
       document.body,
@@ -275,14 +283,14 @@ function NodeMenus({
 
     selector.paste = async () => {
       if (selector == null) return;
-      const copied: Node[] | null = await clipboard.read("nodes", unavailable);
-      if (copied == null) return;
-      const alias = getNodesAlias(
-        trans,
-        copied.length,
-        copied[0],
-        copied[copied.length - 1]
+      const read: Node[] | Tree | null = await clipboard.read(
+        "nodes",
+        unavailable
       );
+      if (read == null) return;
+      const copied = read instanceof Array ? read : [read.root];
+
+      const alias = getSelectedAlias(trans, selector);
       const copiedDeck: Decorator[] = [];
       const copiedNodes: Node[] = [];
       for (const node of copied) {
@@ -295,8 +303,9 @@ function NodeMenus({
         const copied = copiedNodes[0];
         const root = tree.root;
         const parent = getDeliverParent(root);
-        undoManager.execute(`${copyDesc} [${alias}]`, (redo) => {
+        undoManager.execute(`${copyDesc} [${alias}]`, (_redo) => {
           tree.root = copied;
+          setAutoSelect(tree, true);
           parent.refresh();
           return () => {
             tree.root = root;
@@ -308,7 +317,25 @@ function NodeMenus({
       if (selector.selected.length !== 1) return;
       const { parent, node } = selector.selected[0];
       const nodeType = getNodeType(node.type);
-      if (nodeType === "Decorator") return;
+      if (nodeType === "Decorator") {
+        const decorated = getDecoratedNode(node);
+        const deck = decorated.deck;
+        if (deck == null) return;
+        undoManager.execute(`${copyDesc} [${alias}]`, (redo) => {
+          const index = deck.indexOf(node);
+          if (index < 0) return () => {};
+          deck.splice(index, 0, ...copiedDeck);
+          redo || parent.refresh();
+          "redrawLines" in parent && parent.redrawLines();
+          setAutoSelect(node, true);
+          return () => {
+            deck.splice(index, copiedDeck.length);
+            parent.refresh();
+            "redrawLines" in parent && parent.redrawLines();
+          };
+        });
+        return;
+      }
 
       const selected = node as Composite | Action;
       if (copiedDeck.length > 0 && !selected.deck) selected.deck = [];
@@ -350,7 +377,8 @@ function NodeMenus({
         if (nodeType === "Decorator") {
           const target = node as Decorator;
           const decorated = getDecoratedNode(target);
-          const deck = decorated.deck || [];
+          const deck = decorated.deck;
+          if (deck == null) continue;
           tasks.push(() => {
             const index = deck.indexOf(target);
             if (index < 0) return () => {};
@@ -571,11 +599,11 @@ function NodeMenus({
         },
       }}
     >
-      {selNum > 0 ? (
-        <IconButton onClick={selector.copy} title={copyDesc}>
-          <ContentCopyIcon fontSize="small" />
+      {locked || selector.tree ? null : (
+        <IconButton onClick={selector.remove} title={removeDesc}>
+          <DeleteOutlineIcon />
         </IconButton>
-      ) : null}
+      )}
       {locked ? null : (
         <IconButton onClick={selector.paste} title={pasteDesc}>
           {selNum <= 1 && canPaste ? (
@@ -585,11 +613,11 @@ function NodeMenus({
           )}
         </IconButton>
       )}
-      {locked || selector.tree ? null : (
-        <IconButton onClick={selector.remove} title={removeDesc}>
-          <DeleteOutlineIcon />
+      {selNum > 0 || selector.tree ? (
+        <IconButton onClick={selector.copy} title={copyDesc}>
+          <ContentCopyIcon fontSize="small" />
         </IconButton>
-      )}
+      ) : null}
       {locked || vertical == null ? null : (
         <>
           <Divider />

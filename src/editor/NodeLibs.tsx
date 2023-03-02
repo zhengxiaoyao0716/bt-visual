@@ -29,8 +29,9 @@ function NodeLibs({ children }: { children: JSX.Element }) {
   const widthControllerRef = useRef<HTMLDivElement>(null);
   const [wcProps, { left: wcLeft, dragging: wcDragging }, setWCState] =
     useDragMoving((event) => {
-      if (event.target !== widthControllerRef.current && !wcDragging)
+      if (event.target !== widthControllerRef.current && !wcDragging) {
         return true;
+      }
       event.preventDefault();
       event.stopPropagation();
       return false;
@@ -226,8 +227,11 @@ function createDragNodeProps(
 ) {
   const onDragStart = (event: DragEvent) => {
     nodeDraggingRef.draggingType = type;
-    event.dataTransfer.effectAllowed = "copy";
-    event.dataTransfer.setData("application/json", JSON.stringify(node));
+    event.dataTransfer.effectAllowed = "copyLink";
+    event.dataTransfer.setData(
+      "text/plain",
+      JSON.stringify({ type: node.type })
+    );
   };
   const onDragEnd = (_event: DragEvent) => {
     nodeDraggingRef.draggingType = null;
