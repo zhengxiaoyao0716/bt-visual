@@ -109,8 +109,10 @@ export function createNodeDropProps({
       "fold" in node && delete node.fold; // 禁止折叠
       switch (getNodeType(node.type)) {
         case "Composite":
-          if (!("nodes" in node)) (node as Composite).nodes = [];
-          appendComposite?.(node as Composite);
+          const composite = node as Composite;
+          if (!composite.deck) composite.deck = [];
+          if (!composite.nodes) composite.nodes = [];
+          appendComposite?.(composite);
           break;
         case "Decorator":
           prependDecorator?.(node as Decorator);

@@ -1,3 +1,4 @@
+import styled from "@emotion/styled";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import ArrowDropUpIcon from "@mui/icons-material/ArrowDropUp";
 import ArrowLeftIcon from "@mui/icons-material/ArrowLeft";
@@ -41,6 +42,7 @@ import clipboard, {
   drawSelectedCapture,
   exportSelectedCapture,
 } from "../components/clipboard";
+import { useDragMoving } from "../components/DragMoving";
 import { addHotkeyListener } from "../components/Hotkey";
 import { useRefresh } from "../components/Refresh";
 import Snack from "../components/Snack";
@@ -48,6 +50,16 @@ import { TransFunction, useTrans } from "../storage/Locale";
 import { LockerContext } from "./NodeRender/NodeLocker";
 import { PropertiesContext, useNodePropsEditor } from "./Properties";
 import Undo, { UndoManager } from "./Undo";
+
+const SelectionBox = styled.div`
+  position: fixed;
+  z-index: 1;
+  border: 1px dashed #999;
+  box-shadow: inset 0 0 3px 1px #999;
+  background: rgb(200, 200, 200, 0.1);
+`;
+
+export const boxSelectEventKey = "boxSelectionCollide";
 
 export type DeliverParent =
   | {
@@ -107,10 +119,23 @@ export function setAutoSelect(node: Node | Tree, selected: true | undefined) {
 }
 
 function cancelAllSelected(selector: Selector) {
-  for (const { node } of selector.selected) {
+  for (const { node, parent } of selector.selected) {
     setSelected(node, undefined);
+    parent.refresh();
   }
   selector.selected = [];
+}
+
+function calcSelectionBoxStyle(
+  { x, y }: { x: number; y: number },
+  { moveX, moveY }: { moveX: number; moveY: number }
+) {
+  return {
+    left: `${moveX < 0 ? x + moveX : x}px`,
+    top: `${moveY < 0 ? y + moveY : y}px`,
+    width: `${moveX < 0 ? -moveX : moveX}px`,
+    height: `${moveY < 0 ? -moveY : moveY}px`,
+  };
 }
 
 export default function NodeSelector({ children }: { children: ReactNode }) {
@@ -121,6 +146,47 @@ export default function NodeSelector({ children }: { children: ReactNode }) {
   const hidePropsEditor = () => context?.setOptions(null);
   const snack = Snack.use();
   const undoManager = Undo.use();
+
+  const [boxSelectionProps, boxSelState, setBoxSelectionState] = useDragMoving(
+    (event) => {
+      if (event.buttons !== 1) return true;
+      if (event.target !== containerRef.current?.children[0]) return true;
+      event.preventDefault();
+      event.stopPropagation();
+      return false;
+    }
+  );
+  const selectionBoxStyle =
+    boxSelState.dragging && boxSelState.origin
+      ? calcSelectionBoxStyle(boxSelState.origin, boxSelState)
+      : null;
+  useEffect(() => {
+    if (boxSelState.dragging) return;
+    const { origin, moveX, moveY } = boxSelState;
+    setBoxSelectionState({ moveX: 0, moveY: 0, dragging: false });
+    const $container = containerRef.current;
+    if (origin == null || $container == null) return;
+    if (moveX > -30 && moveX < 30) return;
+    if (moveY > -30 && moveY < 30) return;
+    const leftMin = moveX < 0 ? origin.x + moveX : origin.x;
+    const topMin = moveY < 0 ? origin.y + moveY : origin.y;
+    const leftMax = moveX < 0 ? origin.x : origin.x + moveX;
+    const topMax = moveY < 0 ? origin.y : origin.y + moveY;
+    // 异步计算碰撞以尽量减轻阻塞
+    setTimeout(() => {
+      const $nodes: NodeListOf<SVGSVGElement> =
+        $container.querySelectorAll("svg.node");
+      for (const $node of $nodes) {
+        const rect = $node.getBoundingClientRect();
+        const collide =
+          rect.left > leftMin &&
+          rect.top > topMin &&
+          rect.right < leftMax &&
+          rect.bottom < topMax;
+        collide && $node.dispatchEvent(new CustomEvent(boxSelectEventKey));
+      }
+    }, 0);
+  }, [boxSelState.dragging]);
 
   return (
     <SelectorContext.Provider value={ref}>
@@ -133,8 +199,10 @@ export default function NodeSelector({ children }: { children: ReactNode }) {
           overflow: "hidden",
           display: "flex",
         }}
+        {...boxSelectionProps}
       >
         {children}
+        {selectionBoxStyle && <SelectionBox style={selectionBoxStyle} />}
         <NodeMenus
           containerRef={containerRef}
           hidePropsEditor={hidePropsEditor}
@@ -245,7 +313,6 @@ function NodeMenus({
           : selector.tree;
       const dumps = await clipboard.write("nodes", nodes, unavailable);
       if (!dumps) return;
-      selector.refresh();
       const capture = await drawSelectedCapture();
       if (capture == null) return;
       await copySelectedNodes(dumps, capture);
@@ -454,7 +521,6 @@ function NodeMenus({
     const autoSelect = (parent: DeliverParent, node: Node) => {
       setSelected(node, true);
       selector.selected = [{ parent, node }];
-      selector.refresh();
     };
 
     const swapNode = (nodes: Node[], index: number, swap: number) => {
@@ -698,23 +764,29 @@ export function useSelector(
       return;
     }
     if (selector.tree) {
+      const tree = selector.tree;
       setSelected(selector.tree, undefined);
       delete selector.tree;
       if ("root" in node) {
-        const parent = getDeliverParent(node.root);
+        // 重复选取根节点
         parent.refresh();
+        selector.refresh();
         return;
+      } else {
+        // 在选中根节点的情况下选择了其他节点
+        const parent = getDeliverParent(tree.root);
+        parent.refresh();
       }
-      // else continue;
     }
     if ("root" in node) {
       if (multiSelect) return; // 多选状态下忽略根节点
+      // else 单选，选中根节点
       cancelAllSelected(selector);
       selector.tree = node;
       setSelected(node, true);
       propsEditor.show(node);
-      const parent = getDeliverParent(node.root);
       parent.refresh();
+      selector.refresh();
       return;
     }
 
@@ -727,13 +799,13 @@ export function useSelector(
       if (filtered.length < selector.selected.length) {
         setSelected(node, undefined);
         selector.selected = filtered;
+        parent.refresh();
         selector.refresh();
         return;
       }
     } else {
-      const already = selector.selected.some(
-        (selected) => selected.node === node
-      );
+      const already =
+        selector.selected.length === 1 && selector.selected[0].node === node;
       cancelAllSelected(selector);
       if (already) return;
     }
@@ -743,6 +815,7 @@ export function useSelector(
       parent,
       node,
     });
+    parent.refresh();
     selector.refresh();
   };
   return {
@@ -752,10 +825,14 @@ export function useSelector(
         setAutoSelect(node, undefined);
         setTimeout(() => select(node, true), 0);
       }
-      return (event: MouseEvent) => {
+      return (event: MouseEvent | Event) => {
         event.stopPropagation();
         event.preventDefault();
-        select(node, event.ctrlKey || event.shiftKey);
+        const multiSelect =
+          event.type === boxSelectEventKey ||
+          ("ctrlKey" in event && event.ctrlKey) ||
+          ("shiftKey" in event && event.shiftKey);
+        select(node, multiSelect);
       };
     },
   };

@@ -222,11 +222,10 @@ export default function CompositeRender({
       const alias = nodeNew.alias || trans(nodeNew.type);
       const { refresh } = getDeliverParent(node);
       undoManager.execute(`${action} [${alias}]`, (redo) => {
-        if (!node.deck) node.deck = [];
         node.deck.push(nodeNew);
         redo || refresh();
         return () => {
-          node.deck?.pop();
+          node.deck.pop();
         };
       });
       setAutoSelect(nodeNew, true);

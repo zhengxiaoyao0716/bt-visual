@@ -13,7 +13,7 @@ const nodeTypeDict = {
 };
 
 export function defaultRootNode(): Composite {
-  return { type: "%Parallel", nodes: [] };
+  return { type: "%Parallel", deck: [], nodes: [] };
 }
 
 export function getNodeType(type: string): NodeType {

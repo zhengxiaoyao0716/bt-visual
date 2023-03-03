@@ -145,30 +145,32 @@ export default function Undo({
     let disabled = false;
     return (
       <>
-        {tasks.map((action, index) => {
-          if (action == null) disabled = true;
-          return (
-            <Button
-              key={index}
-              size="small"
-              sx={{ textAlign: "left", textTransform: "none" }}
-              disabled={locked || disabled}
-              onClick={goto.bind(null, index)}
-            >
-              <Typography
-                color={({ palette }) =>
-                  palette.text[
-                    !locked && index < current ? "primary" : "secondary"
-                  ]
-                }
-                sx={{ width: "100%" }}
+        {tasks
+          .map((action, index) => {
+            if (action == null) disabled = true;
+            return (
+              <Button
+                key={index}
+                size="small"
+                sx={{ textAlign: "left", textTransform: "none" }}
+                disabled={locked || disabled}
+                onClick={goto.bind(null, index)}
               >
-                <small>{index + 1}. </small>
-                {action?.desc}
-              </Typography>
-            </Button>
-          );
-        })}
+                <Typography
+                  color={({ palette }) =>
+                    palette.text[
+                      !locked && index < current ? "primary" : "secondary"
+                    ]
+                  }
+                  sx={{ width: "100%" }}
+                >
+                  <small>{index + 1}. </small>
+                  {action?.desc}
+                </Typography>
+              </Button>
+            );
+          })
+          .reverse()}
       </>
     );
   }

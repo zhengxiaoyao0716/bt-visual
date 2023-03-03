@@ -19,6 +19,7 @@ import {
   useRef,
   useState,
   DragEvent,
+  useMemo,
 } from "react";
 
 import BTDefine, { Item } from "../../behavior-tree/Define";
@@ -197,7 +198,7 @@ export default function Properties({
   const { properties } = config.value;
 
   const widthControllerRef = useRef<HTMLDivElement>(null);
-  const [wcProps, { left: wcLeft, dragging: wcDragging }, setWCState] =
+  const [wcProps, { moveX: wcLeft, dragging: wcDragging }, setWCState] =
     useDragMoving((event) => {
       if (event.target !== widthControllerRef.current && !wcDragging)
         return true;
@@ -219,7 +220,7 @@ export default function Properties({
               : Math.max(properties.minWidth, Math.min(width, 1000)),
         },
       });
-    setWCState({ left: 0, top: 0, dragging: false });
+    setWCState({ moveX: 0, moveY: 0, dragging: false });
   }, [wcDragging]);
 
   const troggleWidth = () => {
@@ -229,6 +230,15 @@ export default function Properties({
   };
 
   const [options, setOptions] = useState(null as Option[] | null);
+  const context = useMemo(
+    () => ({
+      setOptions(options: Option[] | null) {
+        setOptions(options);
+        properties.width < 60 && troggleWidth();
+      },
+    }),
+    [properties]
+  );
 
   const locked = useContext(LockerContext);
 
@@ -243,14 +253,7 @@ export default function Properties({
       }}
       {...wcProps}
     >
-      <PropertiesContext.Provider
-        value={{
-          setOptions(options) {
-            setOptions(options);
-            properties.width < 60 && troggleWidth();
-          },
-        }}
-      >
+      <PropertiesContext.Provider value={context}>
         {children}
       </PropertiesContext.Provider>
       {properties.width <= 0 ? null : (

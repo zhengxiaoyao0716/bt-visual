@@ -27,7 +27,7 @@ function NodeLibs({ children }: { children: JSX.Element }) {
   const { nodeLibs } = config.value;
 
   const widthControllerRef = useRef<HTMLDivElement>(null);
-  const [wcProps, { left: wcLeft, dragging: wcDragging }, setWCState] =
+  const [wcProps, { moveX: wcLeft, dragging: wcDragging }, setWCState] =
     useDragMoving((event) => {
       if (event.target !== widthControllerRef.current && !wcDragging) {
         return true;
@@ -48,7 +48,7 @@ function NodeLibs({ children }: { children: JSX.Element }) {
             width < 60 ? 0 : Math.max(nodeLibs.minWidth, Math.min(width, 1000)),
         },
       });
-    setWCState({ left: 0, top: 0, dragging: false });
+    setWCState({ moveX: 0, moveY: 0, dragging: false });
   }, [wcDragging]);
 
   const troggleWidth = () => {

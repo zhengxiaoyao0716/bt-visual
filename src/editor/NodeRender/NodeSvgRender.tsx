@@ -1,6 +1,8 @@
 import styled from "@emotion/styled";
 import {
   DragEventHandler,
+  EventHandler,
+  MouseEvent,
   MouseEventHandler,
   ReactNode,
   useEffect,
@@ -14,6 +16,7 @@ import { getNodeType } from "../../behavior-tree/utils";
 import { useNodeStatus } from "../../debugger";
 import Config from "../../storage/Config";
 import { TransFunction } from "../../storage/Locale";
+import { boxSelectEventKey } from "../NodeSelector";
 import { triggerRedrawLines } from "./LineRender";
 
 const treeShape =
@@ -121,7 +124,7 @@ export default function NodeSvgRender({
   children?: ReactNode | string;
   fold?: true;
   selected?: boolean;
-  onClick?: MouseEventHandler;
+  onClick?: (event: MouseEvent | Event) => void;
   onDragEnter?: DragEventHandler;
   onDragOver?: DragEventHandler;
   onDrop?: DragEventHandler;
@@ -171,9 +174,11 @@ export default function NodeSvgRender({
               options
             )
         : rough.svg(svg).rectangle(0, 0, size.width, size.height, options);
+    onClick && svg.addEventListener(boxSelectEventKey, onClick);
     svg.prepend(shape);
     return () => {
       svg.removeChild(shape);
+      onClick && svg.removeEventListener(boxSelectEventKey, onClick);
     };
   }, [
     ref.current,
@@ -205,7 +210,7 @@ export default function NodeSvgRender({
       onDragEnter={locked ? undefined : onDragEnter}
       onDragOver={locked ? undefined : onDragOver}
       onDrop={locked ? undefined : onDrop}
-      className={`${selected ? "selected" : ""} node`}
+      className={`${selected ? "selected node" : "node"}`}
     >
       {alias ? (
         size.height <= 30 ? (

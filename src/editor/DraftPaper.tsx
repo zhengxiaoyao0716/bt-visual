@@ -35,7 +35,9 @@ const Container = styled.div`
   display: flex;
   justify-content: center;
   pointer-events: auto;
-  cursor: move;
+  &.dragging {
+    cursor: move;
+  }
   ${gridBackground}
 `;
 const Paper = styled.div`
@@ -55,8 +57,10 @@ export default function DraftPaper({ readonly, children }: Props) {
   const isInvalidEventTarget = (event: MouseEvent) =>
     event.target != ref.current; // 这里不能用 currentTarget，会捕获到子元素
 
-  const [movingProps, { left, top, dragging }, setDragMovingState] =
-    useDragMoving(isInvalidEventTarget, 6);
+  const [movingProps, { moveX, moveY, dragging }, setDragMovingState] =
+    useDragMoving(
+      (event) => (event.buttons & 6) === 0 || isInvalidEventTarget(event)
+    );
 
   const [scale, setScale] = useState(initScale);
   const onWheel = (event: WheelEvent) => {
@@ -87,8 +91,8 @@ export default function DraftPaper({ readonly, children }: Props) {
       paper.parentElement?.parentElement?.getBoundingClientRect() as DOMRect;
     const center = parentRect.top + parentRect.height / 2;
     setDragMovingState({
-      left,
-      top: top + (center - top) * scaleChanged,
+      moveX,
+      moveY: moveY + (center - moveY) * scaleChanged,
       dragging,
     });
   };
@@ -98,8 +102,8 @@ export default function DraftPaper({ readonly, children }: Props) {
     const resetView = () => {
       setScale(initScale);
       setDragMovingState({
-        left: 0,
-        top: 0,
+        moveX: 0,
+        moveY: 0,
         dragging,
       });
     };
@@ -130,17 +134,18 @@ export default function DraftPaper({ readonly, children }: Props) {
   return (
     <Container
       ref={ref}
+      className={dragging ? "dragging" : undefined}
       onWheel={onWheel}
       onContextMenu={(event) => event.preventDefault()}
       {...movingProps}
       size={32 * scale}
       style={{
-        backgroundPosition: `${left}px ${top}px`,
+        backgroundPosition: `${moveX}px ${moveY}px`,
       }}
     >
       <Paper
         style={{
-          transform: `translate(${left}px, ${top}px) scale(${scale})`,
+          transform: `translate(${moveX}px, ${moveY}px) scale(${scale})`,
         }}
       >
         {children}

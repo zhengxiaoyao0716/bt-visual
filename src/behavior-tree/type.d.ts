@@ -22,8 +22,8 @@ export type NodeType = TreeNodeType | DeckNodeType | "Unknown";
 
 //#region 复合节点
 export interface Composite extends Node {
+  deck: Decorator[]; // 装饰列表
   nodes: (Composite | Action)[];
-  deck?: Decorator[]; // 装饰列表
   fold?: true; // 折叠
 }
 export module Composite {
