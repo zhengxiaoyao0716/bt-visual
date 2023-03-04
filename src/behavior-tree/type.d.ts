@@ -158,7 +158,7 @@ export module Store {
     | {
         bind: Store.Key; // 绑定存储空间
         init: V; // 初始默认的值
-        type: "number" | "string" | "boolean"; // 读取值的类型
+        type: "number" | "string" | "boolean" | "dict" | "list"; // 读取值的类型
       }
     | {
         bind: Store.Key; // 绑定存储空间
@@ -182,9 +182,9 @@ export module Store {
       | number
       | (Reader<number> & { type: "number" })
       | Random;
-    export type String =
-      | string
-      | (Reader<string> & { type: "string"; format?: "list" | "dict" });
+    export type String = string | (Reader<string> & { type: "string" });
+    export type Dict = string | (Reader<string> & { type: "dict" }); // json 底层仍然用字符串来存
+    export type List = string | (Reader<string> & { type: "list" }); // json 底层仍然用字符串来存
     export type Boolean = boolean | (Reader<boolean> & { type: "boolean" });
   }
 }

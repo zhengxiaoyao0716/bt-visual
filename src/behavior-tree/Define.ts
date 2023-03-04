@@ -31,6 +31,14 @@ const items: { [key: string]: Item } = {
     type: "Store.Reader",
     valueType: "string",
   },
+  "Store.Reader.Dict": {
+    type: "Store.Reader",
+    valueType: "dict",
+  },
+  "Store.Reader.List": {
+    type: "Store.Reader",
+    valueType: "list",
+  },
   "Store.Reader.Boolean": {
     type: "Store.Reader",
     valueType: "boolean",
