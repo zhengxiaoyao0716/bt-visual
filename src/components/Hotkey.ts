@@ -1,6 +1,7 @@
 export interface Hotkey {
   ctrlKey?: boolean;
   shiftKey?: boolean;
+  ignore?: (event: KeyboardEvent) => boolean;
   code:
     | "Delete"
     | "KeyZ"
@@ -21,14 +22,17 @@ export interface Hotkey {
 export function addHotkeyListener(target: HTMLElement, ...hotKeys: Hotkey[]) {
   if (hotKeys.length === 0) return () => {};
   const handle = (event: KeyboardEvent) => {
-    if (event.target !== target) return;
-    const accept = hotKeys.some(({ code, ctrlKey, shiftKey, callback }) => {
-      if (code !== event.code) return false;
-      if (ctrlKey != null && ctrlKey !== event.ctrlKey) return false;
-      if (shiftKey != null && shiftKey !== event.shiftKey) return false;
-      callback(event);
-      return true;
-    });
+    const isTarget = event.target === target;
+    const accept = hotKeys.some(
+      ({ code, ctrlKey, shiftKey, ignore, callback }) => {
+        if (code !== event.code) return false;
+        if (ctrlKey != null && ctrlKey !== event.ctrlKey) return false;
+        if (shiftKey != null && shiftKey !== event.shiftKey) return false;
+        if (ignore ? ignore(event) : !isTarget) return false; // 若未定义 ignore，则默认判定一下 event 的 target 是否匹配
+        callback(event);
+        return true;
+      }
+    );
     if (!accept) return;
     event.preventDefault();
     event.stopPropagation();

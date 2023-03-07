@@ -1,6 +1,5 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import Button from "@mui/material/Button";
-import ListItem from "@mui/material/ListItem";
 import Typography from "@mui/material/Typography";
 import CircularProgress from "@mui/material/CircularProgress";
 import Box from "@mui/material/Box";
@@ -19,6 +18,8 @@ import Accordion from "@mui/material/Accordion";
 import AccordionDetails from "@mui/material/AccordionDetails";
 import AccordionSummary from "@mui/material/AccordionSummary";
 import Toolbar from "@mui/material/Toolbar";
+import ListItemButton from "@mui/material/ListItemButton";
+import { addHotkeyListener } from "../components/Hotkey";
 
 function Content({ hide, appBar }: Props) {
   const locale = useLocale();
@@ -58,7 +59,7 @@ function Content({ hide, appBar }: Props) {
     ([text, translated], index, showMenu, _anchor) => {
       const newTab = text.startsWith("//") && !translated;
       const listItem = (
-        <ListItem button onContextMenu={showMenu}>
+        <ListItemButton onContextMenu={showMenu}>
           <TextField
             label={text}
             title={saved?.[text]}
@@ -74,7 +75,7 @@ function Content({ hide, appBar }: Props) {
             onChange={(event) => change(index, event.target.value)}
           />
           {/* {anchor} */}
-        </ListItem>
+        </ListItemButton>
       );
       return newTab ? (
         listItem
@@ -86,18 +87,9 @@ function Content({ hide, appBar }: Props) {
     }
   );
 
-  if (locale?.saving || saved == null) {
-    return (
-      <>
-        {appBar(null)}
-        <Box sx={{ display: "flex", justifyContent: "center", mt: 2 }}>
-          <CircularProgress />
-        </Box>
-      </>
-    );
-  }
   const save = async () => {
-    if (locale?.value == null) return;
+    if (locale?.value == null || locale.saving || saved == null) return;
+
     const savedItems = Object.entries(saved);
     const clean =
       savedItems &&
@@ -116,7 +108,33 @@ function Content({ hide, appBar }: Props) {
     const dirty = Object.fromEntries(items);
     await locale.update(dirty);
     hide();
+    await snack.show(trans("Modification has been saved"));
   };
+  const ref = useRef(null as HTMLDivElement | null);
+  useEffect(() => {
+    if (!ref.current) return;
+    const removeHotkeyListeners = addHotkeyListener(ref.current, {
+      code: "KeyS",
+      ctrlKey: true,
+      ignore: (_event) => false, // Ctrl+S 事件针对全局生效
+      callback: save,
+    });
+    return () => {
+      removeHotkeyListeners();
+    };
+  }, []);
+
+  if (locale?.saving || saved == null) {
+    return (
+      <>
+        {appBar(null)}
+        <Box sx={{ display: "flex", justifyContent: "center", mt: 2 }}>
+          <CircularProgress />
+        </Box>
+      </>
+    );
+  }
+
   const change = (index: number, value: string) => {
     const item = items[index];
     if (item[1] === value) return;
@@ -131,8 +149,9 @@ function Content({ hide, appBar }: Props) {
     tab.push(item);
     return tabs;
   }, [] as JSX.Element[][]);
+
   return (
-    <Box sx={{ overflowY: "hidden" }}>
+    <Box sx={{ overflowY: "hidden" }} ref={ref}>
       {appBar(
         <>
           <Typography sx={{ ml: 2, flex: 1 }} variant="h6" component="div">

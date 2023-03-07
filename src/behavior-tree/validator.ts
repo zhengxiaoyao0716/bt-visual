@@ -84,7 +84,6 @@ function invalidItem(value: any, item: Item): Invalid[] {
   if (value == null) {
     return item.optional ? [] : [`${item.type} should not be empty`];
   }
-
   switch (item.type) {
     case "Store.Key":
       return invalidStoreKey(value, item.optional);
@@ -111,26 +110,31 @@ function invalidStoreReader(
   valueType: Store.ValueType,
   optional?: true
 ): Invalid[] {
-  if (typeof value !== "object") {
-    if (valueType === "unknown") return [];
-    return typeof value === valueType
-      ? optional || value !== ""
-        ? []
-        : ["Store.Reader should not be empty"]
-      : [`Store.Reader value type should be ${valueType}`];
+  const inputType = typeof value;
+  // 输入类型为 object，说明输入的是黑板
+  if (inputType === "object") {
+    if (!("bind" in value)) return ["Store.Reader missing bind key"];
+    if (!("init" in value)) return ["Store.Reader missing init value"];
+    if (typeof value.init !== valueType) {
+      return [`Store.Reader init value type should be ${valueType}`];
+    }
+    return value.type === "number"
+      ? "zoom" in value && typeof value.zoom !== "number"
+        ? ["Store.Reader zoom should be number"]
+        : []
+      : [];
   }
-  if (!("bind" in value)) return ["Store.Reader missing bind key"];
-  if (!("type" in value)) return ["Store.Reader missing value type"];
-  if (value.type === "unknown") return [];
-  if (!("init" in value)) return ["Store.Reader missing init value"];
-  if (typeof value.init !== valueType) {
-    return [`Store.Reader init value type should be ${valueType}`];
+  // 目标类型未知，不用校验
+  if (valueType === "unknown") return [];
+  // 输入类型与目标类型不匹配
+  if (inputType !== valueType) {
+    return [`Store.Reader value type should be ${valueType}`];
   }
-  return value.type === "number"
-    ? "zoom" in value && typeof value.zoom !== "number"
-      ? ["Store.Reader zoom should be number"]
-      : []
-    : [];
+  // 输入为空，但目标禁止为空
+  if (value === "" && !optional) {
+    return ["Store.Reader should not be empty"];
+  }
+  return [];
 }
 
 function invalidStatements(value: any, optional?: true): Invalid[] {

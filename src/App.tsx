@@ -26,7 +26,7 @@ import Editor from "./editor";
 import Help from "./pages/Help";
 import Home from "./pages/Home";
 import Config from "./storage/Config";
-import createLocale, { languages, useTrans } from "./storage/Locale";
+import createLocale, { defaultLanguage, useTrans } from "./storage/Locale";
 
 function SideBarMenu() {
   const trans = useTrans();
@@ -57,7 +57,7 @@ function App() {
   const localeTheme = useLocaleTheme();
   const sideBar = useSideBar(renderMenuIcon, <SideBarMenu />);
   const config = Config.use();
-  const Locale = createLocale(config?.value?.language ?? languages[0]);
+  const Locale = createLocale(config?.value?.language ?? defaultLanguage);
 
   const toolBarSlotRef = ToolBarSlot.useRef();
 

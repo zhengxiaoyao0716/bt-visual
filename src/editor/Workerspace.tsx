@@ -279,6 +279,7 @@ export default function Workspace({
       {
         code: "KeyS",
         ctrlKey: true,
+        ignore: (_event) => false, // Ctrl+S 事件针对全局生效
         callback: save,
       },
       {

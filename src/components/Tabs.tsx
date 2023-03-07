@@ -1,5 +1,6 @@
+import Tab from "@mui/material/Tab";
+import Tabs from "@mui/material/Tabs";
 import { MouseEvent, ReactNode, useEffect } from "react";
-import { Tab, Tabs } from "@mui/material";
 
 import { useRefresh } from "./Refresh";
 

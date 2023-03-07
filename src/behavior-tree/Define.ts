@@ -1,7 +1,11 @@
 import { createStorage } from "../storage/Storage";
 import type { Store } from "./type";
 
-export type Item = { desc?: string; optional?: true } & (
+export type Item = {
+  desc?: string; // 属性描述
+  help?: string; // 文档地址
+  optional?: true;
+} & (
   | {
       type: "Store.Key";
       optional: undefined; // key 不应可空

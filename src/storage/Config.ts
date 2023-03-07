@@ -1,8 +1,12 @@
-import { LanguageName } from "./Locale";
 import { createStorage } from "./Storage";
 
-const defaultConfig = {
-  language: "简体中文" as LanguageName,
+export const defaultConfig = {
+  languages: {
+    English: "enUS",
+    简体中文: "zhCN",
+    // 日本語: "jaJP",
+  } as { [name: string]: string },
+  language: undefined as undefined | string,
   showTransWarning: false,
   nodeLibs: {
     fold: {
@@ -20,6 +24,7 @@ const defaultConfig = {
   nodeVerticalMargin: 128,
   serverAddress: "ws://localhost:60013/bt-visual/debug",
   fontFamily: [],
+  nodePropsHelp: false,
 };
 
 export default createStorage(

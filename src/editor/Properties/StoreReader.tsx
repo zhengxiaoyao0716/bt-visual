@@ -7,15 +7,17 @@ import DialogTitle from "@mui/material/DialogTitle";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Switch from "@mui/material/Switch";
 import TextField, { TextFieldProps } from "@mui/material/TextField";
-import { ChangeEvent, useRef, useState, MouseEvent, FocusEvent } from "react";
+import Typography from "@mui/material/Typography";
+import { ChangeEvent, FocusEvent, MouseEvent, useState } from "react";
 
 import type { Store } from "../../behavior-tree/type";
 import Snack from "../../components/Snack";
 import { TransFunction } from "../../storage/Locale";
+import { usePropHelpWidget } from "./PropHelpWidget";
 
-function resolveBooleanValue(value: string): "true" | "false" | undefined {
+function resolveBooleanValue(value: string): "true" | "false" | null {
   const lower = value.toLowerCase();
-  return lower === "true" || lower === "false" ? lower : undefined;
+  return lower === "true" || lower === "false" ? lower : null;
 }
 
 function resolveIdentityValue(value: string): string | undefined {
@@ -28,35 +30,49 @@ function resolveIdentityValue(value: string): string | undefined {
 function resolveStringValue(
   value: string,
   type?: "string" | "dict" | "list"
-): string | undefined {
-  if (!value) return "";
+): string | null {
+  if (!value) return "``";
   switch (value[0]) {
     case "'":
     case '"':
     case "`":
-      if (type && type !== "string") return undefined;
+      if (type && type !== "string") return null;
       return value.length === 1
         ? "``"
         : value[value.length - 1] === value[0]
         ? `\`${value.slice(1, -1)}\``
-        : undefined;
+        : null;
     case "{":
-      if (type && type !== "dict") return undefined;
+      if (type && type !== "dict") return null;
       return value.length === 1
         ? "{}"
         : value[value.length - 1] === "}"
         ? value
-        : undefined;
+        : null;
     case "[":
-      if (type && type !== "list") return undefined;
+      if (type && type !== "list") return null;
       return value.length === 1
         ? "[]"
         : value[value.length - 1] === "]"
         ? value
-        : undefined;
+        : null;
     default:
-      return undefined;
+      return null;
   }
+}
+
+function getStoreReaderInitText(
+  value: Exclude<Store.Reader, Store.Value>
+): string {
+  if (typeof value.bind !== "number") return String(value.init);
+  else if (!("zoom" in value)) return String(value.init);
+  const { init, zoom } = value;
+  const sum = init + zoom;
+  return sum > init
+    ? `ξ in [${init}, ${sum})`
+    : sum < init
+    ? `ξ in (${sum}, ${init}]`
+    : String(init);
 }
 
 export function getStoreReaderText(value: Store.Reader | undefined): string {
@@ -68,26 +84,13 @@ export function getStoreReaderText(value: Store.Reader | undefined): string {
       return value.toString();
     case "boolean":
       return value ? "true" : "false";
-  }
-  if (value.type === "unknown") return value.bind;
-
-  const def = value.bind === "_" ? "" : `${value.bind}: `;
-  if (value.type === "string") {
-    return `${def}\`${value.init}\``;
-  } else if (value.type === "number" && "zoom" in value) {
-    const { bind, init, zoom } = value as Store.Reader.Random;
-    const sum = init + zoom;
-    return sum > init
-      ? `${def}ξ in [${init}, ${sum})`
-      : sum < init
-      ? `${def}ξ in (${sum}, ${init}]`
-      : `${def}${init}`;
-  } else {
-    return `${def}${value.init}`;
+    default:
+      const def = value.bind === "_" ? "" : `${value.bind}: `;
+      return `${def}${getStoreReaderInitText(value)}`;
   }
 }
 
-function validJson(input: string) {
+function parseJson(input: string) {
   try {
     return JSON.parse(input) != null;
   } catch (_e) {
@@ -97,8 +100,7 @@ function validJson(input: string) {
 
 function resolveValueByType(
   type: Store.ValueType,
-  value: string,
-  keepStrFlag?: true
+  value: string
 ): number | string | boolean | null {
   switch (type) {
     case "number": {
@@ -106,32 +108,28 @@ function resolveValueByType(
       return Number.isNaN(numberValue) ? null : numberValue;
     }
     case "string": {
-      const stringValue = resolveStringValue(value, "string");
-      return stringValue == null
-        ? null
-        : keepStrFlag
-        ? stringValue
-        : stringValue.slice(1, -1);
+      return resolveStringValue(value, "string");
     }
     case "dict": {
       const stringValue = resolveStringValue(value, "dict");
       if (stringValue == null) return null;
-      return validJson(stringValue) ? stringValue : null;
+      return parseJson(stringValue) ? stringValue : null;
     }
     case "list": {
       const stringValue = resolveStringValue(value, "list");
       if (stringValue == null) return null;
-      return validJson(stringValue) ? stringValue : null;
+      return parseJson(stringValue) ? stringValue : null;
     }
     case "boolean": {
       const booleanValue = resolveBooleanValue(value);
       return booleanValue == null ? null : booleanValue === "true";
     }
     case "unknown": {
+      if (value === "") return null; // 类型未知时不可省略默认值，否则无法推断类型
       return (
-        resolveValueByType("string", value, keepStrFlag) ??
-        resolveValueByType("dict", value, keepStrFlag) ??
-        resolveValueByType("list", value, keepStrFlag) ??
+        resolveValueByType("string", value) ??
+        resolveValueByType("dict", value) ??
+        resolveValueByType("list", value) ??
         resolveValueByType("boolean", value) ??
         resolveValueByType("number", value)
       );
@@ -158,6 +156,7 @@ interface Props {
   save(value: Store.Reader | undefined): void;
   item: {
     desc?: string;
+    help?: string;
     optional?: true;
     valueType: Store.ValueType;
   };
@@ -184,34 +183,20 @@ export default function StoreReader({
       | { bind: string; init: string; maximum?: string; scope: string }
       | undefined
   );
-  const isEmptyValue =
-    value === undefined ||
-    value === "" ||
-    value === "`" ||
-    value === "``" ||
-    value === "{}" ||
-    value === "[]";
+  const isEmptyValue = value === undefined || value === "";
 
   const hideDialog = () => setValue(null);
-  const showDialog = (event: MouseEvent | FocusEvent<HTMLOrSVGElement>) => {
+  const showDialog = (_event: MouseEvent | FocusEvent<HTMLOrSVGElement>) => {
     // if (embedded && "blur" in event.target) {
     //   (event.target as HTMLOrSVGElement).blur();
     // }
     if (typeof rawValue === "object") {
       setValue({
         bind: rawValue.bind,
-        init:
-          rawValue.type === "unknown"
-            ? ""
-            : rawValue.type === "string"
-            ? `\`${rawValue.init}\``
-            : String(rawValue.init),
+        init: String(rawValue.init),
         maximum:
-          rawValue.type === "number" && "zoom" in rawValue
-            ? String(
-                (rawValue as Store.Reader.Random).init +
-                  (rawValue as Store.Reader.Random).zoom
-              )
+          typeof rawValue.init === "number" && "zoom" in rawValue
+            ? String(rawValue.init + rawValue.zoom)
             : undefined,
         scope: getScopeOfBind(rawValue.bind, storeScopes),
       });
@@ -250,6 +235,14 @@ export default function StoreReader({
           setValue({ init: "0", ...oldValue, bind: identityValue, scope });
           return;
         case "string":
+          setValue({ init: "``", ...oldValue, bind: identityValue, scope });
+          return;
+        case "dict":
+          setValue({ init: "{}", ...oldValue, bind: identityValue, scope });
+          return;
+        case "list":
+          setValue({ init: "[]", ...oldValue, bind: identityValue, scope });
+          return;
         case "unknown":
           setValue({ init: "", ...oldValue, bind: identityValue, scope });
           return;
@@ -329,14 +322,13 @@ export default function StoreReader({
       target.setSelectionRange(index, index);
     }
   };
+
   const onStoreUseRandomChange = (event: ChangeEvent<HTMLInputElement>) => {
     if (value == null || typeof value !== "object") return;
     const init = Number(value.init);
     if (Number.isNaN(init)) return;
     const zoom =
-      typeof rawValue === "object" && "zoom" in rawValue
-        ? (rawValue as Store.Reader.Random).zoom
-        : 1;
+      typeof rawValue === "object" && "zoom" in rawValue ? rawValue.zoom : 1;
     setValue({
       ...value,
       maximum: event.target.checked ? String(init + zoom) : undefined,
@@ -378,8 +370,7 @@ export default function StoreReader({
     }
 
     if (typeof value === "string") {
-      // 输入直接作为字面量时，由于没有 type 指定类型，必须保留撇号作为字符串标识
-      const resolved = resolveValueByType(item.valueType, value, true);
+      const resolved = resolveValueByType(item.valueType, value);
       if (resolved == null) {
         snack.show(trans("Invalid input"));
       } else {
@@ -390,12 +381,7 @@ export default function StoreReader({
     }
 
     if (item.valueType === "unknown" && value.init === "") {
-      if (value.bind === "_") {
-        snack.show(trans("Invalid input"));
-      } else {
-        save({ bind: value.bind, type: "unknown" });
-        hideDialog();
-      }
+      snack.show(trans("Invalid input"));
       return;
     }
 
@@ -405,35 +391,27 @@ export default function StoreReader({
       return;
     }
 
-    const rawValue: Store.Reader = {
+    const rawValue: { bind: string; init: Store.Value; zoom?: number } = {
       bind: value.bind,
       init: resolved,
-      type: typeof resolved as "number" | "string" | "boolean",
     };
-    if (rawValue.type === "number" && value.maximum) {
+    if (typeof resolved === "number" && value.maximum) {
       const maximum = Number(value.maximum);
       if (Number.isNaN(maximum)) {
         snack.show(trans("Invalid input"));
         return;
       }
-      const zoom = maximum - (resolved as number);
-      zoom == 0 || ((rawValue as Store.Reader.Random).zoom = zoom);
-    }
-    if (rawValue.type === "string") {
-      switch (value.init[0]) {
-        case "{":
-          rawValue.type = "dict";
-          break;
-        case "[":
-          rawValue.type = "list";
-          break;
-      }
+      const zoom = maximum - resolved;
+      zoom === 0 || (rawValue.zoom = zoom);
     }
     save(rawValue);
     hideDialog();
   };
 
-  const title = item.desc || `${name} : ${item.valueType}`;
+  const readFromStore = typeof value === "object";
+
+  const helpWidet = usePropHelpWidget(item.help);
+
   return (
     <>
       <Button
@@ -446,7 +424,7 @@ export default function StoreReader({
         }}
         onClick={showDialog}
         // onFocus={embedded ? showDialog : undefined}
-        title={title}
+        title={item.desc}
       >
         <TextField
           fullWidth
@@ -466,25 +444,33 @@ export default function StoreReader({
         //  这里必须用严格比较，因为 null 和 undefined 在此处含义是不同的，前者是对话框未开启，后者是值为空
         value === null ? null : (
           <Dialog open={true}>
-            <DialogTitle sx={{ minWidth: "16em" }}>
-              {trans("Edit Store Value")}
+            <DialogTitle sx={{ minWidth: "16em" }} component="div">
+              <span>{trans("Edit Props")}</span>
+              {helpWidet.troggle}
+              <Typography variant="subtitle1">
+                {trans(
+                  `type: \${type}, ${item.optional ? "optional" : "required"}`,
+                  { type: item.valueType }
+                )}
+              </Typography>
             </DialogTitle>
             <DialogContent>
               <ValueTextField
                 fullWidth
-                label={trans("Please input the value of ${name}", { name })}
+                label={trans(
+                  readFromStore
+                    ? "Read the value of ${name} from store"
+                    : "Input the value of ${name} directly",
+                  { name }
+                )}
                 value={
-                  typeof value === "object"
-                    ? value.bind
-                    : value === undefined
-                    ? ""
-                    : value
+                  readFromStore ? value.bind : value === undefined ? "" : value
                 }
                 error={
-                  typeof value === "string"
-                    ? resolveValueByType(item.valueType, value) == null ||
-                      (!item.optional && isEmptyValue)
-                    : false
+                  isEmptyValue
+                    ? !item.optional
+                    : !readFromStore &&
+                      resolveValueByType(item.valueType, value) == null
                 }
                 variant="standard"
                 sx={{ mb: 1 }}
@@ -494,9 +480,9 @@ export default function StoreReader({
                   // 虽然值类型是数字，但因为这里可能输入的是黑板的 key，所以不能限制为只输入数字
                   item.valueType === "number" ? "unknown" : item.valueType
                 }
-                title={title}
+                title={item.desc}
               />
-              {typeof value === "object" ? (
+              {readFromStore ? (
                 <>
                   <ValueTextField
                     fullWidth
@@ -566,6 +552,7 @@ export default function StoreReader({
               <Button onClick={hideDialog}>{trans("CANCEL")}</Button>
               <Button onClick={onSubmit}>{trans("SUBMIT")}</Button>
             </DialogActions>
+            {helpWidet.widget}
           </Dialog>
         )
       }
@@ -593,7 +580,6 @@ function ValueTextField({
     value: string
   ) => void;
 }) {
-  const ref = useRef<HTMLInputElement>(null);
   switch (type) {
     case "number":
       return (
@@ -636,16 +622,15 @@ function ValueTextField({
           options={options}
           freeSolo
           inputValue={value}
-          onInputChange={(_event, value) => {
-            const element = ref.current;
-            if (element == null) return;
+          onInputChange={(event, value) => {
             const newValue = value.trim();
-            onChange(element, newValue in dict ? dict[newValue] : newValue);
+            onChange(
+              event.target as HTMLInputElement,
+              newValue in dict ? dict[newValue] : newValue
+            );
           }}
           isOptionEqualToValue={(option, value) => option.value === value.value}
-          renderInput={(params) => (
-            <TextField {...params} {...props} ref={ref} />
-          )}
+          renderInput={(params) => <TextField {...params} {...props} />}
         />
       );
     }

@@ -34,6 +34,8 @@ export function useDialogPage(Content: ComponentType<Props>) {
   const [open, setOpen] = useState(false);
   const show = () => setOpen(true);
   const hide = () => setOpen(false);
+  if (!open) return { dialog: <Snack />, show, hide };
+
   const appBar = (children: ReactNode) => (
     <AppBar sx={{ position: "relative" }}>
       <Toolbar>
@@ -49,18 +51,17 @@ export function useDialogPage(Content: ComponentType<Props>) {
       </Toolbar>
     </AppBar>
   );
-
   const dialog = (
-    <Dialog
-      fullScreen
-      open={open}
-      onClose={hide}
-      TransitionComponent={Transition}
-    >
-      <Snack>
+    <Snack>
+      <Dialog
+        fullScreen
+        open={open}
+        onClose={hide}
+        TransitionComponent={Transition}
+      >
         <Content hide={hide} appBar={appBar} />
-      </Snack>
-    </Dialog>
+      </Dialog>
+    </Snack>
   );
   return { dialog, show, hide };
 }

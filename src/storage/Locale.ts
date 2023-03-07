@@ -1,9 +1,10 @@
 import { useMemo } from "react";
+
 import Config from "./Config";
 import { ContextValue, createStorage, Storage } from "./Storage";
 
-export const languages = ["English", "简体中文"] as const;
-export type LanguageName = typeof languages[number];
+export const defaultLanguage =
+  navigator.language === "zh" ? "简体中文" : "English";
 
 interface Locale {
   [key: string]: string;
@@ -15,14 +16,15 @@ const locales: { [key: string]: () => Promise<{ default: Locale }> } = {
 };
 const LocalStorages: { [lang: string]: Storage<Locale> } = {};
 
-export default function createLocale(language: LanguageName): Storage<Locale> {
+export default function createLocale(language: string): Storage<Locale> {
+  const exist = LocalStorages[language];
+  if (exist != null) return exist;
+
   const path = `/locale/${language}.yaml`;
-  const preset = locales[language];
+  const preset = locales[language] ?? locales["English"];
   const locale =
     (preset && preset().then(({ default: locale }) => locale)) ||
     Promise.resolve({});
-  const exist = LocalStorages[language];
-  if (exist != null) return exist;
   const Storage = createStorage(language, path, locale);
   LocalStorages[language] = Storage;
   return Storage;
@@ -30,18 +32,18 @@ export default function createLocale(language: LanguageName): Storage<Locale> {
 
 export function useLocale(): ContextValue<Locale> {
   const config = Config.use();
-  const language = config?.value?.language ?? languages[0];
+  const language = config?.value?.language ?? defaultLanguage;
   const Storage = LocalStorages[language];
   return Storage.use();
 }
 
 export interface TransFunction {
   (text: string, replaces?: { [key: string]: any }): string;
-  language: LanguageName;
+  language: string;
 }
 export function useTrans(): TransFunction {
   const config = Config.use();
-  const language = config?.value?.language ?? languages[0];
+  const language = config?.value?.language ?? defaultLanguage;
   const locale = useLocale();
   const showTransWarning = config?.value?.showTransWarning ?? false;
   return useMemo(() => {

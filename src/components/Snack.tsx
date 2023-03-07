@@ -13,7 +13,7 @@ interface SnackManager {
 
 const SnackContext = createContext(null as SnackManager | null);
 
-export default function Snack({ children }: { children: ReactNode }) {
+export default function Snack({ children }: { children?: ReactNode }) {
   const ref = useRef(0);
   const [snack, setSnack] = useState<SnackState>({});
   const hide = () =>
@@ -33,7 +33,7 @@ export default function Snack({ children }: { children: ReactNode }) {
 
   return (
     <SnackContext.Provider value={{ show, hide }}>
-      {children}
+      {children ?? null}
       <Snackbar
         open={!!snack.message}
         message={snack.message}

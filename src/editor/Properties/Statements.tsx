@@ -107,10 +107,11 @@ export default function Statements({
             return [statement.id, { index, type: "number" }];
           case "Other Operation:": {
             if ("val" in statement) {
-              const type =
+              const input =
                 typeof statement.val === "object"
-                  ? statement.val.type
-                  : (typeof statement.val as "number" | "string" | "boolean");
+                  ? statement.val.init
+                  : statement.val;
+              const type = typeof input as "number" | "string" | "boolean";
               return [statement.id, { index, type }];
             } else {
               return [""];
@@ -535,7 +536,7 @@ function StatementDialog({
                   name="value"
                   read={() => state.val}
                   save={(val) => setState({ ...state, val })}
-                  item={{ valueType: "unknown", optional: true }}
+                  item={{ valueType: "unknown" }}
                   storeScopes={storeScopes}
                   embedded={true}
                 />

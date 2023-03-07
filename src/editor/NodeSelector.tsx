@@ -807,7 +807,10 @@ export function useSelector(
       const already =
         selector.selected.length === 1 && selector.selected[0].node === node;
       cancelAllSelected(selector);
-      if (already) return;
+      if (already) {
+        selector.refresh();
+        return;
+      }
     }
 
     setSelected(node, true);
