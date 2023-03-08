@@ -467,6 +467,7 @@ export function nodeItemOption(
         scope: `${name}.`,
         read,
         save,
+        storeScopes,
       });
     }
     case "statements": {

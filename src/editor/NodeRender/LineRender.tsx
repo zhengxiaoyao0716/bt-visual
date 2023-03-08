@@ -72,12 +72,13 @@ export default function LineRender({
     anchorDraggingRef.current = null; // 跟上面同理
     anchors[index] = $anchor;
 
-    const lineTo = ((index + 0.5) / total) * width;
-    const $lineTo = createLineTo(`${lineTo - width / 2}px`, `${height}px`);
+    const svgWidth = $root.querySelector("svg")?.clientWidth ?? width;
+    const lineTo = ((index + 0.5) / total) * svgWidth;
+    const $lineTo = createLineTo(`${lineTo - svgWidth / 2}px`, `${height}px`);
     $root.appendChild($lineTo);
 
     const $svg = getOrCreateLineSvg($root);
-    $svg.style.width = `${width}px`;
+    $svg.style.width = `${svgWidth}px`;
 
     const $line = rough.svg($svg).line(
       lineTo,

@@ -81,22 +81,23 @@ function invalidNodeSize(node: Node, min: number, max: number): Invalid[] {
 }
 
 function invalidItem(value: any, item: Item): Invalid[] {
+  const optional = "optional" in item && item.optional;
   if (value == null) {
-    return item.optional ? [] : [`${item.type} should not be empty`];
+    return optional ? [] : [`${item.type} should not be empty`];
   }
   switch (item.type) {
     case "Store.Key":
-      return invalidStoreKey(value, item.optional);
+      return invalidStoreKey(value, optional);
     case "Store.Reader":
-      return invalidStoreReader(value, item.valueType, item.optional);
+      return invalidStoreReader(value, item.valueType, optional);
     case "statements":
-      return invalidStatements(value, item.optional);
+      return invalidStatements(value, optional);
     case "StorePreset":
-      return invalidStorePreset(value, item.optional);
+      return invalidStorePreset(value, optional);
   }
 }
 
-function invalidStoreKey(value: any, optional?: true): Invalid[] {
+function invalidStoreKey(value: any, optional?: boolean): Invalid[] {
   if (typeof value !== "string") return ["Store.Key should be string"];
   if (value.length === 0) {
     if (optional) return []; // never 正常来说 Store.Key 不应该可空
@@ -108,36 +109,55 @@ function invalidStoreKey(value: any, optional?: true): Invalid[] {
 function invalidStoreReader(
   value: any,
   valueType: Store.ValueType,
-  optional?: true
+  optional?: boolean
 ): Invalid[] {
   const inputType = typeof value;
   // 输入类型为 object，说明输入的是黑板
   if (inputType === "object") {
     if (!("bind" in value)) return ["Store.Reader missing bind key"];
     if (!("init" in value)) return ["Store.Reader missing init value"];
-    if (typeof value.init !== valueType) {
-      return [`Store.Reader init value type should be ${valueType}`];
-    }
-    return value.type === "number"
+    const initType = typeof value.init;
+    const invalidType = invalidInputType(value.init, initType, valueType);
+    if (invalidType.length > 0) return invalidType;
+    return initType === "number"
       ? "zoom" in value && typeof value.zoom !== "number"
         ? ["Store.Reader zoom should be number"]
         : []
       : [];
+  } else {
+    const invalidType = invalidInputType(value, inputType, valueType);
+    if (invalidType.length > 0) return invalidType;
+    // 输入为空，但目标禁止为空
+    if (value === "" && !optional) {
+      return ["Store.Reader should not be empty"];
+    }
+    return [];
   }
-  // 目标类型未知，不用校验
-  if (valueType === "unknown") return [];
-  // 输入类型与目标类型不匹配
-  if (inputType !== valueType) {
-    return [`Store.Reader value type should be ${valueType}`];
-  }
-  // 输入为空，但目标禁止为空
-  if (value === "" && !optional) {
-    return ["Store.Reader should not be empty"];
-  }
-  return [];
 }
 
-function invalidStatements(value: any, optional?: true): Invalid[] {
+function invalidInputType(
+  input: any,
+  inputType: string,
+  valueType: Store.ValueType
+): Invalid[] {
+  switch (valueType) {
+    case "number":
+      if (inputType === "number") return [];
+    case "string":
+      if (inputType === "string" && (input as string)[0] === "`") return [];
+    case "dict":
+      if (inputType === "string" && (input as string)[0] === "{") return [];
+    case "list":
+      if (inputType === "string" && (input as string)[0] === "[") return [];
+    case "boolean":
+      if (inputType === "boolean") return [];
+    case "unknown":
+      return [];
+  }
+  return [`Store.Reader value type should be ${valueType}`];
+}
+
+function invalidStatements(value: any, optional?: boolean): Invalid[] {
   if (!Array.isArray(value)) return ["statements should be array"];
   if (value.length === 0) {
     if (optional) return [];
@@ -146,6 +166,6 @@ function invalidStatements(value: any, optional?: true): Invalid[] {
   return [];
 }
 
-function invalidStorePreset(value: any, optional?: true): Invalid[] {
+function invalidStorePreset(value: any, optional?: boolean): Invalid[] {
   return [];
 }

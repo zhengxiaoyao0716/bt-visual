@@ -118,6 +118,7 @@ export const nodeDraggingRef = {
 const NodeContainer = styled.div`
   display: inline-block;
   margin: 0.1em 0.2em;
+  max-width: 100%;
   & > svg {
     cursor: grab;
   }
@@ -197,6 +198,7 @@ function NodeLib({ config, trans, define, keyword, type }: NodeLibProps) {
           display: "flex",
           flexWrap: "wrap",
           justifyContent: "space-evenly",
+          position: "relative",
         }}
       >
         {nodes.map((node, index) => (
@@ -210,7 +212,7 @@ function NodeLib({ config, trans, define, keyword, type }: NodeLibProps) {
               trans={trans}
               btDefine={define.value}
               type={node.type}
-              size={{ width: 90, height: 25 }}
+              size={{ width: undefined, height: 25 }}
             >
               {trans(node.translated.type)}
             </NodeSvgRender>

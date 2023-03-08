@@ -120,7 +120,7 @@ export default function NodeSvgRender({
   trans: TransFunction;
   btDefine: BTDefines | undefined;
   type: string;
-  size: { width: number; height: number };
+  size: { width?: number; height: number };
   children?: ReactNode | string;
   fold?: true;
   selected?: boolean;
@@ -151,8 +151,8 @@ export default function NodeSvgRender({
 
   const ref = useRef<SVGSVGElement>(null);
   useEffect(() => {
-    const svg = ref.current;
-    if (svg == null) return;
+    const $svg = ref.current;
+    if ($svg == null) return;
     const options = {
       stroke: status.color || color,
       strokeLineDash: nodeType === "Decorator" ? [16, 8] : undefined,
@@ -162,23 +162,25 @@ export default function NodeSvgRender({
       fillWeight: 2,
       roughness: 1.5,
     };
+    const maxTextWidth = Math.max(
+      size.width || 0,
+      ...(Array.prototype.map.call(
+        $svg.querySelectorAll("text"),
+        (text: SVGTextElement) => 10 + text.clientWidth
+      ) as number[])
+    );
+    const width = maxTextWidth;
+    const height = $svg.clientHeight;
+    $svg.setAttribute("width", String(width));
     const shape =
       nodeType === "Action"
-        ? rough
-            .svg(svg)
-            .ellipse(
-              size.width / 2,
-              size.height / 2,
-              size.width,
-              size.height,
-              options
-            )
-        : rough.svg(svg).rectangle(0, 0, size.width, size.height, options);
-    onClick && svg.addEventListener(boxSelectEventKey, onClick);
-    svg.prepend(shape);
+        ? rough.svg($svg).ellipse(width / 2, height / 2, width, height, options)
+        : rough.svg($svg).rectangle(0, 0, width, height, options);
+    onClick && $svg.addEventListener(boxSelectEventKey, onClick);
+    $svg.prepend(shape);
     return () => {
-      svg.removeChild(shape);
-      onClick && svg.removeEventListener(boxSelectEventKey, onClick);
+      $svg.removeChild(shape);
+      onClick && $svg.removeEventListener(boxSelectEventKey, onClick);
     };
   }, [
     ref.current,

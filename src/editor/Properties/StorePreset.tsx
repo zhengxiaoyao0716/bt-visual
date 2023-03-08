@@ -15,9 +15,16 @@ interface Props {
   scope: string;
   read(): undefined | { [key: string]: Store.Reader | undefined };
   save(preset: undefined | { [key: string]: Store.Reader | undefined }): void;
+  storeScopes: { label: string; value: string }[];
 }
 
-export default function StorePreset({ trans, scope, read, save }: Props) {
+export default function StorePreset({
+  trans,
+  scope,
+  read,
+  save,
+  storeScopes,
+}: Props) {
   const storeItems = Object.entries(read() || {});
   const [, refresh] = useRefresh();
 
@@ -87,6 +94,7 @@ export default function StorePreset({ trans, scope, read, save }: Props) {
           read={() => value}
           save={(value) => change(index, value || "")}
           item={{ valueType: "unknown" }}
+          storeScopes={storeScopes}
         />
         {anchor(index)}
       </ListItem>

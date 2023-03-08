@@ -165,6 +165,7 @@ export default function Workspace({
     showMenu
   );
   const tree = trees[treeIndex];
+  const define = Define.use();
 
   const treeOptions = [
     { type: "subheader", value: trans("Tree Properties"), align: "right" },
@@ -201,6 +202,7 @@ export default function Workspace({
         if (store == null) delete tree.store;
         else tree.store = store;
       },
+      storeScopes: define?.value?.storeScopes ?? [],
     }),
   ] as PropertiesOption[];
 
@@ -212,7 +214,6 @@ export default function Workspace({
   useEffect(() => {
     saveRef.current.forest = forest;
   }, [forest]);
-  const define = Define.use();
   const toolBarSlot = ToolBarSlot.useSlot();
 
   useEffect(() => {

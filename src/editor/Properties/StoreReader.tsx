@@ -8,7 +8,7 @@ import FormControlLabel from "@mui/material/FormControlLabel";
 import Switch from "@mui/material/Switch";
 import TextField, { TextFieldProps } from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import { ChangeEvent, FocusEvent, MouseEvent, useState } from "react";
+import { ChangeEvent, FocusEvent, MouseEvent, useRef, useState } from "react";
 
 import type { Store } from "../../behavior-tree/type";
 import Snack from "../../components/Snack";
@@ -617,20 +617,23 @@ function ValueTextField({
       const dict = Object.fromEntries(
         options.map(({ label, value }) => [label, value])
       );
+      const ref = useRef(null as HTMLInputElement | null);
       return (
         <Autocomplete
           options={options}
           freeSolo
           inputValue={value}
-          onInputChange={(event, value) => {
+          onInputChange={(_event, value) => {
+            if (ref.current == null) return;
+            const target = ref.current.querySelector("input");
+            if (target == null) return;
             const newValue = value.trim();
-            onChange(
-              event.target as HTMLInputElement,
-              newValue in dict ? dict[newValue] : newValue
-            );
+            onChange(target, newValue in dict ? dict[newValue] : newValue);
           }}
           isOptionEqualToValue={(option, value) => option.value === value.value}
-          renderInput={(params) => <TextField {...params} {...props} />}
+          renderInput={(params) => (
+            <TextField ref={ref} {...params} {...props} />
+          )}
         />
       );
     }
