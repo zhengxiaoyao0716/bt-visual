@@ -52,7 +52,7 @@ export const usePropHelpWidget = (
 
   const attachWidget = (current: HTMLDivElement | null) => {
     if (current == null) return;
-    const rect = current.parentElement?.getBoundingClientRect();
+    const rect = current.parentElement?.parentElement?.getBoundingClientRect();
     if (!rect) return;
     current.style.left = `${rect.right + 8}px`;
     current.style.top = `${rect.top - 32}px`;

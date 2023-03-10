@@ -2,7 +2,6 @@ import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import Container from "@mui/material/Container";
 import Link from "@mui/material/Link";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
@@ -17,7 +16,7 @@ import {
   default as BTDefine,
   default as Define,
 } from "../behavior-tree/Define";
-import createForest, { Forest, ForestMainfest } from "../behavior-tree/Forest";
+import createForest, { Forest, ForestManifest } from "../behavior-tree/Forest";
 import share from "../common/share";
 import { useDialogPrompt } from "../components/DialogPrompt";
 import { useFilterKeyword } from "../components/FilterKeyword";
@@ -197,7 +196,7 @@ function ForestManager() {
 
   return (
     <Box sx={{ m: 2 }}>
-      <ForestMainfest>
+      <ForestManifest>
         {(manifest) =>
           manifest?.value == null ? (
             <Loading />
@@ -248,7 +247,7 @@ function ForestManager() {
             </>
           )
         }
-      </ForestMainfest>
+      </ForestManifest>
     </Box>
   );
 }

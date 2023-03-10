@@ -140,6 +140,7 @@ export default function DraftPaper({ readonly, children }: Props) {
       {...movingProps}
       size={32 * scale}
       style={{
+        margin: "6px",
         backgroundPosition: `${moveX}px ${moveY}px`,
       }}
     >

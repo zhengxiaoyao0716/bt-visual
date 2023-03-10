@@ -30,6 +30,6 @@ export const defaultConfig = {
 export default createStorage(
   "Config",
   "/config.yaml",
-  Promise.resolve(defaultConfig),
+  () => Promise.resolve(defaultConfig),
   { local: true }
 );

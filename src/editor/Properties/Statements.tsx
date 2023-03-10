@@ -480,7 +480,7 @@ function StatementDialog({
 
   return (
     resolve && (
-      <Dialog open={true}>
+      <Dialog open={true} sx={{ backdropFilter: "blur(3px)" }}>
         <DialogTitle sx={{ minWidth: "16em" }}>
           {trans(
             statement.op == null ? "Append statement" : "Modify statement"

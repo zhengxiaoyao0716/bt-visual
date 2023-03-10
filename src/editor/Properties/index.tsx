@@ -37,6 +37,7 @@ import Config from "../../storage/Config";
 import { TransFunction, useTrans } from "../../storage/Locale";
 import { createTypeDropProps } from "../NodeDrop";
 import { LockerContext } from "../NodeRender/NodeLocker";
+import Datasource from "./Datasource";
 import Statements from "./Statements";
 import StorePreset from "./StorePreset";
 import StoreReader from "./StoreReader";
@@ -90,7 +91,6 @@ export function createComponentOption<P>(
 }
 
 function RenderOption({
-  trans,
   option,
 }: {
   trans: TransFunction;
@@ -185,15 +185,18 @@ export const PropertiesContext = createContext(
 );
 
 export default function Properties({
+  forestName,
   options: defaultOptions,
+  trans,
   children,
 }: {
+  forestName: string;
   options: Option[];
+  trans: TransFunction;
   children: JSX.Element;
 }) {
   const config = Config.use();
   if (config?.value == null) return null; // never
-  const trans = useTrans();
 
   const { properties } = config.value;
 
@@ -253,27 +256,29 @@ export default function Properties({
       }}
       {...wcProps}
     >
-      <PropertiesContext.Provider value={context}>
-        {children}
-      </PropertiesContext.Provider>
-      {properties.width <= 0 ? null : (
-        <Stack
-          sx={{
-            width: `${properties.width}px`,
-            padding: "0.5em 0.5em 0 1em ",
-            flex: "0 0 auto",
-            height: "100%",
-            overflowY: "scroll",
-            "&::-webkit-scrollbar": {
-              display: "none",
-            },
-          }}
-        >
-          {(options || defaultOptions).map((option, index) => (
-            <RenderOption key={index} trans={trans} option={option} />
-          ))}
-        </Stack>
-      )}
+      <Datasource forestName={forestName} trans={trans}>
+        <PropertiesContext.Provider value={context}>
+          {children}
+        </PropertiesContext.Provider>
+        {properties.width <= 0 ? null : (
+          <Stack
+            sx={{
+              width: `${properties.width}px`,
+              padding: "0.5em 0.5em 0 1em ",
+              flex: "0 0 auto",
+              height: "100%",
+              overflowY: "scroll",
+              "&::-webkit-scrollbar": {
+                display: "none",
+              },
+            }}
+          >
+            {(options || defaultOptions).map((option, index) => (
+              <RenderOption key={index} trans={trans} option={option} />
+            ))}
+          </Stack>
+        )}
+      </Datasource>
       <WidthController
         style={{
           right: `${Math.max(0, properties.width - 10) - wcLeft}px`,
@@ -356,7 +361,7 @@ export function useNodePropsEditor(trans: TransFunction, refresh: () => void) {
       {
         type: "select",
         key: depsKey, // 每次切换节点必定刷新
-        label: trans("Node Type"), // TODO
+        label: trans("Node Type"),
         value: node.type,
         items: Object.keys(nodes).map((type) => [type, trans(type)]),
         submit: submitNodeType,

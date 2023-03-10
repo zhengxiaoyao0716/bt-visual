@@ -659,12 +659,51 @@ function NodeMenus({
         width: "fit-content",
         border: (theme) => `1px solid ${theme.palette.divider}`,
         borderRadius: 1,
-        bgcolor: "background.paper",
+        backgroundColor: "#ffffff99",
+        backdropFilter: "blur(3px)",
         "& hr": {
           borderLeft: (theme) => `1px solid ${theme.palette.divider}`,
         },
       }}
     >
+      {locked || vertical == null ? null : (
+        <>
+          <IconButton
+            onClick={selector.moveUp}
+            title={moveUpDesc}
+            disabled={vertical.index <= 0}
+          >
+            <ArrowDropUpIcon />
+          </IconButton>
+          <IconButton
+            onClick={selector.moveDown}
+            title={moveDownDesc}
+            disabled={vertical.index >= vertical.deck.length - 1}
+          >
+            <ArrowDropDownIcon />
+          </IconButton>
+          <Divider />
+        </>
+      )}
+      {locked || horizontal == null ? null : (
+        <>
+          <IconButton
+            onClick={selector.moveLeft}
+            title={moveLeftDesc}
+            disabled={horizontal.index <= 0}
+          >
+            <ArrowLeftIcon />
+          </IconButton>
+          <IconButton
+            onClick={selector.moveRight}
+            title={moveRightDesc}
+            disabled={horizontal.index >= horizontal.nodes.length - 1}
+          >
+            <ArrowRightIcon />
+          </IconButton>
+          <Divider />
+        </>
+      )}
       {locked || selector.tree ? null : (
         <IconButton onClick={selector.remove} title={removeDesc}>
           <DeleteOutlineIcon />
@@ -684,44 +723,6 @@ function NodeMenus({
           <ContentCopyIcon fontSize="small" />
         </IconButton>
       ) : null}
-      {locked || vertical == null ? null : (
-        <>
-          <Divider />
-          <IconButton
-            onClick={selector.moveUp}
-            title={moveUpDesc}
-            disabled={vertical.index <= 0}
-          >
-            <ArrowDropUpIcon />
-          </IconButton>
-          <IconButton
-            onClick={selector.moveDown}
-            title={moveDownDesc}
-            disabled={vertical.index >= vertical.deck.length - 1}
-          >
-            <ArrowDropDownIcon />
-          </IconButton>
-        </>
-      )}
-      {locked || horizontal == null ? null : (
-        <>
-          <Divider />
-          <IconButton
-            onClick={selector.moveLeft}
-            title={moveLeftDesc}
-            disabled={horizontal.index <= 0}
-          >
-            <ArrowLeftIcon />
-          </IconButton>
-          <IconButton
-            onClick={selector.moveRight}
-            title={moveRightDesc}
-            disabled={horizontal.index >= horizontal.nodes.length - 1}
-          >
-            <ArrowRightIcon />
-          </IconButton>
-        </>
-      )}
       <Divider />
       <IconButton onClick={cancel}>
         <CloseIcon />

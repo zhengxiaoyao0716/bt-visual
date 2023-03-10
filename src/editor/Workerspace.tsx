@@ -18,6 +18,7 @@ import { Forest } from "../behavior-tree/Forest";
 import type { Tree } from "../behavior-tree/type";
 import { defaultRootNode } from "../behavior-tree/utils";
 import { invalidTree } from "../behavior-tree/validator";
+import share from "../common/share";
 import { useDialogPrompt } from "../components/DialogPrompt";
 import { addHotkeyListener } from "../components/Hotkey";
 import Snack from "../components/Snack";
@@ -50,7 +51,7 @@ export default function Workspace({
   const config = Config.use();
   const trans = useTrans();
   const snack = Snack.use();
-  const { name, trees } = forest.value;
+  const { name: forestName, trees } = forest.value;
   const { dialog, prompt } = useDialogPrompt();
 
   const [anchorEl, setAnchorEl] = useState<null | [number, HTMLElement]>(null);
@@ -101,7 +102,7 @@ export default function Workspace({
       name: treeName,
     });
     labels.splice(index, 0, treeName);
-    showTree(name, index);
+    showTree(forestName, index);
   };
   const removeTree = async () => {
     if (anchorEl == null) return; // never
@@ -119,7 +120,7 @@ export default function Workspace({
     });
     if (!confirm) return;
     trees.splice(treeIndex, 1);
-    showTree(name, 0);
+    showTree(forestName, 0);
   };
   const cloneTree = async () => {
     if (anchorEl == null) return; // never
@@ -142,7 +143,7 @@ export default function Workspace({
     }
     const index = tab - 1;
     if (!event.ctrlKey && !event.shiftKey) {
-      if (index !== treeIndex) showTree(name, index);
+      if (index !== treeIndex) showTree(forestName, index);
       return;
     }
     // split view
@@ -156,7 +157,7 @@ export default function Workspace({
       await snack.show(trans("Modification has not been saved!"));
       return;
     }
-    showTree(name, index, true);
+    showTree(forestName, index, true);
   }
   const { tabs, refresh: refreshTab } = useTabs(
     labels,
@@ -244,7 +245,7 @@ export default function Workspace({
       const { trees } = forest.value;
       const invalidIndex = invalidTrees(define.value, trees);
       if (invalidIndex >= 0) {
-        showTree(name, invalidIndex);
+        showTree(forestName, invalidIndex);
         snack.show(trans("Found invalid nodes, please check and fix them"));
         return;
       }
@@ -286,6 +287,7 @@ export default function Workspace({
       {
         code: "KeyL",
         ctrlKey: true,
+        ignore: (_event) => false, // Ctrl+L 事件针对全局生效
         callback: Locker.troggle,
       }
     );
@@ -301,11 +303,18 @@ export default function Workspace({
       return warning;
     };
     window.addEventListener("beforeunload", beforeUnload);
+    share &&
+      (share.closingConfirm = () => {
+        const treesDirty = JSON.stringify(trees);
+        if (treesDirty === treesSaved) return "";
+        return trans("Modification has not been saved!");
+      });
 
     return () => {
       saveRef.current.dirty = () => "";
       removeHotkeyListeners();
       window.removeEventListener("beforeunload", beforeUnload);
+      share && (share.closingConfirm = undefined);
     };
   }, [define?.value]);
 
@@ -319,8 +328,8 @@ export default function Workspace({
       }}
     >
       <LockerContext.Provider value={Locker.locked}>
-        <Properties options={treeOptions}>
-          <Undo id={`${name}[${treeIndex}]`} trans={trans}>
+        <Properties forestName={forestName} options={treeOptions} trans={trans}>
+          <Undo id={`${forestName}[${treeIndex}]`} trans={trans}>
             <TreeRender
               tree={tree}
               config={config}

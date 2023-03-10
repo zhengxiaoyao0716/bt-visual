@@ -111,18 +111,24 @@ export interface Storage<T> {
   save(data: T): Promise<void>;
 }
 
+const LocalStorages: { [path: string]: Storage<{}> } = {};
+
 export function createStorage<T extends {}>(
   name: string,
   path: string,
-  init: PromiseLike<T>,
+  init: () => PromiseLike<T>,
   options: Options = {}
 ): Storage<T> {
+  const exist = LocalStorages[path];
+  if (exist != null) return exist as Storage<T>;
+
   const Context = createContext(null as ContextValue<T>);
+  const initData = init();
 
   function Storage({ children }: Props<T>) {
     const promise = useMemo(() => {
       const cached = computePathDataCache(path);
-      return computePathPromise(path, init, cached, options);
+      return computePathPromise(path, initData, cached, options);
     }, [path]);
 
     const [state, setState] = usePromise(promise);
@@ -173,11 +179,13 @@ export function createStorage<T extends {}>(
   Storage.displayName = name;
   Storage.load = async () => {
     const storage = await getStorage(options);
-    return await storage.load(path, init);
+    return await storage.load(path, initData);
   };
   Storage.save = async (data: T) => {
     const storage = await getStorage(options);
     return await storage.save(path, data);
   };
+
+  LocalStorages[path] = Storage;
   return Storage;
 }

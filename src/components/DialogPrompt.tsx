@@ -37,7 +37,11 @@ export function useDialogPrompt() {
 
   const showing = !!state;
   const dialog = (
-    <Dialog open={showing} onClose={state?.cancel}>
+    <Dialog
+      open={showing}
+      onClose={state?.cancel}
+      sx={{ backdropFilter: "blur(3px)" }}
+    >
       {props?.title && (
         <DialogTitle sx={{ minWidth: "16em" }}>{props.title}</DialogTitle>
       )}

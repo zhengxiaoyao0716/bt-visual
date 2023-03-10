@@ -3,8 +3,9 @@ import { useMemo } from "react";
 import Config from "./Config";
 import { ContextValue, createStorage, Storage } from "./Storage";
 
-export const defaultLanguage =
-  navigator.language === "zh" ? "简体中文" : "English";
+export const defaultLanguage = navigator.language.startsWith("zh")
+  ? "简体中文"
+  : "English";
 
 interface Locale {
   [key: string]: string;
@@ -22,10 +23,10 @@ export default function createLocale(language: string): Storage<Locale> {
 
   const path = `/locale/${language}.yaml`;
   const preset = locales[language] ?? locales["English"];
-  const locale =
+  const locale = () =>
     (preset && preset().then(({ default: locale }) => locale)) ||
     Promise.resolve({});
-  const Storage = createStorage(language, path, locale);
+  const Storage = createStorage(`locale-${language}`, path, locale);
   LocalStorages[language] = Storage;
   return Storage;
 }

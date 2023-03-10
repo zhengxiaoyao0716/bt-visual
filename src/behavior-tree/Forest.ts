@@ -9,11 +9,11 @@ export interface Forest {
 const LocalStorages: { [name: string]: Storage<Forest> } = {};
 
 export default function createForest(name: string): Storage<Forest> {
-  const path = `/forest/${name}.yaml`;
   const exist = LocalStorages[name];
   if (exist != null) return exist;
-  const empty = Promise.resolve(emptyForest(name));
-  const Storage = createStorage(name, path, empty);
+  const path = `/forest/${name}.yaml`;
+  const empty = () => Promise.resolve(emptyForest(name));
+  const Storage = createStorage(`forest-${name}`, path, empty);
   LocalStorages[name] = Storage;
   return Storage;
 }
@@ -30,12 +30,13 @@ function emptyForest(name: string): Forest {
   };
 }
 
-export const ForestMainfest = createStorage(
+export const ForestManifest = createStorage(
   "ForestManifest",
   "/forest-manifest.yaml",
-  Promise.resolve(
-    [] as {
-      name: string;
-    }[]
-  )
+  () =>
+    Promise.resolve(
+      [] as {
+        name: string;
+      }[]
+    )
 );

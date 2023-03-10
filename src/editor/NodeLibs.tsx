@@ -194,7 +194,7 @@ function NodeLib({ config, trans, define, keyword, type }: NodeLibProps) {
       </AccordionSummary>
       <AccordionDetails
         sx={{
-          padding: 1,
+          padding: "3px",
           display: "flex",
           flexWrap: "wrap",
           justifyContent: "space-evenly",

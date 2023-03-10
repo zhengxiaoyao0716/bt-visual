@@ -304,6 +304,6 @@ const nodes: typeof Settings & BTDefines = {
 export default createStorage(
   "BTNodes",
   "/behavior-tree-nodes.yaml",
-  Promise.resolve(nodes),
+  () => Promise.resolve(nodes),
   { readonly: true }
 );

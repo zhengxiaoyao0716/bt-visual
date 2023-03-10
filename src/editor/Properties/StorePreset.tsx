@@ -1,6 +1,6 @@
 import { useAutoAnimate } from "@formkit/auto-animate/react";
 import Box from "@mui/material/Box";
-import ListItem from "@mui/material/ListItem";
+import ListItemButton from "@mui/material/ListItemButton";
 
 import type { Store } from "../../behavior-tree/type";
 import { useDialogPrompt } from "../../components/DialogPrompt";
@@ -77,9 +77,8 @@ export default function StorePreset({
       refresh();
     },
     ([name, value], index, showMenu, anchor) => (
-      <ListItem
+      <ListItemButton
         key={name}
-        button
         onContextMenu={showMenu}
         sx={{
           "&>*:first-of-type": {
@@ -97,7 +96,7 @@ export default function StorePreset({
           storeScopes={storeScopes}
         />
         {anchor(index)}
-      </ListItem>
+      </ListItemButton>
     )
   );
 
