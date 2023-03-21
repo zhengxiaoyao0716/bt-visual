@@ -41,7 +41,7 @@ const Container = styled.div`
   ${gridBackground}
 `;
 const Paper = styled.div`
-  transform-origin: center top;
+  transform-origin: left top;
   pointer-events: none;
   user-select: none;
 `;
@@ -64,8 +64,7 @@ export default function DraftPaper({ readonly, children }: Props) {
 
   const [scale, setScale] = useState(initScale);
   const onWheel = (event: WheelEvent) => {
-    if (isInvalidEventTarget(event)) return;
-
+    // if (isInvalidEventTarget(event)) return;
     event.stopPropagation();
 
     if (event.shiftKey) {
@@ -82,17 +81,17 @@ export default function DraftPaper({ readonly, children }: Props) {
     const { height } = event.currentTarget.getBoundingClientRect();
     const scaleChanged = event.deltaY / 1000;
     const scaleNew = scale - scale * scaleChanged;
-    const heightNew = height * scaleNew;
 
-    if (heightNew <= 60) return;
+    // 缩放后高度过小，停止缩放
+    if (height * scaleNew <= 60) return;
     setScale(scaleNew);
 
-    const parentRect =
-      paper.parentElement?.parentElement?.getBoundingClientRect() as DOMRect;
-    const center = parentRect.top + parentRect.height / 2;
+    const domRect = paper?.children?.[0].getBoundingClientRect() as DOMRect;
+    const offsetX = event.clientX - domRect.left; // - moveX;
+    const offsetY = event.clientY - domRect.top; // - moveY;
     setDragMovingState({
-      moveX,
-      moveY: moveY + (center - moveY) * scaleChanged,
+      moveX: moveX + offsetX * scaleChanged,
+      moveY: moveY + offsetY * scaleChanged,
       dragging,
     });
   };

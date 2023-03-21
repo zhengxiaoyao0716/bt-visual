@@ -99,6 +99,21 @@ const NodeSvg = styled.svg`
   }
 `;
 
+function polygonPoints(width: number, height: number): [number, number][] {
+  const wo = width / 12;
+  const ho = height / 8;
+  return [
+    [wo, 0],
+    [0, ho],
+    [0, height - ho],
+    [wo, height],
+    [width - wo, height],
+    [width, height - ho],
+    [width, ho],
+    [width - wo, 0],
+  ];
+}
+
 export const ROOT_TYPE = "[ R O O T ]";
 
 export default function NodeSvgRender({
@@ -175,6 +190,8 @@ export default function NodeSvgRender({
     const shape =
       nodeType === "Action"
         ? rough.svg($svg).ellipse(width / 2, height / 2, width, height, options)
+        : nodeType === "Decorator"
+        ? rough.svg($svg).polygon(polygonPoints(width, height), options)
         : rough.svg($svg).rectangle(0, 0, width, height, options);
     onClick && $svg.addEventListener(boxSelectEventKey, onClick);
     $svg.prepend(shape);
