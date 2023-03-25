@@ -80,9 +80,11 @@ export default function LineRender({
     const $svg = getOrCreateLineSvg($root);
     $svg.style.width = `${svgWidth}px`;
 
-    const $line = rough.svg($svg).line(
+    const point0: [number, number] = [
       lineTo,
       $lineTo.offsetTop + $lineTo.offsetHeight / 2,
+    ];
+    const point3: [number, number] = [
       lineTo +
         ($anchor.offsetLeft - $lineTo.offsetLeft) +
         16 + // 16 个像素是锚点半宽
@@ -91,12 +93,21 @@ export default function LineRender({
       $anchor.offsetTop +
         16 + // 16 个像素是锚点半高
         ($anchor.parentElement?.parentElement?.offsetTop ?? 0),
-      {
-        strokeWidth: 0.5,
-        strokeLineDash: [8, 16],
-        ...(color ? { stroke: color } : null),
-      }
-    );
+    ];
+    // const point1: [number, number] = [
+    //   point0[0] * 0.8 + point3[0] * 0.2,
+    //   point0[1] * 0.7 + point3[1] * 0.3,
+    // ];
+    const point2: [number, number] = [
+      point0[0] * 0.2 + point3[0] * 0.8,
+      point0[1] * 0.3 + point3[1] * 0.7,
+    ];
+    const $line = rough.svg($svg).curve([point0, point2, point3], {
+      strokeWidth: 0.5,
+      roughness: 0.5,
+      strokeLineDash: [8, 16],
+      ...(color ? { stroke: color } : null),
+    });
     $svg.appendChild($line);
 
     return () => {

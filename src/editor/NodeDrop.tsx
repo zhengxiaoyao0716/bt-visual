@@ -97,7 +97,7 @@ export function createNodeDropProps({
       }
     }
 
-    event.dataTransfer.dropEffect = "link";
+    event.dataTransfer.dropEffect = "copy";
     event.preventDefault();
   };
   const onDragEnter = onDragOver;

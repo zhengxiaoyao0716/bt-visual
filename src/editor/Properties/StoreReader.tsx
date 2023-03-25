@@ -230,7 +230,17 @@ function EditorDialog({
   children: ReactNode;
 }) {
   return (
-    <Dialog open={true} sx={{ backdropFilter: "blur(3px)" }}>
+    <Dialog
+      open={true}
+      sx={{ backdropFilter: "blur(3px)" }}
+      onKeyDown={(event) => {
+        if (event.ctrlKey || event.shiftKey || event.altKey) return;
+        if (event.key !== "Enter") return;
+        event.preventDefault();
+        event.stopPropagation();
+        onSubmit();
+      }}
+    >
       <DialogTitle sx={{ minWidth: "16em" }} component="div">
         {typeof title === "string" ? <span>{title}</span> : title}
         {subtitle ? (
