@@ -77,16 +77,13 @@ export default function DraftPaper({ readonly, children }: Props) {
       return;
     }
 
-    const paper = event.currentTarget as HTMLDivElement;
-    const { height } = event.currentTarget.getBoundingClientRect();
-    const scaleChanged = event.deltaY / 1000;
+    const scaleChanged = event.deltaY / 2048;
     const scaleNew = scale - scale * scaleChanged;
-
-    // 缩放后高度过小，停止缩放
-    if (height * scaleNew <= 60) return;
+    if (event.deltaY > 0 && scaleNew < 0.05) return;
     setScale(scaleNew);
 
-    const domRect = paper?.children?.[0].getBoundingClientRect() as DOMRect;
+    const $content = event.currentTarget?.children?.[0] as HTMLDivElement;
+    const domRect = $content.getBoundingClientRect() as DOMRect;
     const offsetX = event.clientX - domRect.left; // - moveX;
     const offsetY = event.clientY - domRect.top; // - moveY;
     setDragMovingState({

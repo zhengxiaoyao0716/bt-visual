@@ -76,7 +76,11 @@ export function createNodeDropProps({
 }) {
   const onDragOver = (event: DragEvent) => {
     const draggingType = nodeDraggingRef.draggingType;
-    // if (draggingType == null) return; 允许从直接从文本之类的拖拽，这种情况下不再校验节点类型
+    if (draggingType == null) {
+      const draggingData = anchorDraggingRef.current;
+      if (draggingData != null) return; // 禁止拖拽锚点
+      // else 允许从直接从文本之类的拖拽，这种情况下不再校验节点类型
+    }
     const offset = offsetHalfHeight(event);
 
     switch (draggingType) {
