@@ -24,6 +24,7 @@ function emptyForest(name: string): Forest {
     trees: [
       {
         name,
+        desc: "",
         root: defaultRootNode(),
       },
     ],

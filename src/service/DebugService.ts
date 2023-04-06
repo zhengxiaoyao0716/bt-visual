@@ -109,6 +109,7 @@ function mockLoadTree(
 ) {
   ms.mockDone({
     name: `mock://${groupId}/${treeId}`,
+    desc: "",
     root: defaultRootNode(),
   });
 }

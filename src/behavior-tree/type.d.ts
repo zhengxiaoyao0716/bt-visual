@@ -9,6 +9,7 @@ export type Node = {
 // 树状节点
 export type Tree = {
   name: string;
+  desc: string;
   root: Composite | Action;
   store?: { [key: string]: Store.Reader | undefined };
 } & {
@@ -31,7 +32,7 @@ export interface Decorator extends Node {
 }
 // 动作节点
 export interface Action extends Node {
-  deck?: Decorator[]; // 装饰列表
+  deck: Decorator[]; // 装饰列表
 }
 
 // 存储空间

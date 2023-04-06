@@ -98,8 +98,9 @@ export default function Workspace({
       return;
     }
     trees.splice(index, 0, {
-      ...(tree || { root: defaultRootNode() }),
       name: treeName,
+      desc: tree?.desc ?? "",
+      root: tree?.root ?? defaultRootNode(),
     });
     labels.splice(index, 0, treeName);
     showTree(forestName, index);
@@ -172,9 +173,11 @@ export default function Workspace({
     { type: "subheader", value: trans("Tree Properties"), align: "right" },
     {
       type: "input",
-      key: `tree#${treeIndex}`,
+      key: `tree#${treeIndex}-name`,
       label: trans("Tree Name"),
-      value: tree.name,
+      get value() {
+        return tree.name;
+      },
       async submit(value: string) {
         if (isDuplicateName(value)) {
           await snack.show(trans("Duplicate tree name"));
@@ -185,6 +188,20 @@ export default function Workspace({
         refreshTab(1 + treeIndex);
         const parent = getDeliverParent(tree.root);
         parent.refresh();
+      },
+    },
+    {
+      type: "input",
+      key: `tree#${treeIndex}-desc`,
+      label: trans("Tree Desc"),
+      get value() {
+        return tree.desc;
+      },
+      multiline: true,
+      maxRows: 3,
+      submit(value: string) {
+        if (value === tree.desc) return;
+        tree.desc = value;
       },
     },
     { type: "divider" },

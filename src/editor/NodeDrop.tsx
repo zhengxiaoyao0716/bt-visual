@@ -129,7 +129,9 @@ export function createNodeDropProps({
           prependDecorator?.(node as Decorator);
           break;
         case "Action":
-          appendAction?.(node as Action);
+          const action = node as Action;
+          if (!action.deck) action.deck = [];
+          appendAction?.(action);
           break;
       }
     }

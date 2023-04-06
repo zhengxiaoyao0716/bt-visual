@@ -260,7 +260,9 @@ function getMoveArgs(selector: Selector | undefined): {
   // 其他情况，可左右移动
   const { nodes } = parent.composite;
   if (nodes.length <= 1) return result;
-  const index = parent.composite.nodes.indexOf(decorated || node);
+  const index = parent.composite.nodes.indexOf(
+    decorated || (node as Composite | Action)
+  );
   result.horizontal = { index, nodes };
   return result;
 }
@@ -365,10 +367,10 @@ function NodeMenus({
 
       const alias = getSelectedAlias(trans, selector);
       const copiedDeck: Decorator[] = [];
-      const copiedNodes: Node[] = [];
+      const copiedNodes: (Composite | Action)[] = [];
       for (const node of copied) {
         if (getNodeType(node.type) === "Decorator") copiedDeck.push(node);
-        else copiedNodes.push(node);
+        else copiedNodes.push(node as Composite | Action);
       }
       const tree = selector.tree;
       if (tree != null) {
@@ -476,7 +478,7 @@ function NodeMenus({
           });
         } else {
           const { composite } = parent;
-          const target = node;
+          const target = node as Composite | Action;
           tasks.push(() => {
             const index = composite.nodes.indexOf(target);
             if (index < 0) return () => {};
