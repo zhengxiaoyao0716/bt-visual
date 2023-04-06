@@ -1,5 +1,11 @@
 import { DragEvent } from "react";
-import { Action, Composite, Decorator, Node } from "../behavior-tree/type";
+import {
+  Action,
+  Composite,
+  Decorator,
+  Node,
+  Tree,
+} from "../behavior-tree/type";
 import { getNodeType } from "../behavior-tree/utils";
 import { clipboardSalt } from "../components/clipboard";
 
@@ -38,7 +44,7 @@ export function createAnchorDropProps(
   return { onDragEnter, onDragOver, onDrop };
 }
 
-function parseNodes(input: string): Node[] {
+function parseNodes(input: string): (Node | Tree)[] {
   if (!input) return [];
   if (input.startsWith("<?xml")) {
     const text = input.replace("\r", "");
@@ -55,7 +61,7 @@ function parseNodes(input: string): Node[] {
   return data instanceof Array ? data : [data];
 }
 
-async function parseDragNodes(event: DragEvent): Promise<Node[]> {
+async function parseDragNodes(event: DragEvent): Promise<(Node | Tree)[]> {
   const text = event.dataTransfer.getData("text/plain");
   if (text) return parseNodes(text);
   const files = Array.prototype.map.call(
@@ -109,7 +115,8 @@ export function createNodeDropProps({
   const onDrop = async (event: DragEvent) => {
     event.preventDefault();
     const nodes = await parseDragNodes(event);
-    for (const node of nodes) {
+    for (const item of nodes) {
+      const node = "root" in item ? item.root : item;
       "fold" in node && delete node.fold; // 禁止折叠
       switch (getNodeType(node.type)) {
         case "Composite":
@@ -148,7 +155,9 @@ export function createTypeDropProps(
   const onDrop = async (event: DragEvent) => {
     event.preventDefault();
     const nodes = await parseDragNodes(event);
-    const type = nodes[0].type;
+    const node = nodes[0];
+    if ("root" in node) return;
+    const type = node.type;
     if (getNodeType(type) === nodeType) submit(type);
   };
   return { onDragEnter, onDragOver, onDrop };

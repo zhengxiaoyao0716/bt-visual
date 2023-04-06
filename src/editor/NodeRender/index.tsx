@@ -1,5 +1,5 @@
 import styled from "@emotion/styled";
-import { useContext } from "react";
+import { useContext, useEffect } from "react";
 
 import type { Action, Composite, Tree } from "../../behavior-tree/type";
 import { getNodeAlias, getNodeType } from "../../behavior-tree/utils";
@@ -41,6 +41,10 @@ export default function NodeRender({
 
   const selector = useSelector(deliverRoot, trans, refresh);
   const onSelected = selector.handle(tree);
+  // 渲染不同的树时清空选中
+  useEffect(() => {
+    return () => selector.select(null);
+  }, [tree.name]);
 
   const undoManager = Undo.use();
   const nodeDropProps = createNodeDropProps({
@@ -48,12 +52,11 @@ export default function NodeRender({
       const action = trans("Append Composite");
       const alias = getNodeAlias(trans, nodeNew);
       const root = tree.root;
+      nodeNew.nodes.push(root);
       undoManager.execute(`${action} [${alias}]`, (redo) => {
-        nodeNew.nodes.push(root);
         tree.root = nodeNew;
         redo || refresh();
         return () => {
-          nodeNew.nodes.shift();
           tree.root = root;
         };
       });

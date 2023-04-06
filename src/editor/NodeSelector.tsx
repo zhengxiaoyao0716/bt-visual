@@ -124,6 +124,12 @@ function cancelAllSelected(selector: Selector) {
     parent.refresh();
   }
   selector.selected = [];
+  if (selector.tree) {
+    setSelected(selector.tree, undefined);
+    const parent = getDeliverParent(selector.tree.root);
+    parent.refresh();
+    delete selector.tree;
+  }
 }
 
 function calcSelectionBoxStyle(
@@ -271,7 +277,7 @@ function NodeMenus({
   undoManager: UndoManager;
 }) {
   const trans = useTrans();
-  const [, refresh] = useRefresh();
+  const [rfc, refresh] = useRefresh();
   const selector = useContext(SelectorContext)?.current;
   const locked = useContext(LockerContext);
 
@@ -369,6 +375,9 @@ function NodeMenus({
         if (copiedNodes.length <= 0) return;
         const copied = copiedNodes[0];
         const root = tree.root;
+        if ("nodes" in copied) {
+          (copied as Composite).nodes.push(root);
+        }
         const parent = getDeliverParent(root);
         undoManager.execute(`${copyDesc} [${alias}]`, (_redo) => {
           tree.root = copied;
@@ -611,7 +620,7 @@ function NodeMenus({
       removeEditableHotkeys();
       removeMoveableHotkeys();
     };
-  }, [selector, undoManager, locked]);
+  }, [rfc, selector, undoManager, locked]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -625,7 +634,7 @@ function NodeMenus({
     return () => {
       container.removeEventListener("cancelSelector", hide);
     };
-  }, [containerRef.current]);
+  }, [rfc, containerRef.current]);
 
   if (selector == null) return null;
   const selNum = selector.selected.length;

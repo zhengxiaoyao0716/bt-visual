@@ -113,7 +113,10 @@ export default function DecoratorRender({
               trans={trans}
               btDefine={btDefine}
               type={node.type}
-              size={{ width: 150, height: 60 }}
+              size={{
+                width: 150,
+                height: node.alias && node.alias.indexOf("\n") > 0 ? 80 : 60,
+              }}
               selected={isSelected(node)}
               onClick={selector.handle(node)}
               {...baseProps}

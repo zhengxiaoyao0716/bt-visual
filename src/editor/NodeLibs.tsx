@@ -44,8 +44,7 @@ function NodeLibs({ children }: { children: JSX.Element }) {
         ...config.value,
         nodeLibs: {
           ...nodeLibs,
-          width:
-            width < 60 ? 0 : Math.max(nodeLibs.minWidth, Math.min(width, 1000)),
+          width: width < 60 ? 0 : Math.max(nodeLibs.minWidth, width),
         },
       });
     setWCState({ moveX: 0, moveY: 0, dragging: false });

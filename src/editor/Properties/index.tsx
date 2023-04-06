@@ -63,7 +63,7 @@ type Option =
       key: string;
       label: string;
       value?: string | number;
-      items: [string | number, string][];
+      items: [string | number, string, string | undefined][];
       submit?: (value: string | number) => void;
       onDragEnter?: (event: DragEvent) => void;
       onDragOver?: (event: DragEvent) => void;
@@ -140,8 +140,8 @@ function RenderOption({
             onDragOver={option.onDragOver}
             onDrop={option.onDrop}
           >
-            {option.items.map(([value, text], index) => (
-              <MenuItem key={index} value={value}>
+            {option.items.map(([value, text, desc], index) => (
+              <MenuItem key={index} value={value} title={desc}>
                 {text}
               </MenuItem>
             ))}
@@ -217,10 +217,7 @@ export default function Properties({
         ...config.value,
         properties: {
           ...properties,
-          width:
-            width < 60
-              ? 0
-              : Math.max(properties.minWidth, Math.min(width, 1000)),
+          width: width < 60 ? 0 : Math.max(properties.minWidth, width),
         },
       });
     setWCState({ moveX: 0, moveY: 0, dragging: false });
@@ -363,7 +360,11 @@ export function useNodePropsEditor(trans: TransFunction, refresh: () => void) {
         key: depsKey, // 每次切换节点必定刷新
         label: trans("Node Type"),
         value: node.type,
-        items: Object.keys(nodes).map((type) => [type, trans(type)]),
+        items: Object.entries(nodes).map(([type, define]) => [
+          type,
+          trans(type),
+          define.desc,
+        ]),
         submit: submitNodeType,
         ...createTypeDropProps(nodeType, submitNodeType),
       },

@@ -1,4 +1,3 @@
-import { getDeliverParent } from "../editor/NodeSelector";
 import { BTDefines, Item } from "./Define";
 import type { Composite, Node, NodeType, Store, Tree } from "./type";
 import { getNodeType } from "./utils";
@@ -36,15 +35,11 @@ export function invalidNode(
   type: NodeType
 ): Invalid[] {
   if (type === "Unknown") return ["Unknown node type"];
-  const define = defines[type]?.[node.type];
-  if (!define) return ["Unknown node type"];
+  const define = defines[type]?.[node.type] ?? {}; // 未找到节点定义，不报错了，直接跳过验证
+  // if (!define) return ["Unknown node type"]; // 根节点不强制要求是组合节点了
+
   const allInvalids: Invalid[] = [];
 
-  // 校验根节点
-  const parent = getDeliverParent(node);
-  if (parent && "tree" in parent && getNodeType(node.type) !== "Composite") {
-    allInvalids.push("invalid root node");
-  }
   // 校验节点数量
   if (type === "Composite") {
     if (!("nodes" in node) || (node as Composite).nodes?.length <= 0) {

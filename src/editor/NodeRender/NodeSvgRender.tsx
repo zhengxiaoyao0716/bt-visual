@@ -1,7 +1,6 @@
 import styled from "@emotion/styled";
 import {
   DragEventHandler,
-  EventHandler,
   MouseEvent,
   MouseEventHandler,
   ReactNode,
