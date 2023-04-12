@@ -235,10 +235,18 @@ function EditorDialog({
       sx={{ backdropFilter: "blur(3px)" }}
       onKeyDown={(event) => {
         if (event.ctrlKey || event.shiftKey || event.altKey) return;
-        if (event.key !== "Enter") return;
+        switch (event.key) {
+          case "Enter":
+            onSubmit();
+            break;
+          case "Escape":
+            onCancel();
+            break;
+          default:
+            return; // 其他按键继续传递
+        }
         event.preventDefault();
         event.stopPropagation();
-        onSubmit();
       }}
     >
       <DialogTitle sx={{ minWidth: "16em" }} component="div">
