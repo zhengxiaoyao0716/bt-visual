@@ -2,7 +2,8 @@ import { Store } from "../behavior-tree/type";
 
 interface SideBar {
   title: string;
-  href: string;
+  href?: string;
+  target?: string;
 }
 
 export interface StorageLike {

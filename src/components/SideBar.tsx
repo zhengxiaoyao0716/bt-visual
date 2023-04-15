@@ -12,7 +12,7 @@ export function renderMenuIcon(open: boolean) {
 }
 
 export function renderListItem(
-  content: string | [ReactNode, string, string?],
+  content: string | [ReactNode, string, string?, string?],
   index?: number
 ) {
   if (typeof content === "string") {
@@ -22,11 +22,12 @@ export function renderListItem(
       </ListSubheader>
     );
   }
-  const [icon, text, href] = content;
+  const [icon, text, href, target] = content;
   return (
     <ListItemButton
       component="a"
       href={href ? href : "javascript:void(0);"}
+      target={target}
       key={index}
     >
       {icon && <ListItemIcon>{icon}</ListItemIcon>}

@@ -41,9 +41,10 @@ const Container = styled.div`
   ${gridBackground}
 `;
 const Paper = styled.div`
-  transform-origin: left top;
+  transform-origin: center top;
   pointer-events: none;
   user-select: none;
+  transition: transform 0.1s;
 `;
 
 const initScale = 1.0;
@@ -84,7 +85,7 @@ export default function DraftPaper({ readonly, children }: Props) {
 
     const $content = event.currentTarget?.children?.[0] as HTMLDivElement;
     const domRect = $content.getBoundingClientRect() as DOMRect;
-    const offsetX = event.clientX - domRect.left; // - moveX;
+    const offsetX = event.clientX - domRect.left - domRect.width / 2; // - moveX;
     const offsetY = event.clientY - domRect.top; // - moveY;
     setDragMovingState({
       moveX: moveX + offsetX * scaleChanged,

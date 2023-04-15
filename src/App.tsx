@@ -2,7 +2,6 @@ import { ThemeProvider } from "@emotion/react";
 import AccountTreeIcon from "@mui/icons-material/AccountTree";
 import BugReportIcon from "@mui/icons-material/BugReport";
 import HomeIcon from "@mui/icons-material/Home";
-import InfoIcon from "@mui/icons-material/Info";
 import AppBar from "@mui/material/AppBar";
 import Box from "@mui/material/Box";
 import CssBaseline from "@mui/material/CssBaseline";
@@ -23,7 +22,6 @@ import {
 import ToolBarSlot from "./components/ToolBarSlot";
 import Debugger from "./debugger";
 import Editor from "./editor";
-import Help from "./pages/Help";
 import Home from "./pages/Home";
 import Config from "./storage/Config";
 import createLocale, { defaultLanguage, useTrans } from "./storage/Locale";
@@ -43,10 +41,9 @@ function SideBarMenu() {
           Editor.route,
         ])}
         {renderListItem([<BugReportIcon />, trans("Debugger"), Debugger.route])}
-        {renderListItem(trans("other"))}
-        {renderListItem([<InfoIcon />, trans("HelpPage"), Help.route])}
-        {shareSideBars.map(({ title, href }, index) =>
-          renderListItem([<Box />, title, href], index)
+        {shareSideBars.length > 0 ? renderListItem(trans("other")) : null}
+        {shareSideBars.map(({ title, href, target }, index) =>
+          renderListItem([<Box />, title, href, target], index)
         )}
       </List>
     </>
@@ -130,7 +127,6 @@ function App() {
                           element={<Editor />}
                         />
                         <Route path={Debugger.route} element={<Debugger />} />
-                        <Route path={Help.route} element={<Help />} />
                       </Route>
                     </Routes>
                   </ToolBarSlot.Provider>
