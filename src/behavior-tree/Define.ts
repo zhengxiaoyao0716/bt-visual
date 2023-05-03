@@ -115,9 +115,23 @@ const nodes: typeof Settings & BTDefines = {
     },
     $SelRandom: {
       desc: "随机选择执行 // 随机挑选一个子节点执行，成功则返回，失败则随机另一个子节点，重复该流程，直到全部执行失败，返回失败。",
+      props: {
+        weights: {
+          desc: "子节点随机命中的权重比例，留空则各节点均匀随机",
+          ...items["Store.Reader.Number"],
+          optional: true,
+        },
+      },
     },
     "&SeqRandom": {
       desc: "随机顺序执行 // 随机挑选一个子节点执行，失败则返回，成功则随机另一个子节点，重复该流程，直到全部执行完毕，返回成功。",
+      props: {
+        weights: {
+          desc: "子节点随机命中的权重比例，留空则各节点均匀随机",
+          ...items["Store.Reader.Number"],
+          optional: true,
+        },
+      },
     },
     "%Complete": {
       desc: "并行完成 // 同时执行 nodes 内的子节点，任一节点完成时立刻完成，并停止其他正在运行的节点，返回值与抢先完成的节点保持一致。",
@@ -125,7 +139,7 @@ const nodes: typeof Settings & BTDefines = {
     "%Success": {
       desc: "并行成功 // 同时执行 nodes 内的子节点，任一节点成功时立刻返回成功，并停止其他正在运行的子节点。全部子节点失败时返回失败。",
     },
-    "%Faliure": {
+    "%Failure": {
       desc: "并行失败 // 同时执行 nodes 内的子节点，任一节点失败时立刻返回失败，并停止其他正在运行的子节点。全部子节点成功时返回成功。",
     },
     "%Priority": {

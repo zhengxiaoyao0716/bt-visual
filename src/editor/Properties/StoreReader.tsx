@@ -16,6 +16,7 @@ import Snack from "../../components/Snack";
 import { TransFunction } from "../../storage/Locale";
 import { DatasourceContext } from "./Datasource";
 import { usePropHelpWidget } from "./PropHelpWidget";
+import { inputOnKeyDown } from "../../components/Hotkey";
 
 function resolveBooleanValue(value: string): "true" | "false" | null {
   const lower = value.toLowerCase();
@@ -233,21 +234,7 @@ function EditorDialog({
     <Dialog
       open={true}
       sx={{ backdropFilter: "blur(3px)" }}
-      onKeyDown={(event) => {
-        if (event.ctrlKey || event.shiftKey || event.altKey) return;
-        switch (event.key) {
-          case "Enter":
-            onSubmit();
-            break;
-          case "Escape":
-            onCancel();
-            break;
-          default:
-            return; // 其他按键继续传递
-        }
-        event.preventDefault();
-        event.stopPropagation();
-      }}
+      onKeyDown={inputOnKeyDown({ onCancel, onSubmit })}
     >
       <DialogTitle sx={{ minWidth: "16em" }} component="div">
         {typeof title === "string" ? <span>{title}</span> : title}

@@ -1,3 +1,5 @@
+import { KeyboardEvent as ReactKeyboardEvent } from "react";
+
 export interface Hotkey {
   ctrlKey?: boolean;
   shiftKey?: boolean;
@@ -40,5 +42,29 @@ export function addHotkeyListener(target: HTMLElement, ...hotKeys: Hotkey[]) {
   target.addEventListener("keydown", handle);
   return () => {
     target.removeEventListener("keydown", handle);
+  };
+}
+
+export function inputOnKeyDown({
+  onCancel,
+  onSubmit,
+}: {
+  onCancel: () => void;
+  onSubmit: () => void;
+}) {
+  return (event: ReactKeyboardEvent) => {
+    if (event.ctrlKey || event.shiftKey || event.altKey) return;
+    switch (event.key) {
+      case "Enter":
+        onSubmit();
+        break;
+      case "Escape":
+        onCancel();
+        break;
+      default:
+        return; // 其他按键继续传递
+    }
+    event.preventDefault();
+    event.stopPropagation();
   };
 }

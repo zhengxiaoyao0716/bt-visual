@@ -25,6 +25,7 @@ import { useRefresh } from "../../components/Refresh";
 import Snack from "../../components/Snack";
 import { TransFunction } from "../../storage/Locale";
 import StoreReader, { getStoreReaderText } from "./StoreReader";
+import { inputOnKeyDown } from "../../components/Hotkey";
 
 interface Props {
   trans: TransFunction;
@@ -58,7 +59,7 @@ export default function Statements({
         index > 0
           ? (statements[index - 1] as { id?: Statement.ID })?.id ?? ""
           : "";
-      return setDialogState({
+      setDialogState({
         index,
         resolve: (value) => {
           resolve(value);
@@ -69,28 +70,30 @@ export default function Statements({
     });
 
   const modifyStatement = async (index: number) => {
-    const statement = await new Promise<Statement | null>((resolve) => {
-      const statements: Statement[] = node[name];
-      const statement = statements[index];
-      const define = getStatementDefine(statement);
-      const state = define.logic
-        ? {
-            id: "id" in statement ? statement.id : "",
-            op: logicOperation.operate,
-            logic: statement as { lid: string } & Statement.Logic,
-          }
-        : ({ ...statement } as StatementState);
-      if (!("cid" in state)) {
-        state.cid =
-          index > 0
-            ? (statements[index - 1] as { id?: Statement.ID })?.id ?? ""
-            : "";
-      }
-      return setDialogState({ index, resolve, statement: state });
+    const statements: Statement[] = node[name];
+    const statement = statements[index];
+    const define = getStatementDefine(statement);
+    const state = define.logic
+      ? {
+          id: "id" in statement ? statement.id : "",
+          op: logicOperation.operate,
+          logic: statement as { lid: string } & Statement.Logic,
+        }
+      : ({ ...statement } as StatementState);
+    if (!("cid" in state)) {
+      state.cid =
+        index > 0
+          ? (statements[index - 1] as { id?: Statement.ID })?.id ?? ""
+          : "";
+    }
+    return setDialogState({
+      index,
+      resolve: (value) => {
+        value == null || (statements[index] = value);
+        setDialogState(null);
+      },
+      statement: state,
     });
-    statement == null || (statements[index] = statement);
-    setDialogState(null);
-    refresh();
   };
 
   const statements: Statement[] = node[name];
@@ -387,8 +390,9 @@ function StatementDialog({
     checked: boolean
   ) => setState({ ...state, ret: checked });
 
+  const onCancel = () => resolve?.(null);
   const snack = Snack.use();
-  const submit = () => {
+  const onSubmit = () => {
     const statement: StatementState | Statement = { op: define.operate };
     if (!define.noId) {
       if (invalidId(state.id, define.optId)) {
@@ -480,7 +484,11 @@ function StatementDialog({
 
   return (
     resolve && (
-      <Dialog open={true} sx={{ backdropFilter: "blur(3px)" }}>
+      <Dialog
+        open={true}
+        sx={{ backdropFilter: "blur(3px)" }}
+        onKeyDown={inputOnKeyDown({ onCancel, onSubmit })}
+      >
         <DialogTitle sx={{ minWidth: "16em" }}>
           {trans(
             statement.op == null ? "Append statement" : "Modify statement"
@@ -565,8 +573,8 @@ function StatementDialog({
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => resolve(null)}>{trans("CANCEL")}</Button>
-          <Button onClick={submit}>{trans("SUBMIT")}</Button>
+          <Button onClick={onCancel}>{trans("CANCEL")}</Button>
+          <Button onClick={onSubmit}>{trans("SUBMIT")}</Button>
         </DialogActions>
       </Dialog>
     )
