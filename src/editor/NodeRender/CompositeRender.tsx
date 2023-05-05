@@ -112,8 +112,8 @@ export default function CompositeRender({
     const node1 = nodes[index];
     const node2 = nodes[swapTo];
     const action = trans("Swap nodes");
-    const alias1 = node1.alias || trans(node1.type);
-    const alias2 = node2.alias || trans(node2.type);
+    const alias1 = getNodeAlias(trans, node1);
+    const alias2 = getNodeAlias(trans, node2);
     undoManager.execute(`${action} [${alias1}] <-> [${alias2}]`, (redo) => {
       nodes[index] = node2;
       nodes[swapTo] = node1;
@@ -216,7 +216,7 @@ export default function CompositeRender({
     },
     prependDecorator(nodeNew) {
       const action = trans("Prepend Decorator");
-      const alias = nodeNew.alias || trans(nodeNew.type);
+      const alias = getNodeAlias(trans, nodeNew);
       const { refresh } = getDeliverParent(node);
       undoManager.execute(`${action} [${alias}]`, (redo) => {
         node.deck.push(nodeNew);

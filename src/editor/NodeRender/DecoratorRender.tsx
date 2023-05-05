@@ -123,7 +123,7 @@ export default function DecoratorRender({
               {...createNodeDropProps({
                 appendComposite(nodeNew) {
                   const action = trans("Append Composite");
-                  const alias = getNodeAlias(trans, node);
+                  const alias = getNodeAlias(trans, nodeNew);
 
                   const decorated = getDecoratedNode(node);
                   const parent = getDeliverParent(decorated);
@@ -165,7 +165,7 @@ export default function DecoratorRender({
                 },
                 prependDecorator(nodeNew) {
                   const action = trans("Prepend Decorator");
-                  const alias = nodeNew.alias || trans(nodeNew.type);
+                  const alias = getNodeAlias(trans, nodeNew);
                   undoManager.execute(`${action} [${alias}]`, (redo) => {
                     decorators.splice(index, 0, nodeNew);
                     setAutoSelect(nodeNew, true);

@@ -539,7 +539,7 @@ function NodeMenus({
       if (swap < 0 || swap >= nodes.length) return;
 
       const target = selector.selected[0].node;
-      const alias = target.alias || trans(target.type);
+      const alias = getNodeAlias(trans, target);
       const { parent } = selector.selected[0];
 
       undoManager.execute(`${moveLeftDesc} [${alias}]`, (redo) => {

@@ -1,6 +1,7 @@
 import { styled } from "@mui/material/styles";
 
 import type { Action } from "../../behavior-tree/type";
+import { getNodeAlias } from "../../behavior-tree/utils";
 import { useRefresh } from "../../components/Refresh";
 import { createNodeDropProps } from "../NodeDrop";
 import {
@@ -30,7 +31,7 @@ export default function ActionRender({
   const nodeDropProps = createNodeDropProps({
     prependDecorator(nodeNew) {
       const action = trans("Prepend Decorator");
-      const alias = nodeNew.alias || trans(nodeNew.type);
+      const alias = getNodeAlias(trans, nodeNew);
       const { refresh } = getDeliverParent(node);
       undoManager.execute(`${action} [${alias}]`, (redo) => {
         if (!node.deck) node.deck = [];
