@@ -1,20 +1,23 @@
-import { useMemo, useState, MouseEvent } from "react";
-import { createTheme, useTheme as useMUITheme } from "@mui/material/styles";
-import * as locales from "@mui/material/locale";
+import DarkModeIcon from "@mui/icons-material/DarkMode";
+import EditIcon from "@mui/icons-material/Edit";
 import LanguageIcon from "@mui/icons-material/Language";
+import LightModeIcon from "@mui/icons-material/LightMode";
 import Box from "@mui/material/Box";
+import Divider from "@mui/material/Divider";
 import IconButton from "@mui/material/IconButton";
+import ListItemIcon from "@mui/material/ListItemIcon";
+import ListItemText from "@mui/material/ListItemText";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
-import EditIcon from "@mui/icons-material/Edit";
-import ListItemIcon from "@mui/material/ListItemIcon";
+import * as locales from "@mui/material/locale";
+import { createTheme, useTheme } from "@mui/material/styles";
+import { MouseEvent, useMemo, useState } from "react";
 
-import Config from "../storage/Config";
 import { useTranslator } from "../locales/Translator";
-import ListItemText from "@mui/material/ListItemText";
-import { defaultLanguage } from "../storage/Locale";
+import Config from "../storage/Config";
+import { defaultLanguage, useTrans } from "../storage/Locale";
 
-function LocaleHandler({
+function ThemeHandler({
   config,
   language,
 }: {
@@ -41,6 +44,16 @@ function LocaleHandler({
   };
   const languaes = config?.value?.languages ?? {};
 
+  const themeMode = config?.value?.themeMode ?? "light";
+  const toggleThemeMode = () => {
+    if (config?.value == null || config.saving) return;
+    config.update({
+      ...config.value,
+      themeMode: themeMode === "light" ? "dark" : "light",
+    });
+  };
+
+  const trans = useTrans();
   return (
     <Box>
       <IconButton
@@ -62,6 +75,15 @@ function LocaleHandler({
             <ListItemText onClick={() => changeLocale(key)}>{key}</ListItemText>
           </MenuItem>
         ))}
+        <Divider />
+        <MenuItem onClick={toggleThemeMode}>
+          <ListItemIcon>
+            {themeMode === "light" ? <DarkModeIcon /> : <LightModeIcon />}
+          </ListItemIcon>
+          <ListItemText>
+            {trans(`ThemeMode.${themeMode === "light" ? "dark" : "light"}`)}
+          </ListItemText>
+        </MenuItem>
       </Menu>
       {translator.dialog}
     </Box>
@@ -76,7 +98,8 @@ export function useLocaleTheme() {
   const locale = locales[code as keyof typeof locales];
   const fontFamily = config?.value?.fontFamily || [];
 
-  const theme = useMUITheme();
+  const theme = useTheme();
+  const themeMode = config?.value?.themeMode ?? "light";
   const themeWithLocale = useMemo(
     () =>
       createTheme(
@@ -91,15 +114,21 @@ export function useLocaleTheme() {
               "monospace",
             ].join(","),
           },
+          palette: { mode: themeMode },
         },
         locale
       ),
-    [language, theme]
+    [language, theme, themeMode]
   );
 
   const handler = useMemo(
-    () => <LocaleHandler config={config} language={language} />,
+    () => <ThemeHandler config={config} language={language} />,
     [config, language]
   );
-  return { locale, theme: themeWithLocale, handler };
+  return {
+    locale,
+    theme: themeWithLocale,
+    palette: themeWithLocale.palette,
+    handler,
+  };
 }

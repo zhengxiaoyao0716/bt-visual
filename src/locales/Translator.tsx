@@ -173,7 +173,7 @@ function Content({ hide, appBar }: Props) {
                 </AccordionDetails>
               </Accordion>
             ))}
-        <Toolbar />
+        <Toolbar variant="dense" />
       </Box>
       {dialogPrompt.dialog}
       {moveableList.itemMenu}

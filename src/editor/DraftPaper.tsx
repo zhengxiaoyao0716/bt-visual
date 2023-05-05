@@ -1,8 +1,8 @@
-import styled from "@emotion/styled";
 import CenterFocusWeakIcon from "@mui/icons-material/CenterFocusWeak";
 import FullscreenIcon from "@mui/icons-material/Fullscreen";
 import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
 import IconButton from "@mui/material/IconButton";
+import { styled, useTheme } from "@mui/material/styles";
 import { MouseEvent, useEffect, useRef, useState, WheelEvent } from "react";
 
 import { useDragMoving } from "../components/DragMoving";
@@ -16,21 +16,26 @@ interface Props {
   children?: JSX.Element;
 }
 
-const gridBackground = ({ size }: { size: number }) => {
-  const gradientArgs = `transparent ${size - size / 16}px, #dddddd ${size}px`;
-  const gradient = (direction: "left" | "top") =>
-    `linear-gradient(${direction}, ${gradientArgs})`;
-  const gradientLeft = gradient("left");
-  const gradientTop = gradient("top");
-  return [
-    `background-image: -webkit-${gradientLeft}, -webkit-${gradientTop};`,
-    `background-image: ${gradientLeft}, ${gradientTop};`,
-    `background-size: ${size}px ${size}px`,
-  ];
+const gridBackground = (size: number, color: string) => {
+  const gradientArgs = `${color}, transparent 5%`;
+  const gradientLeft = `linear-gradient(0deg, ${gradientArgs})`;
+  const gradientTop = `linear-gradient(90deg, ${gradientArgs})`;
+  return {
+    // backgroundImage: `-webkit-${gradientLeft}, -webkit-${gradientTop}`,
+    backgroundImage: `${gradientLeft}, ${gradientTop}`,
+    backgroundSize: `${size}px ${size}px`,
+  };
 };
-const Container = styled.div`
+const GridBackground = styled("div")`
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  background-origin: content-box;
+`;
+const Container = styled("div")`
   flex-grow: 1;
-  margin: 1em;
+  margin: 0.5em;
   overflow: hidden;
   display: flex;
   justify-content: center;
@@ -38,9 +43,8 @@ const Container = styled.div`
   &.dragging {
     cursor: move;
   }
-  ${gridBackground}
 `;
-const Paper = styled.div`
+const Paper = styled("div")`
   transform-origin: center top;
   pointer-events: none;
   user-select: none;
@@ -52,6 +56,7 @@ const initScale = 1.0;
 export default function DraftPaper({ readonly, children }: Props) {
   const config = Config.use();
   const trans = useTrans();
+  const { palette } = useTheme();
   if (config?.value == null) return null; // never
 
   const ref = useRef<HTMLDivElement>(null);
@@ -83,7 +88,9 @@ export default function DraftPaper({ readonly, children }: Props) {
     if (event.deltaY > 0 && scaleNew < 0.05) return;
     setScale(scaleNew);
 
-    const $content = event.currentTarget?.children?.[0] as HTMLDivElement;
+    const $children = event.currentTarget?.children;
+    if ($children == null) return;
+    const $content = $children[$children.length - 1];
     const domRect = $content.getBoundingClientRect() as DOMRect;
     const offsetX = event.clientX - domRect.left - domRect.width / 2; // - moveX;
     const offsetY = event.clientY - domRect.top; // - moveY;
@@ -128,19 +135,35 @@ export default function DraftPaper({ readonly, children }: Props) {
     ]);
   }, [readonly]);
 
+  const gridZoom = scale > 1 ? 32 : (Math.sqrt(1 / scale) | 0) * 32;
   return (
     <Container
       ref={ref}
       className={dragging ? "dragging" : undefined}
       onWheel={onWheel}
-      onContextMenu={(event) => event.preventDefault()}
+      onContextMenu={(event) =>
+        isInvalidEventTarget(event) || event.preventDefault()
+      }
       {...movingProps}
-      size={32 * scale}
-      style={{
-        margin: "6px",
-        backgroundPosition: `${moveX}px ${moveY}px`,
-      }}
     >
+      <GridBackground
+        style={{
+          backgroundPosition: `${moveX}px ${moveY}px`,
+          ...gridBackground(
+            scale * gridZoom * 2,
+            palette.grey[palette.mode === "light" ? 300 : 800]
+          ),
+        }}
+      />
+      <GridBackground
+        style={{
+          backgroundPosition: `${moveX}px ${moveY}px`,
+          ...gridBackground(
+            scale * gridZoom,
+            palette.grey[palette.mode === "light" ? 300 : 800]
+          ),
+        }}
+      />
       <Paper
         style={{
           transform: `translate(${moveX}px, ${moveY}px) scale(${scale})`,

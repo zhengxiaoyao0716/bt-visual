@@ -359,9 +359,10 @@ export default function Workspace({
       {dialog}
       <Box
         sx={{
+          backgroundColor: ({ palette }) => palette.background.paper,
           flex: "0 0",
           borderTop: 1,
-          borderColor: "divider",
+          borderColor: ({ palette }) => palette.divider,
         }}
       >
         {tabs}

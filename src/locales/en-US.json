@@ -8,6 +8,8 @@
   "REMOVE": "REMOVE",
 
   "// menu items": "",
+  "ThemeMode.light": "Light",
+  "ThemeMode.dark": "Dark",
   "HomePage": "HOME",
   "EditorPage": "EDITOR",
   "HelpPage": "HELP",

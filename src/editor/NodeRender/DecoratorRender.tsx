@@ -1,9 +1,9 @@
-import styled from "@emotion/styled";
 import autoAnimate from "@formkit/auto-animate";
+import { styled } from "@mui/material/styles";
 import { useEffect, useRef } from "react";
 
 import { AutoRender } from ".";
-import type { Action, Composite, Decorator } from "../../behavior-tree/type";
+import type { Action, Composite } from "../../behavior-tree/type";
 import {
   getDecoratedNode,
   getNodeAlias,
@@ -25,14 +25,14 @@ import NodeSvgRender, {
   troggleNodeFoldHandler,
 } from "./NodeSvgRender";
 
-const DecoratorContainer = styled.div`
+const DecoratorContainer = styled("div")`
   display: flex;
   flex-direction: column;
   align-items: center;
   position: relative;
   padding-top: 16px;
 `;
-const DecoratorCard = styled.div`
+const DecoratorCard = styled("div")`
   padding: 0px 8px 0 8px;
   display: flex;
   flex-direction: column;
@@ -40,7 +40,7 @@ const DecoratorCard = styled.div`
     user-select: none;
   }
 `;
-const DecoratorNode = styled.div`
+const DecoratorNode = styled("div")`
   margin-top: -16px;
 `;
 
@@ -144,6 +144,7 @@ export default function DecoratorRender({
                       parent.composite.nodes[index] = nodeNew;
                       redo || parent.refresh();
                     }
+                    setAutoSelect(nodeNew, true);
                     triggerRedrawLines(ref.current);
                     return () => {
                       decorators.push(...retains);
@@ -157,22 +158,23 @@ export default function DecoratorRender({
                         const index = parent.composite.nodes.indexOf(nodeNew);
                         parent.composite.nodes[index] = decorated;
                       }
+                      setAutoSelect(node, true);
                       triggerRedrawLines(ref.current);
                     };
                   });
-                  setAutoSelect(node, true);
                 },
                 prependDecorator(nodeNew) {
                   const action = trans("Prepend Decorator");
                   const alias = nodeNew.alias || trans(nodeNew.type);
                   undoManager.execute(`${action} [${alias}]`, (redo) => {
                     decorators.splice(index, 0, nodeNew);
+                    setAutoSelect(nodeNew, true);
                     redo || refresh();
                     return () => {
                       decorators.splice(index, 1);
+                      setAutoSelect(node, true);
                     };
                   });
-                  setAutoSelect(nodeNew, true);
                 },
               })}
               node={node}

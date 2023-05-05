@@ -1,5 +1,4 @@
 import { Dispatch, MouseEvent, useState } from "react";
-import styled from "@emotion/styled";
 
 export type DragListeners<E extends MouseEvent> = {
   [event in "onMouseDown" | "onMouseMove" | "onMouseUp" | "onMouseLeave"]: (

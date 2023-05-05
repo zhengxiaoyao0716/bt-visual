@@ -1,3 +1,4 @@
+import { PaletteMode } from "@mui/material";
 import { createStorage } from "./Storage";
 
 export const defaultConfig = {
@@ -7,9 +8,10 @@ export const defaultConfig = {
     // 日本語: "jaJP",
   } as { [name: string]: string },
   language: undefined as undefined | string,
+  themeMode: "light" as PaletteMode,
   showTransWarning: false,
   nodeLibs: {
-    fold: {
+    expanded: {
       Composite: false,
       Decorator: false,
       Action: false,

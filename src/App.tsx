@@ -1,4 +1,3 @@
-import { ThemeProvider } from "@emotion/react";
 import AccountTreeIcon from "@mui/icons-material/AccountTree";
 import BugReportIcon from "@mui/icons-material/BugReport";
 import HomeIcon from "@mui/icons-material/Home";
@@ -9,6 +8,7 @@ import Divider from "@mui/material/Divider";
 import List from "@mui/material/List";
 import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
+import { ThemeProvider } from "@mui/material/styles";
 import { Route, Routes } from "react-router-dom";
 
 import globalShare from "./common/share";
@@ -31,7 +31,7 @@ function SideBarMenu() {
   const shareSideBars = globalShare?.sideBars ?? [];
   return (
     <>
-      <Toolbar />
+      <Toolbar variant="dense" />
       <Divider />
       <List component="nav">
         {renderListItem([<HomeIcon />, trans("HomePage"), Home.route])}
@@ -51,10 +51,10 @@ function SideBarMenu() {
 }
 
 function App() {
-  const localeTheme = useLocaleTheme();
-  const sideBar = useSideBar(renderMenuIcon, <SideBarMenu />);
   const config = Config.use();
+  const localeTheme = useLocaleTheme();
   const Locale = createLocale(config?.value?.language ?? defaultLanguage);
+  const sideBar = useSideBar(renderMenuIcon, <SideBarMenu />);
 
   const toolBarSlotRef = ToolBarSlot.useRef();
 
@@ -62,9 +62,9 @@ function App() {
     return (
       <Box>
         <AppBar>
-          <Toolbar />
+          <Toolbar variant="dense" />
         </AppBar>
-        <Toolbar />
+        <Toolbar variant="dense" />
         <Box sx={{ textAlign: "center" }} color="red">
           <Typography>{String(config.error)}</Typography>
         </Box>
@@ -72,6 +72,7 @@ function App() {
     );
   }
 
+  const { palette } = localeTheme.theme;
   return (
     <ThemeProvider theme={localeTheme.theme}>
       <Box sx={{ display: "flex" }}>
@@ -82,9 +83,9 @@ function App() {
             locale?.value == null ? (
               <Box>
                 <AppBar>
-                  <Toolbar />
+                  <Toolbar variant="dense" />
                 </AppBar>
-                <Toolbar />
+                <Toolbar variant="dense" />
                 <Loading />
               </Box>
             ) : (
@@ -93,7 +94,7 @@ function App() {
                   position="fixed"
                   sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}
                 >
-                  <Toolbar>
+                  <Toolbar variant="dense">
                     {sideBar.handler}
                     <Box sx={{ ml: 2 }} />
                     <ToolBarSlot.Node slotRef={toolBarSlotRef} />
@@ -108,7 +109,7 @@ function App() {
                   id="main"
                   component="main"
                   sx={{
-                    backgroundColor: ({ palette }) =>
+                    backgroundColor:
                       palette.grey[palette.mode === "light" ? 100 : 900],
                     flexGrow: 1,
                     height: "100vh",
@@ -117,7 +118,7 @@ function App() {
                     flexDirection: "column",
                   }}
                 >
-                  <Toolbar />
+                  <Toolbar variant="dense" />
                   <ToolBarSlot.Provider value={toolBarSlotRef}>
                     <Routes>
                       <Route path={Home.route}>

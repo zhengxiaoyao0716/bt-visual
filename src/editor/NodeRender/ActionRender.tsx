@@ -1,6 +1,6 @@
-import styled from "@emotion/styled";
+import { styled } from "@mui/material/styles";
 
-import type { Action, Decorator } from "../../behavior-tree/type";
+import type { Action } from "../../behavior-tree/type";
 import { useRefresh } from "../../components/Refresh";
 import { createNodeDropProps } from "../NodeDrop";
 import {
@@ -12,7 +12,7 @@ import {
 import Undo from "../Undo";
 import NodeSvgRender, { SubProps } from "./NodeSvgRender";
 
-const ActionCard = styled.div`
+const ActionCard = styled("div")`
   position: relative;
   padding: 16px;
 `;
@@ -35,12 +35,13 @@ export default function ActionRender({
       undoManager.execute(`${action} [${alias}]`, (redo) => {
         if (!node.deck) node.deck = [];
         node.deck.push(nodeNew);
+        setAutoSelect(nodeNew, true);
         redo || refresh();
         return () => {
+          setAutoSelect(node, true);
           node.deck?.pop();
         };
       });
-      setAutoSelect(nodeNew, true);
     },
   });
 

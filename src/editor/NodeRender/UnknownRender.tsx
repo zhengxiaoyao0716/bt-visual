@@ -1,9 +1,9 @@
-import styled from "@emotion/styled";
+import { styled } from "@mui/material/styles";
 
 import { Node } from "../../behavior-tree/type";
 import NodeSvgRender, { SubProps } from "./NodeSvgRender";
 
-const UnknownCard = styled.div`
+const UnknownCard = styled("div")`
   position: relative;
   padding: 16px;
 `;

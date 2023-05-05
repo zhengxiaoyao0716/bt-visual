@@ -1,4 +1,3 @@
-import styled from "@emotion/styled";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import ArrowDropUpIcon from "@mui/icons-material/ArrowDropUp";
 import ArrowLeftIcon from "@mui/icons-material/ArrowLeft";
@@ -23,6 +22,7 @@ import {
   useRef,
 } from "react";
 
+import { styled } from "@mui/material/styles";
 import type {
   Action,
   Composite,
@@ -51,13 +51,16 @@ import { LockerContext } from "./NodeRender/NodeLocker";
 import { PropertiesContext, useNodePropsEditor } from "./Properties";
 import Undo, { UndoManager } from "./Undo";
 
-const SelectionBox = styled.div`
-  position: fixed;
-  z-index: 1;
-  border: 1px dashed #999;
-  box-shadow: inset 0 0 3px 1px #999;
-  background: rgb(200, 200, 200, 0.1);
-`;
+const SelectionBox = styled("div")(({ theme: { palette } }) => {
+  const color = palette.grey[palette.mode === "light" ? 400 : 600];
+  return {
+    position: "fixed",
+    zIndex: 1,
+    border: `1px dashed ${color}`,
+    boxShadow: `inset 0 0 3px 1px ${color}`,
+    background: `${color}33`,
+  };
+});
 
 export const boxSelectEventKey = "boxSelectionCollide";
 
@@ -383,10 +386,11 @@ function NodeMenus({
         const parent = getDeliverParent(root);
         undoManager.execute(`${copyDesc} [${alias}]`, (_redo) => {
           tree.root = copied;
-          setAutoSelect(tree, true);
+          setAutoSelect(copied, true);
           parent.refresh();
           return () => {
             tree.root = root;
+            setAutoSelect(root, true);
             parent.refresh();
           };
         });
@@ -408,6 +412,7 @@ function NodeMenus({
           setAutoSelect(node, true);
           return () => {
             deck.splice(index, copiedDeck.length);
+            setAutoSelect(node, true);
             parent.refresh();
             "redrawLines" in parent && parent.redrawLines();
           };
@@ -426,8 +431,8 @@ function NodeMenus({
 
       undoManager.execute(`${copyDesc} [${alias}]`, (redo) => {
         "fold" in node && delete (node as { fold?: true }).fold;
-        deck && deck.push(...copiedDeck);
-        nodes && nodes.push(...copiedNodes);
+        deck != null && deck.push(...copiedDeck);
+        nodes != null && nodes.push(...copiedNodes);
         redo || parent.refresh();
         "redrawLines" in parent && parent.redrawLines();
         setAutoSelect(selected, true);
@@ -439,9 +444,9 @@ function NodeMenus({
             nodes.splice(nodes.length - copiedNodes.length, copiedNodes.length);
           parent.refresh();
           "redrawLines" in parent && parent.redrawLines();
+          setAutoSelect(selected, true);
         };
       });
-      hidePropsEditor();
     };
 
     selector.remove = () => {
@@ -500,13 +505,13 @@ function NodeMenus({
       };
       undoManager.execute(`${removeDesc} [${alias}]`, (redo) => {
         const undoTasks = tasks.map((task) => task());
+        hidePropsEditor();
         refresh(redo);
         return () => {
           undoTasks.reverse().forEach((task) => task());
           refresh(false);
         };
       });
-      hidePropsEditor();
       cancelAllSelected(selector);
       selector.refresh();
     };
@@ -529,11 +534,6 @@ function NodeMenus({
       }
     );
 
-    const autoSelect = (parent: DeliverParent, node: Node) => {
-      setSelected(node, true);
-      selector.selected = [{ parent, node }];
-    };
-
     const swapNode = (nodes: Node[], index: number, swap: number) => {
       if (swap < 0 || swap >= nodes.length) return;
 
@@ -542,13 +542,13 @@ function NodeMenus({
       const { parent } = selector.selected[0];
 
       undoManager.execute(`${moveLeftDesc} [${alias}]`, (redo) => {
-        autoSelect(parent, target);
+        setAutoSelect(target, true);
         const node = nodes[index];
         nodes[index] = nodes[swap];
         nodes[swap] = node;
         if ("tree" in parent) {
           return () => {
-            autoSelect(parent, target);
+            setAutoSelect(target, true);
             nodes[swap] = nodes[index];
             nodes[index] = node;
           };
@@ -556,7 +556,7 @@ function NodeMenus({
         redo || parent.refresh();
         parent.redrawLines();
         return () => {
-          autoSelect(parent, target);
+          setAutoSelect(target, true);
           nodes[swap] = nodes[index];
           nodes[index] = node;
           redo || parent.refresh();
@@ -662,20 +662,19 @@ function NodeMenus({
 
   return (
     <Box
-      sx={{
+      sx={({ palette }) => ({
         position: "absolute",
         right: "2em",
         top: "2em",
         display: "flex",
         width: "fit-content",
-        border: (theme) => `1px solid ${theme.palette.divider}`,
+        border: `1px solid ${palette.divider}`,
         borderRadius: 1,
-        backgroundColor: "#ffffff99",
         backdropFilter: "blur(3px)",
         "& hr": {
-          borderLeft: (theme) => `1px solid ${theme.palette.divider}`,
+          borderLeft: `1px solid ${palette.divider}`,
         },
-      }}
+      })}
     >
       {locked || vertical == null ? null : (
         <>

@@ -38,7 +38,7 @@ export function useDialogPage(Content: ComponentType<Props>) {
 
   const appBar = (children: ReactNode) => (
     <AppBar sx={{ position: "relative" }}>
-      <Toolbar>
+      <Toolbar variant="dense">
         <IconButton
           edge="start"
           color="inherit"

@@ -1,4 +1,4 @@
-import styled from "@emotion/styled";
+import { styled } from "@mui/material/styles";
 import { useContext, useEffect } from "react";
 
 import type { Action, Composite, Tree } from "../../behavior-tree/type";
@@ -19,12 +19,12 @@ import { LockerContext } from "./NodeLocker";
 import NodeSvgRender, { Props, ROOT_TYPE, SubProps } from "./NodeSvgRender";
 import UnknownRender from "./UnknownRender";
 
-const RootContainer = styled.div`
+const RootContainer = styled("div")`
   position: relative;
   text-align: center;
 `;
 
-const RootCard = styled.div`
+const RootCard = styled("div")`
   position: relative;
   text-align: center;
   margin: 12px 0 -24px 0;
@@ -55,12 +55,13 @@ export default function NodeRender({
       nodeNew.nodes.push(root);
       undoManager.execute(`${action} [${alias}]`, (redo) => {
         tree.root = nodeNew;
+        setAutoSelect(nodeNew, true);
         redo || refresh();
         return () => {
           tree.root = root;
+          setAutoSelect(root, true);
         };
       });
-      setAutoSelect(nodeNew, true);
     },
   });
 

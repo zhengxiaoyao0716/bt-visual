@@ -1,14 +1,9 @@
-import styled from "@emotion/styled";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
 import AddIcon from "@mui/icons-material/Add";
+import { styled } from "@mui/material/styles";
 import { useMemo, useRef } from "react";
 
-import type {
-  Action,
-  Composite,
-  Decorator,
-  Node,
-} from "../../behavior-tree/type";
+import type { Composite, Node } from "../../behavior-tree/type";
 import { getNodeAlias } from "../../behavior-tree/utils";
 import { autoAttachKey } from "../../common/ExtValue";
 import { useRefresh } from "../../components/Refresh";
@@ -23,9 +18,9 @@ import {
 import Undo from "../Undo";
 import DecoratorRender from "./DecoratorRender";
 import LineRender, {
-  disableDropClass,
   DraggingData,
   LineDropArea,
+  disableDropClass,
   lineToParentClass,
   triggerRedrawLines,
 } from "./LineRender";
@@ -34,19 +29,19 @@ import NodeSvgRender, {
   troggleNodeFoldHandler,
 } from "./NodeSvgRender";
 
-const CompositeContainer = styled.div`
+const CompositeContainer = styled("div")`
   border: 1px dashed #999;
   position: relative;
   pointer-events: none;
   margin: 0 8px;
   height: fit-content;
 `;
-const CompositeCard = styled.div`
+const CompositeCard = styled("div")`
   position: relative;
   padding: 16px;
   text-align: center;
 `;
-const CompositeNodes = styled.div`
+const CompositeNodes = styled("div")`
   display: flex;
   justify-content: center;
   position: relative;
@@ -185,37 +180,39 @@ export default function CompositeRender({
   });
 
   const nodeDropProps = createNodeDropProps({
-    appendComposite(node) {
+    appendComposite(nodeNew) {
       const action = trans("Append Composite");
-      const alias = getNodeAlias(trans, node);
+      const alias = getNodeAlias(trans, nodeNew);
       undoManager.execute(`${action} [${alias}]`, (redo) => {
         checkUnfold();
-        nodes.push(node);
+        nodes.push(nodeNew);
+        setAutoSelect(nodeNew, true);
         redo || refresh();
         triggerRedrawLines(ref.current);
         return () => {
           checkUnfold();
           nodes.pop();
+          setAutoSelect(node, true);
           triggerRedrawLines(ref.current);
         };
       });
-      setAutoSelect(node, true);
     },
-    appendAction(node) {
+    appendAction(nodeNew) {
       const action = trans("Append Action");
-      const alias = getNodeAlias(trans, node);
+      const alias = getNodeAlias(trans, nodeNew);
       undoManager.execute(`${action} [${alias}]`, (redo) => {
         checkUnfold();
-        nodes.push(node);
+        nodes.push(nodeNew);
+        setAutoSelect(nodeNew, true);
         redo || refresh();
         triggerRedrawLines(ref.current);
         return () => {
           checkUnfold();
           nodes.pop();
+          setAutoSelect(node, true);
           triggerRedrawLines(ref.current);
         };
       });
-      setAutoSelect(node, true);
     },
     prependDecorator(nodeNew) {
       const action = trans("Prepend Decorator");
@@ -223,12 +220,13 @@ export default function CompositeRender({
       const { refresh } = getDeliverParent(node);
       undoManager.execute(`${action} [${alias}]`, (redo) => {
         node.deck.push(nodeNew);
+        setAutoSelect(nodeNew, true);
         redo || refresh();
         return () => {
           node.deck.pop();
+          setAutoSelect(node, true);
         };
       });
-      setAutoSelect(nodeNew, true);
     },
   });
 

@@ -100,7 +100,6 @@ export default function Datasource({
                 top: "2em",
                 left: "2em",
                 width: "12em",
-                backgroundColor: "#ffffff99",
                 backdropFilter: "blur(3px)",
               }}
             />

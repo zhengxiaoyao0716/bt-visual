@@ -1,11 +1,11 @@
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import IconButton from "@mui/material/IconButton";
-import styled from "@emotion/styled";
+import { styled } from "@mui/material/styles";
 
-import Config from "../../storage/Config";
 import { useWindowSize } from "../../components/WindowSize";
+import Config from "../../storage/Config";
 
-const HelpWidget = styled.div`
+const HelpWidget = styled("div")`
   position: fixed;
   overflow: visible;
   &::before {

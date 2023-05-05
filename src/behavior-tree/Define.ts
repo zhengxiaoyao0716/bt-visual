@@ -59,9 +59,10 @@ interface ValidOptions {
 }
 
 export interface NodeDefine {
+  desc?: string;
+  path?: string;
   props?: NodeProps;
   shape?: string;
-  desc?: string;
   valid?: ValidOptions; // 额外校验参数
 }
 
@@ -149,6 +150,7 @@ const nodes: typeof Settings & BTDefines = {
   Decorator: {
     "@Condition": {
       desc: "条件侦听 // 条件满足时执行 node，执行完毕返回其执行结果，期间监听条件变化，若条件不满足了则中断 node 返回失败。",
+      path: "test",
       props: {
         suspend: {
           desc: "是否需要挂起 // false: 直接失败, true: 暂时挂起",
@@ -165,6 +167,7 @@ const nodes: typeof Settings & BTDefines = {
     },
     "@SwarmShout": {
       desc: "群体呼唤 // 根据策略选定目标，选定成功则激发群体讯号并执行 node",
+      path: "swarm",
       props: {
         flag: {
           desc: "识别讯号",
@@ -178,6 +181,7 @@ const nodes: typeof Settings & BTDefines = {
     },
     "@SwarmReply": {
       desc: "群体响应 // 响应周围的群体讯号，目标一致则加入该群体并执行 node",
+      path: "swarm",
       props: {
         flag: {
           desc: "识别讯号",
@@ -191,6 +195,7 @@ const nodes: typeof Settings & BTDefines = {
     },
     "@SwarmAssign": {
       desc: "群体分派 // 满足条件则占用一个名额并执行 node，执行失败时释放名额",
+      path: "swarm/test",
       props: {
         seats: {
           desc: "最大分派名额，留空则不限制",

@@ -1,11 +1,11 @@
-import styled from "@emotion/styled";
+import { styled } from "@mui/material/styles";
 import { DragEvent, useEffect, useLayoutEffect, useRef } from "react";
 import rough from "roughjs";
 
 import type { Node } from "../../behavior-tree/type";
 import { useRefresh } from "../../components/Refresh";
 
-const Anchor = styled.a`
+const Anchor = styled("a")`
   position: absolute;
   left: 50%;
   top: 16px;
@@ -211,7 +211,7 @@ export default function LineRender({
   );
 }
 
-const DropArea = styled.div`
+const DropArea = styled("div")`
   position: absolute;
   width: calc(100% + 60px);
   top: -60px;

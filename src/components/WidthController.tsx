@@ -1,15 +1,16 @@
-import styled from "@emotion/styled";
+import { Theme, styled } from "@mui/material/styles";
 
-export default styled.div`
+export default styled("div")`
   position: absolute;
-  width: 3px;
+  width: 5px;
   height: 100%;
   top: 0;
   pointer-events: visible;
   cursor: w-resize;
-  border: 1px dashed #cccccc;
-  &:hover,
-  &:active {
-    border-style: solid;
-  }
+  ${({ theme: { palette } }) =>
+    ({ pos }: { pos: "left" | "right" }) =>
+      [
+        `border-${pos}: 1px solid ${palette.divider};`,
+        `&:hover, &:active { border-${pos}: 3px solid ${palette.primary.main}; }`,
+      ]}
 `;

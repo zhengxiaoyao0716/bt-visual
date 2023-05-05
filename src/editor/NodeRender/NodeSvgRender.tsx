@@ -1,4 +1,4 @@
-import styled from "@emotion/styled";
+import { styled, useTheme } from "@mui/material/styles";
 import {
   DragEventHandler,
   MouseEvent,
@@ -80,7 +80,7 @@ export function troggleNodeFoldHandler(
   return handler;
 }
 
-const NodeSvg = styled.svg`
+const NodeSvg = styled("svg")`
   overflow: visible;
   cursor: auto;
   pointer-events: auto;
@@ -164,6 +164,7 @@ export default function NodeSvgRender({
     svg.innerHTML = shape;
   }, [shapeRef.current, shape]);
 
+  const { palette } = useTheme();
   const ref = useRef<SVGSVGElement>(null);
   useEffect(() => {
     const $svg = ref.current;
@@ -172,7 +173,7 @@ export default function NodeSvgRender({
       stroke: status.color || color,
       strokeLineDash: nodeType === "Decorator" ? [16, 8] : undefined,
       strokeWidth: 2,
-      fill: "#FFFFFF",
+      fill: palette.background.paper,
       fillStyle,
       fillWeight: 2,
       roughness: 1.5,
@@ -207,10 +208,11 @@ export default function NodeSvgRender({
     fold,
     color,
     fillStyle,
+    palette.mode,
   ]);
 
-  const textPrimaryColor = status.color || "#000000";
-  const textSecondaryColor = "#666666";
+  const textPrimaryColor = status.color || palette.text.primary;
+  const textSecondaryColor = palette.text.secondary;
   const alias =
     children == null
       ? [trans(type).slice(1)]

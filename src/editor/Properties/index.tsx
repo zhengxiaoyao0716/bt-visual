@@ -11,15 +11,15 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import {
   ComponentType,
-  createContext,
+  DragEvent,
   ReactElement,
   ReactNode,
+  createContext,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
-  DragEvent,
-  useMemo,
 } from "react";
 
 import BTDefine, { Item } from "../../behavior-tree/Define";
@@ -31,10 +31,11 @@ import type {
 } from "../../behavior-tree/type";
 import { getNodeType } from "../../behavior-tree/utils";
 import { useDragMoving } from "../../components/DragMoving";
+import VerticalScrollPanel from "../../components/VerticalScrollPanel";
 import WidthController from "../../components/WidthController";
 import DebugService from "../../service/DebugService";
 import Config from "../../storage/Config";
-import { TransFunction, useTrans } from "../../storage/Locale";
+import { TransFunction } from "../../storage/Locale";
 import { createTypeDropProps } from "../NodeDrop";
 import { LockerContext } from "../NodeRender/NodeLocker";
 import Datasource from "./Datasource";
@@ -50,18 +51,19 @@ type Option =
       type: "input";
       key: string; // 因为 TextField 用的 defaultValue，非直接控制，会导致切换面板时缓存了旧面板上的输入，所以需要 key 来辅助检测输入框变化
       label: string;
+      desc?: string;
       value?: string;
       submit?: (value: string) => void;
       multiline?: boolean;
       rows?: number;
       maxRows?: number;
       disabled?: boolean;
-      desc?: string;
     }
   | {
       type: "select";
       key: string;
       label: string;
+      desc?: string;
       value?: string | number;
       items: [string | number, string, string | undefined][];
       submit?: (value: string | number) => void;
@@ -108,6 +110,7 @@ function RenderOption({
         <TextField
           key={`${option.key}#${option.value}`}
           label={option.label}
+          title={option.desc}
           fullWidth
           multiline={option.multiline}
           rows={option.rows}
@@ -118,7 +121,6 @@ function RenderOption({
           }
           disabled={option.disabled}
           sx={{ mb: 2 }}
-          title={option.desc}
         />
       );
     }
@@ -128,6 +130,7 @@ function RenderOption({
           fullWidth
           key={`${option.key}#${option.value}`}
           sx={{ mb: 2 }}
+          title={option.desc}
         >
           <InputLabel>{option.label}</InputLabel>
           <Select
@@ -258,27 +261,17 @@ export default function Properties({
           {children}
         </PropertiesContext.Provider>
         {properties.width <= 0 ? null : (
-          <Stack
-            sx={{
-              width: `${properties.width}px`,
-              padding: "0.5em 0.5em 0 1em ",
-              flex: "0 0 auto",
-              height: "100%",
-              overflowY: "scroll",
-              "&::-webkit-scrollbar": {
-                display: "none",
-              },
-            }}
-          >
+          <VerticalScrollPanel style={{ width: `${properties.width}px` }}>
             {(options || defaultOptions).map((option, index) => (
               <RenderOption key={index} trans={trans} option={option} />
             ))}
-          </Stack>
+          </VerticalScrollPanel>
         )}
       </Datasource>
       <WidthController
+        pos="right"
         style={{
-          right: `${Math.max(0, properties.width - 10) - wcLeft}px`,
+          right: `${Math.max(0, properties.width) - wcLeft}px`,
         }}
         ref={widthControllerRef}
         onDoubleClick={troggleWidth}
@@ -343,6 +336,7 @@ export function useNodePropsEditor(trans: TransFunction, refresh: () => void) {
       show(node); // 节点类型变了，需要重新刷新面板
     };
     const nodes = define.value[nodeType];
+    const { desc, props = {} } = nodes[node.type] || {};
 
     const options: Option[] = [
       {
@@ -359,6 +353,7 @@ export function useNodePropsEditor(trans: TransFunction, refresh: () => void) {
         type: "select",
         key: depsKey, // 每次切换节点必定刷新
         label: trans("Node Type"),
+        desc,
         value: node.type,
         items: Object.entries(nodes).map(([type, define]) => [
           type,
@@ -392,7 +387,6 @@ export function useNodePropsEditor(trans: TransFunction, refresh: () => void) {
         reason: trans("Node define not found!"),
       });
 
-    const { props = {} } = nodes[node.type] || {};
     const propNames = Object.keys(props);
     if (propNames.length > 0) {
       options.push({ type: "divider" });
