@@ -157,12 +157,13 @@ export default function Undo({
                 onClick={goto.bind(null, index)}
               >
                 <Typography
-                  color={({ palette }) =>
-                    palette.text[
-                      !locked && index < current ? "primary" : "secondary"
-                    ]
-                  }
-                  sx={{ width: "100%" }}
+                  sx={{
+                    width: "100%",
+                    color: ({ palette }) =>
+                      palette.text[
+                        !locked && index < current ? "primary" : "secondary"
+                      ],
+                  }}
                 >
                   <small>{index + 1}. </small>
                   {action?.desc}
@@ -186,7 +187,6 @@ export default function Undo({
   useEffect(() => {
     toolBarSlot("Editor", "Undo", 1, [
       <IconButton
-        color="inherit"
         disabled={locked || (!undoDesc && !redoDesc)}
         title={`${trans("History")}`}
         onClick={historyEditor.show}
@@ -194,7 +194,6 @@ export default function Undo({
         <HistoryToggleOffIcon />
       </IconButton>,
       <IconButton
-        color="inherit"
         disabled={locked || !undoDesc}
         title={`${trans("Undo")} ${undoDesc}`}
         onClick={undo}
@@ -202,7 +201,6 @@ export default function Undo({
         <RestoreIcon />
       </IconButton>,
       <IconButton
-        color="inherit"
         disabled={locked || !redoDesc}
         title={`${trans("Redo")} ${redoDesc}`}
         onClick={redo}

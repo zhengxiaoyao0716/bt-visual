@@ -1,11 +1,5 @@
 import { Store } from "../behavior-tree/type";
 
-interface SideBar {
-  title: string;
-  href?: string;
-  target?: string;
-}
-
 export interface StorageLike {
   load<T>(path: string, init: T): Promise<T>;
   save<T>(path: string, data: T): Promise<void>;
@@ -60,7 +54,6 @@ export interface DatasourceDriver {
 }
 
 interface Share {
-  sideBars?: SideBar[];
   // pywebview 不支持浏览器 fullscreen api，留个接口
   troggleFullscreen?: () => Promise</*isFullscreen*/ boolean>;
   // pywebview 不支持在 webview 内直接打开新标签，留个接口

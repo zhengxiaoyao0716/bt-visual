@@ -16,7 +16,7 @@ function defaultDriver(
       return store["id"] as string | number;
     },
     exist(_name, bind, _type) {
-      return bind in store;
+      return bind !== "_";
     },
     read(_name, bind, _type) {
       return store[bind] as Store.Value | undefined;

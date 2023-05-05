@@ -1,10 +1,11 @@
 import Box from "@mui/material/Box";
 import Divider from "@mui/material/Divider";
-import { ReactNode, useEffect } from "react";
 import {
-  createContext,
   MutableRefObject,
+  ReactNode,
+  createContext,
   useContext,
+  useEffect,
   useRef,
   useState,
 } from "react";
@@ -45,20 +46,19 @@ export function createSlot() {
     const nodes = Object.entries(slot.value)
       .sort(([, { order: order1 }], [, { order: order2 }]) => order1 - order2)
       .map(([id, { nodes }]) => (
-        <Box
-          key={`${slot.type}/${id}`}
-          sx={{
-            display: "flex",
-            alignItems: "center",
-          }}
-        >
-          <Divider orientation="vertical" flexItem sx={{ mx: 2 }} />
+        <Box key={`${slot.type}/${id}`}>
           {nodes.map((node, index) => (
             <Box key={index}>{node}</Box>
           ))}
+          <Divider sx={{ my: 2 }} />
         </Box>
       ));
-    return <>{nodes}</>;
+    return (
+      <>
+        <Divider sx={{ my: 2 }} />
+        {nodes}
+      </>
+    );
   }
 
   return {

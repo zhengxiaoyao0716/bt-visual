@@ -114,17 +114,12 @@ export default function DraftPaper({ readonly, children }: Props) {
 
     const toolBarType = readonly ? "Editor/Readonly" : "Editor";
     toolBarSlot(toolBarType, "Paper", 2, [
-      <IconButton
-        color="inherit"
-        title={`${trans("Reset View")}`}
-        onClick={resetView}
-      >
+      <IconButton title={`${trans("Reset View")}`} onClick={resetView}>
         <CenterFocusWeakIcon sx={{ transform: "scale(0.8)" }} />
       </IconButton>,
       <Fullscreen>
         {(fullscreen, troggle) => (
           <IconButton
-            color="inherit"
             title={`${trans(fullscreen ? "Exit Fullscreen" : "Fullscreen")}`}
             onClick={troggle}
           >

@@ -67,7 +67,7 @@ function resolveStringValue(
 function getStoreReaderInitText(
   value: Exclude<Store.Reader, Store.Value>
 ): string {
-  if (typeof value.bind !== "number") return String(value.init);
+  if (typeof value.init !== "number") return String(value.init);
   else if (!("zoom" in value)) return String(value.init);
   const { init, zoom } = value;
   const sum = init + zoom;

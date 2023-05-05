@@ -13,6 +13,7 @@ import { usePromise } from "../components/Async";
 
 class LocalStorage implements StorageLike {
   async load<T>(path: string, init: T): Promise<T> {
+    // await new Promise((resolve) => setTimeout(resolve, 1000));
     const value = window.localStorage.getItem(path);
     if (value == null) return init;
     return JSON.parse(value);

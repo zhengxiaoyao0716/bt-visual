@@ -280,7 +280,6 @@ export default function Workspace({
       <Locker.Controller>
         {(locked, troggle) => (
           <IconButton
-            color="inherit"
             title={`${trans(locked ? "Unlock Editor" : "Lock Editor")}`}
             onClick={troggle}
           >
@@ -288,7 +287,7 @@ export default function Workspace({
           </IconButton>
         )}
       </Locker.Controller>,
-      <IconButton color="inherit" title={`${trans("SAVE")}`} onClick={save}>
+      <IconButton title={`${trans("SAVE")}`} onClick={save}>
         <SaveIcon />
       </IconButton>,
     ]);

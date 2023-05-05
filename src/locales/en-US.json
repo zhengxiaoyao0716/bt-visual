@@ -28,6 +28,7 @@
   "Node.Composite.desc": "composite nodes",
   "Node.Decorator.desc": "decorator nodes",
   "Node.Action.desc": "action nodes",
+  "Node.Group.swarm": "swarm ai",
 
   "// other": ""
 }

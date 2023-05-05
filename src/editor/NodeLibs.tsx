@@ -107,7 +107,7 @@ const NodeContainer = styled("div")`
 
 const nodesSymbol = Symbol("/nodes");
 interface NodeLibTree {
-  [path: string]: NodeLibTree;
+  [group: string]: NodeLibTree;
   [nodesSymbol]: { type: string; desc: string }[];
 }
 
@@ -140,11 +140,11 @@ function NodeLib({ config, trans, define, type }: NodeLibProps) {
     for (const [nodeType, nodeDefine] of Object.entries(define.value[type])) {
       let treeData = nodes;
       if (nodeDefine.path) {
-        for (const path of nodeDefine.path.split("/")) {
-          if (!(path in treeData)) {
-            treeData[path] = { [nodesSymbol]: [] };
+        for (const group of nodeDefine.path.split("/")) {
+          if (!(group in treeData)) {
+            treeData[group] = { [nodesSymbol]: [] };
           }
-          treeData = treeData[path];
+          treeData = treeData[group];
         }
       }
       const desc = nodeDefine.desc || `${trans(nodeType)} : ${label}`;
@@ -154,11 +154,7 @@ function NodeLib({ config, trans, define, type }: NodeLibProps) {
   }, [trans, define.value, type]);
 
   return (
-    <Box
-      sx={{
-        marginBottom: "0.5em",
-      }}
-    >
+    <Box sx={{ margin: "0 0 0.5em -0.5em" }}>
       <TreeView
         label={
           <Typography
@@ -188,10 +184,14 @@ function NodeLibTreeRender({
 }) {
   return (
     <>
-      {Object.entries(nodes).map(([path, nodes]) => (
-        <TreeItem key={path}>
+      {Object.entries(nodes).map(([group, nodes]) => (
+        <TreeItem key={group}>
           <TreeView
-            label={<Typography sx={{ userSelect: "none" }}>{path}</Typography>}
+            label={
+              <Typography sx={{ userSelect: "none" }}>
+                {trans(`Node.Group.${group}`)}
+              </Typography>
+            }
           >
             {() => (
               <NodeLibTreeRender trans={trans} define={define} nodes={nodes} />

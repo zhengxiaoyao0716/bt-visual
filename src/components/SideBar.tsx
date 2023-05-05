@@ -38,7 +38,8 @@ export function renderListItem(
 
 export function useSideBar(
   icon: (open: boolean) => JSX.Element,
-  context: JSX.Element
+  context: JSX.Element,
+  anchor: "left" | "top" | "right" | "bottom" = "left"
 ) {
   const [open, setOpen] = useState(false);
   const toggle = () => setOpen(!open);
@@ -48,7 +49,7 @@ export function useSideBar(
     </IconButton>
   );
   const drawer = (
-    <Drawer variant="temporary" open={open}>
+    <Drawer anchor={anchor} open={open} onClose={toggle}>
       {context}
     </Drawer>
   );

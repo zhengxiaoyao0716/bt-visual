@@ -152,7 +152,8 @@ export default function NodeSelector({ children }: { children: ReactNode }) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   const context = useContext(PropertiesContext);
-  const hidePropsEditor = () => context?.setOptions(null);
+  const hidePropsEditor = () =>
+    context?.type === "NodeProps" && context.setOptions(null, "");
   const snack = Snack.use();
   const undoManager = Undo.use();
 

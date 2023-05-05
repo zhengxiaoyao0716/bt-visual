@@ -181,9 +181,11 @@ function RenderOption({
   }
 }
 
+type PropertiesType = "NodeProps" | "History" | "";
 export const PropertiesContext = createContext(
   null as {
-    setOptions: (options: Option[] | null) => void;
+    type: PropertiesType;
+    setOptions: (options: Option[] | null, type: PropertiesType) => void;
   } | null
 );
 
@@ -235,7 +237,9 @@ export default function Properties({
   const [options, setOptions] = useState(null as Option[] | null);
   const context = useMemo(
     () => ({
-      setOptions(options: Option[] | null) {
+      type: "" as PropertiesType,
+      setOptions(options: Option[] | null, type: PropertiesType) {
+        context.type = type;
         setOptions(options);
         properties.width < 60 && troggleWidth();
       },
@@ -285,7 +289,7 @@ export function useHistoryEditor(
   components: ComponentType[]
 ) {
   const context = useContext(PropertiesContext);
-  const hide = () => context?.setOptions(null);
+  const hide = () => context?.setOptions(null, "");
 
   const show = () => {
     const options: Option[] = [
@@ -303,7 +307,7 @@ export function useHistoryEditor(
         (Component) => ({ type: "component", Component } as Option)
       ),
     ];
-    context?.setOptions(options);
+    context?.setOptions(options, "History");
   };
   return { hide, show };
 }
@@ -313,15 +317,16 @@ export function useNodePropsEditor(trans: TransFunction, refresh: () => void) {
   const context = useContext(PropertiesContext);
   const debugService = DebugService.use();
 
-  const hide = () => context?.setOptions(null);
+  const hide = () => context?.setOptions(null, "");
 
   const depsKey = performance.now().toString();
   const show = (node: Composite | Decorator | Action | Tree) => {
+    if (context?.type === "History") return;
     console.log("debugService", debugService); // TODO
     if (context == null) return;
 
     if ("root" in node) {
-      context.setOptions(null);
+      context.setOptions(null, "");
       return;
     }
 
@@ -410,10 +415,10 @@ export function useNodePropsEditor(trans: TransFunction, refresh: () => void) {
       }
     }
 
-    context.setOptions([
-      ...options,
-      ...unknownPropsOptions(trans, node, propNames),
-    ]);
+    context.setOptions(
+      [...options, ...unknownPropsOptions(trans, node, propNames)],
+      "NodeProps"
+    );
   };
 
   return { show, hide };

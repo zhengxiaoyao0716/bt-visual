@@ -78,6 +78,7 @@
   "Node.Composite.desc": "复合节点，可以添加在复合节点下面",
   "Node.Decorator.desc": "装饰节点，可以装饰在任意节点上面",
   "Node.Action.desc": "动作节点，可以添加在复合节点下面",
+  "Node.Group.swarm": "群体 AI",
   "Found invalid nodes, please check and fix them": "发现非法节点，请检查并修正",
 
   "// 节点列表": "",

@@ -1,7 +1,7 @@
 import DarkModeIcon from "@mui/icons-material/DarkMode";
-import EditIcon from "@mui/icons-material/Edit";
-import LanguageIcon from "@mui/icons-material/Language";
 import LightModeIcon from "@mui/icons-material/LightMode";
+import PublicIcon from "@mui/icons-material/Public";
+import SettingsIcon from "@mui/icons-material/Settings";
 import Box from "@mui/material/Box";
 import Divider from "@mui/material/Divider";
 import IconButton from "@mui/material/IconButton";
@@ -47,6 +47,7 @@ function ThemeHandler({
   const themeMode = config?.value?.themeMode ?? "light";
   const toggleThemeMode = () => {
     if (config?.value == null || config.saving) return;
+    handleClose();
     config.update({
       ...config.value,
       themeMode: themeMode === "light" ? "dark" : "light",
@@ -57,20 +58,24 @@ function ThemeHandler({
   return (
     <Box>
       <IconButton
-        size="large"
         aria-label="language"
         aria-controls="menu-appbar"
         aria-haspopup="true"
         onClick={handleOpen}
         color="inherit"
+        sx={{
+          position: "absolute",
+          bottom: 0,
+          bgcolor: ({ palette }) => palette.background.paper,
+        }}
       >
-        <LanguageIcon />
+        <SettingsIcon />
       </IconButton>
       <Menu open={anchorEl != null} anchorEl={anchorEl} onClose={handleClose}>
         {Object.keys(languaes).map((key, index) => (
           <MenuItem key={index}>
             <ListItemIcon onClick={() => editLocale(key)}>
-              <EditIcon />
+              <PublicIcon />
             </ListItemIcon>
             <ListItemText onClick={() => changeLocale(key)}>{key}</ListItemText>
           </MenuItem>
