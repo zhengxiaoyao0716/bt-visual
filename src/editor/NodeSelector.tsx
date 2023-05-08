@@ -681,14 +681,14 @@ function NodeMenus({
         <>
           <IconButton
             onClick={selector.moveUp}
-            title={moveUpDesc}
+            title={`${moveUpDesc} - Up`}
             disabled={vertical.index <= 0}
           >
             <ArrowDropUpIcon />
           </IconButton>
           <IconButton
             onClick={selector.moveDown}
-            title={moveDownDesc}
+            title={`${moveDownDesc} - Down`}
             disabled={vertical.index >= vertical.deck.length - 1}
           >
             <ArrowDropDownIcon />
@@ -700,14 +700,14 @@ function NodeMenus({
         <>
           <IconButton
             onClick={selector.moveLeft}
-            title={moveLeftDesc}
+            title={`${moveLeftDesc} - Left`}
             disabled={horizontal.index <= 0}
           >
             <ArrowLeftIcon />
           </IconButton>
           <IconButton
             onClick={selector.moveRight}
-            title={moveRightDesc}
+            title={`${moveRightDesc} - Right`}
             disabled={horizontal.index >= horizontal.nodes.length - 1}
           >
             <ArrowRightIcon />
@@ -716,12 +716,12 @@ function NodeMenus({
         </>
       )}
       {locked || selector.tree ? null : (
-        <IconButton onClick={selector.remove} title={removeDesc}>
+        <IconButton onClick={selector.remove} title={`${removeDesc} - Delete`}>
           <DeleteOutlineIcon />
         </IconButton>
       )}
       {locked ? null : (
-        <IconButton onClick={selector.paste} title={pasteDesc}>
+        <IconButton onClick={selector.paste} title={`${pasteDesc} - Ctrl+V`}>
           {selNum <= 1 && canPaste ? (
             <ContentPasteIcon fontSize="small" />
           ) : (
@@ -730,7 +730,7 @@ function NodeMenus({
         </IconButton>
       )}
       {selNum > 0 || selector.tree ? (
-        <IconButton onClick={selector.copy} title={copyDesc}>
+        <IconButton onClick={selector.copy} title={`${copyDesc} - Ctrl+C`}>
           <ContentCopyIcon fontSize="small" />
         </IconButton>
       ) : null}

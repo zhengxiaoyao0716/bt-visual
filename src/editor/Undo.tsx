@@ -60,6 +60,9 @@ export default function Undo({
   const historyRefreshRef = useRef(() => {});
   const [rfc, refreshProvider] = useRefresh();
 
+  const historyEditor = useHistoryEditor(trans, [History]);
+  useEffect(() => historyEditor.hide, [id]);
+
   const undo = useCallback(() => {
     // 懒得考虑闭包捕获问题了，保险起见，每次重新堆区 undo 堆栈
     const stack = undoStacks[id];
@@ -88,6 +91,11 @@ export default function Undo({
   useEffect(() => {
     const removeHotkeyListener = addHotkeyListener(
       document.body,
+      {
+        ctrlKey: true,
+        code: "KeyH",
+        callback: historyEditor.toggle,
+      },
       {
         ctrlKey: true,
         shiftKey: false,
@@ -175,8 +183,6 @@ export default function Undo({
       </>
     );
   }
-  const historyEditor = useHistoryEditor(trans, [History]);
-  useEffect(() => historyEditor.hide, [id]);
 
   const { tasks, current } = undoStacks[id];
   const undoDesc = tasks[current - 1]?.desc ?? undefined;
@@ -185,24 +191,24 @@ export default function Undo({
 
   const toolBarSlot = ToolBarSlot.useSlot();
   useEffect(() => {
-    toolBarSlot("Editor", "Undo", 1, [
+    toolBarSlot("Editor", "Undo", 2, [
       <IconButton
         disabled={locked || (!undoDesc && !redoDesc)}
-        title={`${trans("History")}`}
+        title={`${trans("History")} - ⌃H`}
         onClick={historyEditor.show}
       >
         <HistoryToggleOffIcon />
       </IconButton>,
       <IconButton
         disabled={locked || !undoDesc}
-        title={`${trans("Undo")} ${undoDesc}`}
+        title={`${trans("Undo")} ${undoDesc} - Ctrl+Z`}
         onClick={undo}
       >
         <RestoreIcon />
       </IconButton>,
       <IconButton
         disabled={locked || !redoDesc}
-        title={`${trans("Redo")} ${redoDesc}`}
+        title={`${trans("Redo")} ${redoDesc} - Ctrl+Shift+Z`}
         onClick={redo}
       >
         <UpdateIcon />

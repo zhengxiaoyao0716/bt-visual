@@ -13,6 +13,8 @@ import WidthController from "../components/WidthController";
 import Config from "../storage/Config";
 import { TransFunction, useTrans } from "../storage/Locale";
 import { NodeSvgRender } from "./NodeRender";
+import Container from "@mui/material/Container";
+import { useFilterKeyword } from "../components/FilterKeyword";
 
 function NodeLibs({ children }: { children: JSX.Element }) {
   const config = Config.use();
@@ -52,6 +54,8 @@ function NodeLibs({ children }: { children: JSX.Element }) {
       config.update({ ...config.value, nodeLibs: { ...nodeLibs, width } });
   };
 
+  const [filterKeyword, FilterKeyword] = useFilterKeyword();
+
   const nodeLibProps = { config, trans, define };
 
   return (
@@ -66,9 +70,18 @@ function NodeLibs({ children }: { children: JSX.Element }) {
     >
       {nodeLibs.width <= 0 ? null : (
         <VerticalScrollPanel style={{ width: `${nodeLibs.width}px` }}>
-          <NodeLib {...nodeLibProps} type="Composite" />
-          <NodeLib {...nodeLibProps} type="Decorator" />
-          <NodeLib {...nodeLibProps} type="Action" />
+          <Container sx={{ mb: 1 }}>
+            <FilterKeyword />
+          </Container>
+          {filterKeyword ? (
+            <FilteredNodes {...nodeLibProps} keyword={filterKeyword} />
+          ) : (
+            <>
+              <NodeLib {...nodeLibProps} type="Composite" />
+              <NodeLib {...nodeLibProps} type="Decorator" />
+              <NodeLib {...nodeLibProps} type="Action" />
+            </>
+          )}
         </VerticalScrollPanel>
       )}
       {children}
@@ -86,29 +99,56 @@ function NodeLibs({ children }: { children: JSX.Element }) {
 
 export default NodeLibs;
 
+function FilteredNodes({
+  trans,
+  define,
+  keyword,
+}: {
+  trans: TransFunction;
+  define: ReturnType<typeof BTDefine.use>;
+  keyword: string;
+}) {
+  if (define?.value == null) return null;
+  const ref = useRef({
+    keyword: "",
+    nodes: [] as { type: string; alias: string; desc?: string }[],
+  });
+  const nodes = useMemo(() => {
+    const continueSearch =
+      ref.current.keyword && keyword.indexOf(ref.current.keyword) >= 0;
+    const nodes = continueSearch
+      ? ref.current.nodes.filter(
+          ({ type, alias }) =>
+            type.toLocaleLowerCase().indexOf(keyword) >= 0 ||
+            alias.toLowerCase().indexOf(keyword) >= 0
+        )
+      : [
+          define.value["Composite"],
+          define.value["Decorator"],
+          define.value["Action"],
+        ]
+          .flatMap((nodes) => Object.entries(nodes))
+          .map(([type, node]) => ({
+            type,
+            alias: trans(type),
+            desc: node.desc,
+          }));
+    console.log(continueSearch);
+    ref.current = { keyword, nodes };
+    return nodes;
+  }, [keyword]);
+  return <Nodes trans={trans} define={define} nodes={nodes} />;
+}
+
+//#region node lib
 export const nodeDraggingRef = {
   draggingType: null as null | NodeType,
 };
 
-const NodeContainer = styled("div")`
-  display: inline-block;
-  margin: 0.1em 0.2em;
-  max-width: 100%;
-  & > svg {
-    cursor: grab;
-  }
-  & > svg:active {
-    cursor: grabbing;
-  }
-  & > svg > text {
-    cursor: text;
-  }
-`;
-
 const nodesSymbol = Symbol("/nodes");
 interface NodeLibTree {
   [group: string]: NodeLibTree;
-  [nodesSymbol]: { type: string; desc: string }[];
+  [nodesSymbol]: { type: string; alias: string; desc?: string }[];
 }
 
 interface NodeLibProps {
@@ -117,6 +157,7 @@ interface NodeLibProps {
   define: ReturnType<typeof BTDefine.use>;
   type: NodeType;
 }
+
 function NodeLib({ config, trans, define, type }: NodeLibProps) {
   if (type === "Unknown") return null;
   if (config?.value == null || define?.value == null) return null;
@@ -137,18 +178,18 @@ function NodeLib({ config, trans, define, type }: NodeLibProps) {
 
   const nodes = useMemo(() => {
     const nodes: NodeLibTree = { [nodesSymbol]: [] };
-    for (const [nodeType, nodeDefine] of Object.entries(define.value[type])) {
+    for (const [key, value] of Object.entries(define.value[type])) {
       let treeData = nodes;
-      if (nodeDefine.path) {
-        for (const group of nodeDefine.path.split("/")) {
+      if (value.path) {
+        for (const group of value.path.split("/")) {
           if (!(group in treeData)) {
             treeData[group] = { [nodesSymbol]: [] };
           }
           treeData = treeData[group];
         }
       }
-      const desc = nodeDefine.desc || `${trans(nodeType)} : ${label}`;
-      treeData[nodesSymbol].push({ type: nodeType, desc });
+      const alias = trans(key);
+      treeData[nodesSymbol].push({ type: key, alias, desc: value.desc });
     }
     return nodes;
   }, [trans, define.value, type]);
@@ -173,6 +214,7 @@ function NodeLib({ config, trans, define, type }: NodeLibProps) {
     </Box>
   );
 }
+
 function NodeLibTreeRender({
   trans,
   define,
@@ -200,38 +242,69 @@ function NodeLibTreeRender({
         </TreeItem>
       ))}
       <TreeItem>
-        <Box
-          sx={{
-            padding: "0.2em",
-            display: "flex",
-            flexWrap: "wrap",
-            justifyContent: "space-evenly",
-            position: "relative",
-            backgroundColor: ({ palette }) =>
-              palette.grey[palette.mode === "light" ? 100 : 900],
-            pointerEvents: "none",
-          }}
-        >
-          {nodes[nodesSymbol].map((node) => (
-            <NodeContainer
-              key={node.type}
-              title={node.desc}
-              {...createDragNodeProps({ type: node.type })}
-            >
-              <NodeSvgRender
-                locked={true}
-                trans={trans}
-                btDefine={define?.value}
-                type={node.type}
-                size={{ width: undefined, height: 25 }}
-              >
-                {trans(node.type)}
-              </NodeSvgRender>
-            </NodeContainer>
-          ))}
-        </Box>
+        <Nodes trans={trans} define={define} nodes={nodes[nodesSymbol]} />
       </TreeItem>
     </>
+  );
+}
+//#endregion
+
+//#region nodes
+const NodeContainer = styled("div")`
+  display: inline-block;
+  margin: 0.1em 0.2em;
+  max-width: 100%;
+  & > svg {
+    cursor: grab;
+  }
+  & > svg:active {
+    cursor: grabbing;
+  }
+  & > svg > text {
+    cursor: text;
+  }
+`;
+
+function Nodes({
+  trans,
+  define,
+  nodes,
+}: {
+  trans: TransFunction;
+  define: ReturnType<typeof BTDefine.use>;
+  nodes: { type: string; alias: string; desc?: string }[];
+}) {
+  return (
+    <Box
+      sx={{
+        padding: "0.2em",
+        display: "flex",
+        flexWrap: "wrap",
+        justifyContent: "space-evenly",
+        position: "relative",
+        backgroundColor: ({ palette }) =>
+          palette.grey[palette.mode === "light" ? 100 : 900],
+        pointerEvents: "none",
+      }}
+    >
+      {nodes.map((node) => (
+        <NodeContainer
+          key={node.type}
+          title={node.desc}
+          {...createDragNodeProps({ type: node.type })}
+        >
+          <NodeSvgRender
+            locked={true}
+            trans={trans}
+            btDefine={define?.value}
+            type={node.type}
+            size={{ width: undefined, height: 25 }}
+          >
+            {node.alias}
+          </NodeSvgRender>
+        </NodeContainer>
+      ))}
+    </Box>
   );
 }
 
@@ -246,3 +319,4 @@ function createDragNodeProps(node: Node) {
   };
   return { draggable: true, onDragStart, onDragEnd };
 }
+//#endregion

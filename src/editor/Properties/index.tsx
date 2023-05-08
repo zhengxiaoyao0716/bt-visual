@@ -309,7 +309,11 @@ export function useHistoryEditor(
     ];
     context?.setOptions(options, "History");
   };
-  return { hide, show };
+  const toggle = () => {
+    if (context?.type === "History") hide();
+    else show();
+  };
+  return { hide, show, toggle };
 }
 
 export function useNodePropsEditor(trans: TransFunction, refresh: () => void) {

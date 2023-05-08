@@ -280,14 +280,16 @@ export default function Workspace({
       <Locker.Controller>
         {(locked, troggle) => (
           <IconButton
-            title={`${trans(locked ? "Unlock Editor" : "Lock Editor")}`}
+            title={`${trans(
+              locked ? "Unlock Editor" : "Lock Editor"
+            )} - Ctrl+L`}
             onClick={troggle}
           >
             {locked ? <LockOpenIcon /> : <LockIcon />}
           </IconButton>
         )}
       </Locker.Controller>,
-      <IconButton title={`${trans("SAVE")}`} onClick={save}>
+      <IconButton title={`${trans("SAVE")} - Ctrl+S`} onClick={save}>
         <SaveIcon />
       </IconButton>,
     ]);

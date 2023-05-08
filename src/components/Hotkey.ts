@@ -5,19 +5,13 @@ export interface Hotkey {
   shiftKey?: boolean;
   ignore?: (event: KeyboardEvent) => boolean;
   code:
-    | "Delete"
-    | "KeyZ"
-    | "KeyY"
-    | "KeyD"
-    | "KeyC"
-    | "KeyX"
-    | "KeyV"
-    | "KeyS"
-    | "KeyL"
-    | "ArrowDown"
-    | "ArrowUp"
-    | "ArrowLeft"
-    | "ArrowRight";
+    | "KeyH" // history
+    | ("KeyZ" | "KeyY") // undo & redo
+    | ("Delete" | "KeyD") // delete
+    | ("KeyC" | "KeyX" | "KeyV") // copy & paste
+    | "KeyS" // save
+    | "KeyL" // lock
+    | ("ArrowDown" | "ArrowUp" | "ArrowLeft" | "ArrowRight"); // move
   callback: (event: KeyboardEvent) => void;
 }
 
