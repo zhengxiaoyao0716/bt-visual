@@ -1,22 +1,31 @@
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import Box from "@mui/material/Box";
+import Container from "@mui/material/Container";
+import IconButton from "@mui/material/IconButton";
 import Typography from "@mui/material/Typography";
 import { styled } from "@mui/material/styles";
-import { DragEvent, useEffect, useMemo, useRef } from "react";
+import { DragEvent, MouseEvent, useEffect, useMemo, useRef } from "react";
+import { useParams } from "react-router-dom";
 
-import BTDefine from "../behavior-tree/Define";
+import BTDefine, { BTDefines } from "../behavior-tree/Define";
 import type { Node, NodeType } from "../behavior-tree/type";
 import { getNodeType } from "../behavior-tree/utils";
 import { useDragMoving } from "../components/DragMoving";
+import { useFilterKeyword } from "../components/FilterKeyword";
 import { TreeItem, TreeView } from "../components/TreeView";
 import VerticalScrollPanel from "../components/VerticalScrollPanel";
 import WidthController from "../components/WidthController";
 import Config from "../storage/Config";
 import { TransFunction, useTrans } from "../storage/Locale";
 import { NodeSvgRender } from "./NodeRender";
-import Container from "@mui/material/Container";
-import { useFilterKeyword } from "../components/FilterKeyword";
 
-function NodeLibs({ children }: { children: JSX.Element }) {
+function NodeLibs({
+  pinnedLibs,
+  children,
+}: {
+  pinnedLibs(type: string, width: number, height: number): void;
+  children: JSX.Element;
+}) {
   const config = Config.use();
   if (config?.value == null) return null; // never
   const trans = useTrans();
@@ -56,7 +65,17 @@ function NodeLibs({ children }: { children: JSX.Element }) {
 
   const [filterKeyword, FilterKeyword] = useFilterKeyword();
 
-  const nodeLibProps = { config, trans, define };
+  const nodeLibProps = {
+    config,
+    trans,
+    define,
+    pinnedLibs: (type: string) =>
+      pinnedLibs(
+        type,
+        nodeLibs.width,
+        widthControllerRef.current?.clientHeight ?? 300
+      ),
+  };
 
   return (
     <Box
@@ -155,12 +174,13 @@ interface NodeLibProps {
   config: ReturnType<typeof Config.use>;
   trans: TransFunction;
   define: ReturnType<typeof BTDefine.use>;
+  pinnedLibs(type: string): void;
   type: NodeType;
 }
 
-function NodeLib({ config, trans, define, type }: NodeLibProps) {
+function NodeLib({ config, trans, define, pinnedLibs, type }: NodeLibProps) {
   if (type === "Unknown") return null;
-  if (config?.value == null || define?.value == null) return null;
+  if (config?.value == null) return null;
   const label = trans(`Node.${type}.name`);
 
   const nodeLibs = config.value.nodeLibs;
@@ -176,9 +196,51 @@ function NodeLib({ config, trans, define, type }: NodeLibProps) {
     });
   };
 
-  const nodes = useMemo(() => {
+  const nodes = useNodes(trans, define?.value?.[type]);
+
+  const openInNewTab = (event: MouseEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    pinnedLibs(type);
+  };
+
+  return (
+    <Box sx={{ margin: "0 0 0.5em -0.5em" }}>
+      <TreeView
+        label={
+          <>
+            <Typography
+              title={trans(`Node.${type}.desc`)}
+              sx={{ userSelect: "none", flexGrow: 1 }}
+              onClick={(event) =>
+                (event.ctrlKey || event.shiftKey) && openInNewTab(event)
+              }
+            >
+              {label}
+            </Typography>
+            <IconButton
+              size="small"
+              title={`${trans("Open in new tab")} - Ctrl/Shift+Click`}
+              onClick={openInNewTab}
+            >
+              <OpenInNewIcon sx={{ fontSize: "1em" }} />
+            </IconButton>
+          </>
+        }
+        control={[expanded, setExpanded]}
+      >
+        <NodeLibTreeRender trans={trans} define={define} nodes={nodes} />
+      </TreeView>
+    </Box>
+  );
+}
+
+function useNodes(trans: TransFunction, define?: BTDefines[keyof BTDefines]) {
+  return useMemo(() => {
     const nodes: NodeLibTree = { [nodesSymbol]: [] };
-    for (const [key, value] of Object.entries(define.value[type])) {
+    if (define == null) return nodes;
+
+    for (const [key, value] of Object.entries(define)) {
       let treeData = nodes;
       if (value.path) {
         for (const group of value.path.split("/")) {
@@ -192,27 +254,7 @@ function NodeLib({ config, trans, define, type }: NodeLibProps) {
       treeData[nodesSymbol].push({ type: key, alias, desc: value.desc });
     }
     return nodes;
-  }, [trans, define.value, type]);
-
-  return (
-    <Box sx={{ margin: "0 0 0.5em -0.5em" }}>
-      <TreeView
-        label={
-          <Typography
-            title={trans(`Node.${type}.desc`)}
-            sx={{ userSelect: "none" }}
-          >
-            {label}
-          </Typography>
-        }
-        control={[expanded, setExpanded]}
-      >
-        {() => (
-          <NodeLibTreeRender trans={trans} define={define} nodes={nodes} />
-        )}
-      </TreeView>
-    </Box>
-  );
+  }, [trans, define]);
 }
 
 function NodeLibTreeRender({
@@ -235,9 +277,7 @@ function NodeLibTreeRender({
               </Typography>
             }
           >
-            {() => (
-              <NodeLibTreeRender trans={trans} define={define} nodes={nodes} />
-            )}
+            <NodeLibTreeRender trans={trans} define={define} nodes={nodes} />
           </TreeView>
         </TreeItem>
       ))}
@@ -275,35 +315,36 @@ function Nodes({
   nodes: { type: string; alias: string; desc?: string }[];
 }) {
   return (
-    <Box
-      sx={{
-        padding: "0.2em",
-        display: "flex",
-        flexWrap: "wrap",
-        justifyContent: "space-evenly",
-        position: "relative",
-        backgroundColor: ({ palette }) =>
-          palette.grey[palette.mode === "light" ? 100 : 900],
-        pointerEvents: "none",
-      }}
-    >
-      {nodes.map((node) => (
-        <NodeContainer
-          key={node.type}
-          title={node.desc}
-          {...createDragNodeProps({ type: node.type })}
-        >
-          <NodeSvgRender
-            locked={true}
-            trans={trans}
-            btDefine={define?.value}
-            type={node.type}
-            size={{ width: undefined, height: 25 }}
+    <Box sx={{ padding: "0.2em 0" }}>
+      <Box
+        sx={{
+          padding: "0.2em",
+          display: "flex",
+          flexWrap: "wrap",
+          justifyContent: "space-evenly",
+          position: "relative",
+          backgroundColor: ({ palette }) =>
+            palette.grey[palette.mode === "light" ? 100 : 900],
+        }}
+      >
+        {nodes.map((node) => (
+          <NodeContainer
+            key={node.type}
+            title={node.desc}
+            {...createDragNodeProps({ type: node.type })}
           >
-            {node.alias}
-          </NodeSvgRender>
-        </NodeContainer>
-      ))}
+            <NodeSvgRender
+              locked={true}
+              trans={trans}
+              btDefine={define?.value}
+              type={node.type}
+              size={{ width: undefined, height: 25 }}
+            >
+              {node.alias}
+            </NodeSvgRender>
+          </NodeContainer>
+        ))}
+      </Box>
     </Box>
   );
 }
@@ -320,3 +361,24 @@ function createDragNodeProps(node: Node) {
   return { draggable: true, onDragStart, onDragEnd };
 }
 //#endregion
+
+export function ReadonlyNodeLibs() {
+  const config = Config.use();
+  if (config?.value == null) return null; // never
+  const trans = useTrans();
+  const define = BTDefine.use();
+  const { type } = useParams();
+  const nodes = useNodes(
+    trans,
+    define?.value?.[type as "Composite" | "Decorator" | "Action"]
+  );
+  return (
+    <VerticalScrollPanel>
+      <Box sx={{ margin: "0 0 0.5em -0.5em" }}>
+        <TreeView>
+          <NodeLibTreeRender trans={trans} define={define} nodes={nodes} />
+        </TreeView>
+      </Box>
+    </VerticalScrollPanel>
+  );
+}

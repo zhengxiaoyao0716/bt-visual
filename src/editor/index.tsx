@@ -9,15 +9,12 @@ import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { MouseEvent, useState } from "react";
-import { Route, Routes, useNavigate, useParams } from "react-router-dom";
+import { MouseEvent, ReactNode, useState } from "react";
+import { Route, useNavigate, useParams } from "react-router-dom";
 
-import {
-  default as BTDefine,
-  default as Define,
-} from "../behavior-tree/Define";
+import Define from "../behavior-tree/Define";
 import createForest, { Forest, ForestManifest } from "../behavior-tree/Forest";
-import share from "../common/share";
+import { openNewTab } from "../common/share";
 import { useDialogPrompt } from "../components/DialogPrompt";
 import { useFilterKeyword } from "../components/FilterKeyword";
 import Loading from "../components/Loading";
@@ -25,7 +22,7 @@ import Snack from "../components/Snack";
 import Config from "../storage/Config";
 import { useTrans } from "../storage/Locale";
 import { ContextValue } from "../storage/Storage";
-import NodeLibs from "./NodeLibs";
+import NodeLibs, { ReadonlyNodeLibs } from "./NodeLibs";
 import { LockerContext } from "./NodeRender/NodeLocker";
 import TreeRender from "./TreeRender";
 import Workerspace from "./Workerspace";
@@ -33,20 +30,20 @@ import Workerspace from "./Workerspace";
 function useShowTree() {
   const navigate = useNavigate();
   return (forest: string, treeIndex: number, readonly?: true) => {
-    if (!readonly) {
-      navigate(`${Editor.route}/${forest}/${treeIndex}`);
-      return;
+    if (readonly) {
+      openNewTab(
+        `${EditorRoutes.routeReadonly}/${forest}/${treeIndex}`,
+        800,
+        600
+      );
+    } else {
+      navigate(`${EditorRoutes.routeMain}/${forest}/${treeIndex}`);
     }
-    const openNewTab =
-      share?.openNewTab ??
-      ((url) =>
-        window.open(
-          url,
-          "_blank",
-          "location=no,menubar=no,status=no,toolbar=no,width=800,height=600"
-        ));
-    openNewTab(`${Editor.route}/readonly/${forest}/${treeIndex}`);
   };
+}
+
+function pinnedLibs(type: string, width: number, height: number) {
+  openNewTab(`${EditorRoutes.routeLibarary}/${type}`, width, height);
 }
 
 function ForestRender() {
@@ -60,10 +57,12 @@ function ForestRender() {
     treeIndex >= forest.value.trees.length;
   const showTree = useShowTree();
   return (
-    <NodeLibs>
+    <NodeLibs pinnedLibs={pinnedLibs}>
       <Forest>
         {(forest) =>
-          invalid(forest) ? null : (
+          invalid(forest) ? (
+            <Loading />
+          ) : (
             <Workerspace
               forest={forest}
               treeIndex={treeIndex}
@@ -214,7 +213,10 @@ function ForestManager() {
               </Stack>
               {manifest.value.map(({ name }, index) =>
                 name.toLowerCase().indexOf(filterKeyword) >= 0 ? (
-                  <Link href={`${Editor.route}/${name}/0`} key={index}>
+                  <Link
+                    href={`${EditorRoutes.routeMain}/${name}/0`}
+                    key={index}
+                  >
                     <Button
                       sx={{ textTransform: "none" }}
                       onContextMenu={(event) => showMenu(event, index)}
@@ -252,20 +254,30 @@ function ForestManager() {
   );
 }
 
-export default function Editor() {
+export function EditorRoutes(
+  withApp: (children: ReactNode, noFrame?: true) => ReactNode
+) {
   return (
-    <BTDefine>
-      <Snack>
-        <Routes>
-          <Route path={"/"} element={<ForestManager />} />
-          <Route
-            path={`/readonly/:forest/:tree`}
-            element={<ReadonlyForestRender />}
-          />
-          <Route path={`/:forest/:tree`} element={<ForestRender />} />
-        </Routes>
-      </Snack>
-    </BTDefine>
+    <>
+      <Route
+        path={EditorRoutes.routeMain}
+        element={withApp(<ForestManager />)}
+      />
+      <Route
+        path={`${EditorRoutes.routeMain}/:forest/:tree`}
+        element={withApp(<ForestRender />)}
+      />
+      <Route
+        path={`${EditorRoutes.routeReadonly}/:forest/:tree`}
+        element={withApp(<ReadonlyForestRender />)}
+      />
+      <Route
+        path={`${EditorRoutes.routeLibarary}/:type`}
+        element={withApp(<ReadonlyNodeLibs />, true)}
+      />
+    </>
   );
 }
-Editor.route = "/editor";
+EditorRoutes.routeMain = "/editor";
+EditorRoutes.routeReadonly = "/editor-r";
+EditorRoutes.routeLibarary = "/editor-l";

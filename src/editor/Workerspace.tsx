@@ -2,6 +2,7 @@ import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import LockIcon from "@mui/icons-material/Lock";
 import LockOpenIcon from "@mui/icons-material/LockOpen";
+import PreviewIcon from "@mui/icons-material/Preview";
 import SaveIcon from "@mui/icons-material/Save";
 import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
@@ -31,8 +32,8 @@ import { ContextValue } from "../storage/Storage";
 import { LockerContext, useLocker } from "./NodeRender/NodeLocker";
 import { getDeliverParent } from "./NodeSelector";
 import Properties, {
-  createComponentOption,
   PropertiesOption,
+  createComponentOption,
 } from "./Properties";
 import StorePreset from "./Properties/StorePreset";
 import TreeRender from "./TreeRender";
@@ -45,7 +46,7 @@ export default function Workspace({
 }: {
   forest: ContextValue<Forest>;
   treeIndex: number;
-  showTree(forest: string, treeIndex: number, readonly?: true): void;
+  showTree(forest: string, index: number, readonly?: true): void;
 }) {
   if (forest?.value == null) return null; // never
   const config = Config.use();
@@ -129,6 +130,25 @@ export default function Workspace({
     const index = anchorEl[0];
     createTree(1 + index, JSON.parse(JSON.stringify(trees[index])));
   };
+  const showTreeReadonly = async (event: MouseEvent, index: number) => {
+    const forest = saveRef.current.forest;
+    if (forest.saving) {
+      await snack.show(trans("Saving, try again later"));
+      return;
+    }
+    const treesDirty = saveRef.current.dirty(forest.value.trees);
+    if (treesDirty) {
+      await snack.show(trans("Modification has not been saved!"));
+      return;
+    }
+    showTree(forestName, index, true);
+  };
+  const openReadonly = (event: MouseEvent) => {
+    if (anchorEl == null) return; // never
+    hideMenu();
+    const index = anchorEl[0];
+    showTreeReadonly(event, index);
+  };
 
   const createTreeButton = (
     <Stack direction="row">
@@ -143,22 +163,11 @@ export default function Workspace({
       return;
     }
     const index = tab - 1;
-    if (!event.ctrlKey && !event.shiftKey) {
-      if (index !== treeIndex) showTree(forestName, index);
-      return;
+    if (event.ctrlKey || event.shiftKey) {
+      showTreeReadonly(event, index);
+    } else if (index !== treeIndex) {
+      showTree(forestName, index);
     }
-    // split view
-    const forest = saveRef.current.forest;
-    if (forest.saving) {
-      await snack.show(trans("Saving, try again later"));
-      return;
-    }
-    const treesDirty = saveRef.current.dirty(forest.value.trees);
-    if (treesDirty) {
-      await snack.show(trans("Modification has not been saved!"));
-      return;
-    }
-    showTree(forestName, index, true);
   }
   const { tabs, refresh: refreshTab } = useTabs(
     labels,
@@ -280,9 +289,7 @@ export default function Workspace({
       <Locker.Controller>
         {(locked, troggle) => (
           <IconButton
-            title={`${trans(
-              locked ? "Unlock Editor" : "Lock Editor"
-            )} - Ctrl+L`}
+            title={`${trans(locked ? "UNLOCK" : "LOCK")} - Ctrl+L`}
             onClick={troggle}
           >
             {locked ? <LockOpenIcon /> : <LockIcon />}
@@ -385,6 +392,15 @@ export default function Workspace({
             <AddIcon />
           </ListItemIcon>
           <ListItemText>{trans("Clone Tree")}</ListItemText>
+        </MenuItem>
+        <MenuItem
+          onClick={openReadonly}
+          title={`${trans("Open in new tab")} - Ctrl/Shift+Click`}
+        >
+          <ListItemIcon>
+            <PreviewIcon />
+          </ListItemIcon>
+          <ListItemText>{trans("Readonly Mode")}</ListItemText>
         </MenuItem>
       </Menu>
     </Box>

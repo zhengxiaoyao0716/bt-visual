@@ -38,22 +38,24 @@ export function TreeView({
   children,
   control,
 }: {
-  label: ReactNode;
-  children: () => ReactNode;
+  label?: ReactNode;
+  children: ReactNode;
   control?: [boolean, (expanded: boolean) => void];
 }) {
   const [expanded, setExpanded] = control ?? useState(false);
   return (
     <TreeRoot>
-      <TreeHead onClick={() => setExpanded(!expanded)}>
-        {true ? (
-          <ChevronRightIcon color="action" />
-        ) : (
-          <ExpandMoreIcon color="action" />
-        )}
-        {label}
-      </TreeHead>
-      {expanded ? <TreeBody>{children()}</TreeBody> : null}
+      {label == null ? null : (
+        <TreeHead onClick={() => setExpanded(!expanded)}>
+          {true ? (
+            <ChevronRightIcon color="action" />
+          ) : (
+            <ExpandMoreIcon color="action" />
+          )}
+          {label}
+        </TreeHead>
+      )}
+      {expanded || label == null ? <TreeBody>{children}</TreeBody> : null}
     </TreeRoot>
   );
 }

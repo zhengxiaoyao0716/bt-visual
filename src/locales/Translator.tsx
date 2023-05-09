@@ -1,25 +1,25 @@
-import { useEffect, useMemo, useRef } from "react";
-import Button from "@mui/material/Button";
-import Typography from "@mui/material/Typography";
-import CircularProgress from "@mui/material/CircularProgress";
-import Box from "@mui/material/Box";
-import TextField from "@mui/material/TextField";
-import InputAdornment from "@mui/material/InputAdornment";
-import Grid from "@mui/material/Grid";
-
-import { Props, useDialogPage } from "../components/DialogPage";
-import { useLocale, useTrans } from "../storage/Locale";
-import { useMoveableList } from "../components/MoveableList";
-import { useDialogPrompt } from "../components/DialogPrompt";
-import { useWindowSize } from "../components/WindowSize";
-import { useRefresh } from "../components/Refresh";
-import Snack from "../components/Snack";
 import Accordion from "@mui/material/Accordion";
 import AccordionDetails from "@mui/material/AccordionDetails";
 import AccordionSummary from "@mui/material/AccordionSummary";
-import Toolbar from "@mui/material/Toolbar";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import CircularProgress from "@mui/material/CircularProgress";
+import Grid from "@mui/material/Grid";
+import InputAdornment from "@mui/material/InputAdornment";
 import ListItemButton from "@mui/material/ListItemButton";
+import TextField from "@mui/material/TextField";
+import Toolbar from "@mui/material/Toolbar";
+import Typography from "@mui/material/Typography";
+import { useEffect, useMemo, useRef } from "react";
+
+import { Props, useDialogPage } from "../components/DialogPage";
+import { useDialogPrompt } from "../components/DialogPrompt";
 import { addHotkeyListener } from "../components/Hotkey";
+import { useMoveableList } from "../components/MoveableList";
+import { useRefresh } from "../components/Refresh";
+import Snack from "../components/Snack";
+import { useWindowSize } from "../components/WindowSize";
+import { useLocale, useTrans } from "../storage/Locale";
 
 function Content({ hide, appBar }: Props) {
   const locale = useLocale();

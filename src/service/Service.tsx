@@ -13,11 +13,16 @@ import Loading from "../components/Loading";
 export type Dispatcher<S> = Dispatch<
   SetStateAction<SetStateAction<Partial<S>>>
 >;
+export interface Service<P extends {}, S extends {}, M> {
+  (props: P & { children?: ReactNode }): JSX.Element;
+  use(): readonly [Partial<S>, M, Dispatcher<S>] | null;
+  displayName: string;
+}
 
 export default function createService<P extends {}, S extends {}, M>(
   name: string,
   launch: (props: P, dispatch: Dispatcher<S>) => [S | null, M, () => void] // [initial state, manager, cleanup]
-) {
+): Service<P, S, M> {
   const ServiceContext = createContext(
     null as readonly [Partial<S>, M, Dispatcher<S>] | null
   );

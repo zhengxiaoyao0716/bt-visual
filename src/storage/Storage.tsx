@@ -1,12 +1,4 @@
-import {
-  ComponentType,
-  createContext,
-  FunctionComponent,
-  PropsWithChildren,
-  ReactNode,
-  useContext,
-  useMemo,
-} from "react";
+import { createContext, ReactNode, useContext, useMemo } from "react";
 
 import globalShare, { StorageLike } from "../common/share";
 import { usePromise } from "../components/Async";
@@ -105,7 +97,6 @@ export interface Props<T> {
 }
 export interface Storage<T> {
   (props: Props<T>): JSX.Element;
-  hoc<P>(Component: ComponentType<P>): FunctionComponent<P>;
   use(): ContextValue<T>;
   displayName: string;
   load(): Promise<T>;
@@ -163,19 +154,6 @@ export function createStorage<T extends {}>(
       </Context.Provider>
     );
   }
-  Storage.hoc = function <P>(Component: ComponentType<P>) {
-    function WrappedComponent(props: PropsWithChildren<P>) {
-      return (
-        <Storage>
-          <Component {...props} />
-        </Storage>
-      );
-    }
-    WrappedComponent.displayName = `Storage(${
-      Component.displayName || Component.name || "Component"
-    })`;
-    return WrappedComponent as FunctionComponent<P>;
-  };
   Storage.use = () => useContext(Context);
   Storage.displayName = name;
   Storage.load = async () => {

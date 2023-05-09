@@ -6,6 +6,11 @@
   "SUBMIT": "SUBMIT",
   "APPEND": "APPEND",
   "REMOVE": "REMOVE",
+  "CREATE": "CREATE",
+  "CONNECT": "CONNECT",
+  "ALL": "ALL",
+  "LOCK": "LOCK",
+  "UNLOCK": "UNLOCK",
 
   "// menu items": "",
   "ThemeMode.light": "Light",

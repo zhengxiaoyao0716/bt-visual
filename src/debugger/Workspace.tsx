@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import Define from "../behavior-tree/Define";
 import Loading from "../components/Loading";
 import { LockerContext } from "../editor/NodeRender/NodeLocker";
@@ -7,16 +8,29 @@ import Config from "../storage/Config";
 import { useTrans } from "../storage/Locale";
 import TreeSelector from "./TreeSelector";
 
-export default function Workspace() {
+export default function Workspace({
+  groupId,
+  treeId,
+  select,
+}: {
+  groupId: string;
+  treeId: string;
+  select(groupId: string, treeId: string): void;
+}) {
   const config = Config.use();
   const define = Define.use();
   const trans = useTrans();
 
   const [{ treeGroups, tree }, manager, _dispatch] = DebugService.use()!;
+
+  useEffect(() => {
+    if (groupId && treeId) manager.loadTree(groupId, treeId);
+  }, [groupId, treeId]);
+
   if (treeGroups == null) return <Loading />;
 
   if (tree == null) {
-    return <TreeSelector treeGroups={treeGroups} manager={manager} />;
+    return <TreeSelector treeGroups={treeGroups} select={select} />;
   }
 
   return (

@@ -13,10 +13,10 @@ import { TransFunction, useTrans } from "../storage/Locale";
 
 interface Props {
   treeGroups: TreeGroup[];
-  manager: ServiceManager;
+  select(groupId: string, treeId: string): void;
 }
 
-export default function TreeSelector({ treeGroups, manager }: Props) {
+export default function TreeSelector({ treeGroups, select }: Props) {
   const trans = useTrans();
   const [parents, setParants] = useState<TreeGroup[]>([
     {
@@ -43,8 +43,7 @@ export default function TreeSelector({ treeGroups, manager }: Props) {
     setGroup(group);
     setParants([...parents, group]);
   };
-  const selectTree =
-    group && ((treeId: string) => manager.loadTree(group.id, treeId));
+  const selectTree = group && ((treeId: string) => select(group.id, treeId));
 
   return (
     <>

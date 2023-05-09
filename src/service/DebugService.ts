@@ -28,7 +28,7 @@ interface Props {
   address: string;
 }
 
-export default createService<Props, ServiceState, ServiceManager>(
+const DebugService = createService<Props, ServiceState, ServiceManager>(
   "DebugService",
   ({ address }, dispatch) => {
     const socket = new Socket(address);
@@ -36,9 +36,10 @@ export default createService<Props, ServiceState, ServiceManager>(
     return [null, manager, () => socket.close()];
   }
 );
+export default DebugService;
 
 function launchService(socket: Socket, dispatch: DispatchState): Manager {
-  mockSocket(socket, mockLaunchService);
+  mockSocket(socket, mockRecvTreeGroups);
 
   socket.read("/tree/groups/", async (text) =>
     dispatch({ treeGroups: JSON.parse(text) as TreeGroup[] })
@@ -65,7 +66,7 @@ class Manager {
   }
 }
 
-function mockLaunchService(ms: MockedSocket) {
+function mockRecvTreeGroups(ms: MockedSocket) {
   const groups: TreeGroup[] = [
     {
       id: "stage0",

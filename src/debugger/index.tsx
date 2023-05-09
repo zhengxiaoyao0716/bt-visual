@@ -1,8 +1,6 @@
 import { useSearchParams } from "react-router-dom";
-import BTDefine from "../behavior-tree/Define";
 import { getNodeType } from "../behavior-tree/utils";
 import { invalidNode, InvalidNode } from "../behavior-tree/validator";
-import Snack from "../components/Snack";
 import DebugService from "../service/DebugService";
 import Connect from "./Connect";
 import { getBTDefines, getStatusSetter } from "./status";
@@ -45,19 +43,20 @@ export function handleInvalidNodes(invalidNodes: InvalidNode[]) {
 export default function Debugger() {
   const [params, setParams] = useSearchParams();
   const address = params.get("address");
-  const connect = (address: string) => setParams({ address });
-  return (
-    <BTDefine>
-      <Snack>
-        {address == null ? (
-          <Connect connect={connect} />
-        ) : (
-          <DebugService address={address}>
-            <Workspace />
-          </DebugService>
-        )}
-      </Snack>
-    </BTDefine>
+  const groupId = params.get("groupId");
+  const treeId = params.get("treeId");
+  return address == null ? (
+    <Connect connect={(address: string) => setParams({ address })} />
+  ) : (
+    <DebugService address={address}>
+      <Workspace
+        groupId={groupId || ""}
+        treeId={treeId || ""}
+        select={(groupId: string, treeId: string) =>
+          setParams({ address, groupId, treeId })
+        }
+      />
+    </DebugService>
   );
 }
 Debugger.route = "/debugger";

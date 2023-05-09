@@ -67,4 +67,17 @@ interface Share {
   datasourceDriver?: DatasourceDriver;
 }
 
-export default (window as any)["bt-visual-share"] as Share | undefined;
+const share = (window as any)["bt-visual-share"] as Share | undefined;
+export default share;
+
+export function openNewTab(url: string, width: number, height: number) {
+  const open =
+    share?.openNewTab ??
+    ((url) =>
+      window.open(
+        url,
+        "_blank",
+        `location=no,menubar=no,status=no,toolbar=no,width=${width},height=${height}`
+      ));
+  open(url);
+}

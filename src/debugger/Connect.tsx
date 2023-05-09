@@ -81,15 +81,9 @@ export default function Connect({ connect }: Props) {
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (error) return;
-    // const data = new FormData(event.currentTarget);
-    // TODO
-    // console.log({
-    //   host: data.get("host"),
-    //   port: data.get("port"),
-    //   path: data.get("path"),
-    //   remember: data.get("remember"),
-    // });
     if (config.saving) return;
+    const data = new FormData(event.currentTarget);
+    // console.log(data);
     remember &&
       (await config.update({ ...config.value, serverAddress: address }));
     connect(address);
