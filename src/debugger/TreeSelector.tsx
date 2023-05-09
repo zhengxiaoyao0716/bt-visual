@@ -134,11 +134,7 @@ function GroupsRender({
       label={trans("Select Groups")}
       items={groups}
     >
-      {({ label }) => (
-        <Typography variant="h5" component="h2">
-          {label}
-        </Typography>
-      )}
+      {({ label }) => <Typography>{label}</Typography>}
     </AccordionRender>
   );
 }
@@ -155,11 +151,7 @@ function TreesRender({
       label={trans("Select Trees")}
       items={trees}
     >
-      {({ id, name }) => (
-        <Typography variant="h5" component="h2">
-          {name}
-        </Typography>
-      )}
+      {({ name }) => <Typography>{name}</Typography>}
     </AccordionRender>
   );
 }

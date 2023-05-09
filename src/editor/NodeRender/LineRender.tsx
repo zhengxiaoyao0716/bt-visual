@@ -1,9 +1,10 @@
-import { styled } from "@mui/material/styles";
+import { styled, useTheme } from "@mui/material/styles";
 import { DragEvent, useEffect, useLayoutEffect, useRef } from "react";
 import rough from "roughjs";
 
 import type { Node } from "../../behavior-tree/type";
 import { useRefresh } from "../../components/Refresh";
+import { Status } from "../../debugger/status";
 
 const Anchor = styled("a")`
   position: absolute;
@@ -35,6 +36,7 @@ export const anchorDraggingRef = {
 };
 
 interface Props {
+  status: Status.Value;
   locked: boolean;
   index: number;
   total: number;
@@ -44,9 +46,9 @@ interface Props {
   onSwrap: (index: number, swapTo: number) => void;
   redrawSig: any; // 重绘信号，不直接参与绘制
   draggingRef: DraggingData;
-  color?: string;
 }
 export default function LineRender({
+  status,
   locked,
   index,
   total,
@@ -56,11 +58,12 @@ export default function LineRender({
   onSwrap,
   redrawSig,
   draggingRef,
-  color,
 }: Props) {
   const ref = useRef<HTMLAnchorElement>(null);
   const [rfc, refresh] = useRefresh();
   const rect = ref.current?.getBoundingClientRect();
+  const { palette } = useTheme();
+  const strokeColor = status.color || palette.text.secondary;
 
   // 这里需要等 react 绘制完毕后再同步调用，不能用 useEffect，否则连接线会闪烁
   useLayoutEffect(() => {
@@ -74,7 +77,11 @@ export default function LineRender({
 
     const svgWidth = $root.querySelector("svg")?.clientWidth ?? width;
     const lineTo = ((index + 0.5) / total) * svgWidth;
-    const $lineTo = createLineTo(`${lineTo - svgWidth / 2}px`, `${height}px`);
+    const $lineTo = createLineTo(
+      `${lineTo - svgWidth / 2}px`,
+      `${height}px`,
+      status.color
+    );
     $root.appendChild($lineTo);
 
     const $svg = getOrCreateLineSvg($root);
@@ -103,11 +110,13 @@ export default function LineRender({
       point0[1] * 0.3 + point3[1] * 0.7,
     ];
     const $line = rough.svg($svg).curve([point0, point2, point3], {
-      strokeWidth: 0.5,
-      roughness: 0.5,
-      strokeLineDash: [8, 16],
-      ...(color ? { stroke: color } : null),
+      strokeWidth: status.color ? 3 : 1,
+      roughness: 0,
+      // strokeLineDash: [8, 16],
+      stroke: strokeColor,
     });
+    $line.classList.add("line");
+    status.color && $line.classList.add("animate");
     $svg.appendChild($line);
 
     return () => {
@@ -129,6 +138,7 @@ export default function LineRender({
     width,
     height,
     redrawSig,
+    strokeColor,
   ]);
 
   useEffect(() => {
@@ -205,6 +215,7 @@ export default function LineRender({
       onDragEnd={onDragEnd}
       onDragOver={onDragOver}
       onDrop={onDrop}
+      style={{ color: status.color }}
     >
       ◉
     </Anchor>
@@ -272,7 +283,7 @@ function findLineRoot(
   } else return findLineRoot(element.parentElement, anchor);
 }
 
-function createLineTo(left: string, top: string) {
+function createLineTo(left: string, top: string, color: string) {
   const $lineTo = document.createElement("a");
   $lineTo.innerText = "◎";
   $lineTo.style.position = "absolute";
@@ -280,21 +291,24 @@ function createLineTo(left: string, top: string) {
   $lineTo.style.left = "50%";
   $lineTo.style.top = top;
   $lineTo.style.transform = "translate(-50%)";
+  $lineTo.style.color = color;
   return $lineTo;
 }
+
+export const lineContainerClass = "line-container";
 
 function getOrCreateLineSvg($root: HTMLElement): SVGSVGElement {
   for (const child of $root.childNodes) {
     if (
       child instanceof HTMLDivElement &&
-      child.classList.contains("line-container")
+      child.classList.contains(lineContainerClass)
     ) {
       return child.getElementsByTagName("svg")[0] as SVGSVGElement;
     }
   }
 
   const $container = document.createElement("div");
-  $container.classList.add("line-container");
+  $container.classList.add(lineContainerClass);
   $container.style.position = "absolute";
   $container.style.left = "0";
   $container.style.top = "0";

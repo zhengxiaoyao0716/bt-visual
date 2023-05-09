@@ -62,7 +62,6 @@ export default function ActionRender({
         onClick={onSelected}
         {...baseProps}
         {...nodeDropProps}
-        node={node}
       >
         {node.alias}
       </NodeSvgRender>

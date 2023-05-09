@@ -4,6 +4,7 @@ import { useContext, useEffect } from "react";
 import type { Action, Composite, Tree } from "../../behavior-tree/type";
 import { getNodeAlias, getNodeType } from "../../behavior-tree/utils";
 import { useRefresh } from "../../components/Refresh";
+import { useNodeStatus } from "../../debugger";
 import { createNodeDropProps } from "../NodeDrop";
 import {
   isSelected,
@@ -15,6 +16,7 @@ import Undo from "../Undo";
 import ActionRender from "./ActionRender";
 import CompositeRender from "./CompositeRender";
 import DecoratorRender from "./DecoratorRender";
+import { lineContainerClass } from "./LineRender";
 import { LockerContext } from "./NodeLocker";
 import NodeSvgRender, { Props, ROOT_TYPE, SubProps } from "./NodeSvgRender";
 import UnknownRender from "./UnknownRender";
@@ -22,6 +24,18 @@ import UnknownRender from "./UnknownRender";
 const RootContainer = styled("div")`
   position: relative;
   text-align: center;
+
+  & .${lineContainerClass} g.line > path {
+    stroke-dasharray: 12 20;
+  }
+  &.animate .${lineContainerClass} g.line.animate > path {
+    animation: line-dash 1s infinite linear;
+  }
+  @keyframes line-dash {
+    to {
+      stroke-dashoffset: -64;
+    }
+  }
 `;
 
 const RootCard = styled("div")`
@@ -32,9 +46,10 @@ const RootCard = styled("div")`
 
 export default function NodeRender({
   tree,
+  animate,
   trans,
   ...props
-}: Omit<Props, "locked"> & { tree: Tree }) {
+}: Omit<Props, "locked"> & { tree: Tree; animate?: true }) {
   const [, refresh] = useRefresh();
   const deliverRoot = { tree, refresh };
   setDeliverParent(tree.root, deliverRoot);
@@ -66,8 +81,10 @@ export default function NodeRender({
   });
 
   const locked = useContext(LockerContext);
+  const status = useNodeStatus(props.btDefine, tree.root);
+
   return (
-    <RootContainer>
+    <RootContainer className={animate ? "animate" : undefined}>
       <RootCard title={tree.name}>
         <NodeSvgRender
           locked={locked}
@@ -84,6 +101,7 @@ export default function NodeRender({
       </RootCard>
       <DecoratorRender
         node={tree.root}
+        status={status}
         locked={locked}
         trans={trans}
         {...props}

@@ -11,6 +11,7 @@ import {
 } from "../../behavior-tree/utils";
 import { autoAttachKey } from "../../common/ExtValue";
 import { useRefresh } from "../../components/Refresh";
+import { Status, WithNodeStatus } from "../../debugger/status";
 import { createNodeDropProps } from "../NodeDrop";
 import {
   getDeliverParent,
@@ -50,8 +51,9 @@ export default function DecoratorRender({
   trans,
   btDefine,
   children,
+  status,
   ...baseProps
-}: SubProps<Composite | Action>) {
+}: SubProps<Composite | Action> & { status: Status.Value }) {
   const decorators = node.deck || [];
   setDecoratedNode(decorators, node);
 
@@ -85,108 +87,122 @@ export default function DecoratorRender({
                 ]
               : decorators
             ).map((node, index) => (
-              <NodeSvgRender
-                locked={locked}
-                trans={trans}
-                btDefine={btDefine}
-                key={index}
-                type={node.type}
-                size={{ width: 120, height: 24 }}
-                fold={true}
-                {...baseProps}
-                node={node}
-              >
-                {node.alias}
-              </NodeSvgRender>
+              <WithNodeStatus key={index} defines={btDefine} node={node}>
+                {(status) => (
+                  <NodeSvgRender
+                    status={status}
+                    locked={locked}
+                    trans={trans}
+                    btDefine={btDefine}
+                    type={node.type}
+                    size={{ width: 120, height: 24 }}
+                    fold={true}
+                    {...baseProps}
+                  >
+                    {node.alias}
+                  </NodeSvgRender>
+                )}
+              </WithNodeStatus>
             ))}
           </DecoratorCard>
         </>
       ) : (
         decorators.map((node, index) => (
-          <DecoratorCard
+          <WithNodeStatus
             key={autoAttachKey(node, node.type)}
-            title={btDefine?.Decorator[node.type]?.desc || trans(node.type)}
-            onDoubleClick={foldHandler}
+            defines={btDefine}
+            node={node}
           >
-            <NodeSvgRender
-              locked={locked}
-              trans={trans}
-              btDefine={btDefine}
-              type={node.type}
-              size={{
-                width: 150,
-                height: node.alias && node.alias.indexOf("\n") > 0 ? 80 : 60,
-              }}
-              selected={isSelected(node)}
-              onClick={selector.handle(node)}
-              {...baseProps}
-              {...createNodeDropProps({
-                appendComposite(nodeNew) {
-                  const action = trans("Append Composite");
-                  const alias = getNodeAlias(trans, nodeNew);
+            {(status) => (
+              <DecoratorCard
+                title={btDefine?.Decorator[node.type]?.desc || trans(node.type)}
+                onDoubleClick={foldHandler}
+              >
+                <NodeSvgRender
+                  status={status}
+                  locked={locked}
+                  trans={trans}
+                  btDefine={btDefine}
+                  type={node.type}
+                  size={{
+                    width: 150,
+                    height:
+                      node.alias && node.alias.indexOf("\n") > 0 ? 80 : 60,
+                  }}
+                  selected={isSelected(node)}
+                  onClick={selector.handle(node)}
+                  {...baseProps}
+                  {...createNodeDropProps({
+                    appendComposite(nodeNew) {
+                      const action = trans("Append Composite");
+                      const alias = getNodeAlias(trans, nodeNew);
 
-                  const decorated = getDecoratedNode(node);
-                  const parent = getDeliverParent(decorated);
-                  undoManager.execute(`${action} [${alias}]`, (redo) => {
-                    const retains = decorators.splice(
-                      1 + index,
-                      decorators.length
-                    );
-                    decorated.deck = retains;
-                    nodeNew.deck = decorators;
-                    nodeNew.nodes.push(decorated);
+                      const decorated = getDecoratedNode(node);
+                      const parent = getDeliverParent(decorated);
+                      undoManager.execute(`${action} [${alias}]`, (redo) => {
+                        const retains = decorators.splice(
+                          1 + index,
+                          decorators.length
+                        );
+                        decorated.deck = retains;
+                        nodeNew.deck = decorators;
+                        nodeNew.nodes.push(decorated);
 
-                    if ("tree" in parent) {
-                      parent.tree.root = nodeNew;
-                      parent.refresh();
-                    } else {
-                      const index = parent.composite.nodes.indexOf(decorated);
-                      parent.composite.nodes[index] = nodeNew;
-                      redo || parent.refresh();
-                    }
-                    setAutoSelect(nodeNew, true);
-                    triggerRedrawLines(ref.current);
-                    return () => {
-                      decorators.push(...retains);
-                      decorated.deck = decorators;
-                      nodeNew.nodes.shift();
+                        if ("tree" in parent) {
+                          parent.tree.root = nodeNew;
+                          parent.refresh();
+                        } else {
+                          const index =
+                            parent.composite.nodes.indexOf(decorated);
+                          parent.composite.nodes[index] = nodeNew;
+                          redo || parent.refresh();
+                        }
+                        setAutoSelect(nodeNew, true);
+                        triggerRedrawLines(ref.current);
+                        return () => {
+                          decorators.push(...retains);
+                          decorated.deck = decorators;
+                          nodeNew.nodes.shift();
 
-                      if ("tree" in parent) {
-                        parent.tree.root = decorated;
-                        parent.refresh();
-                      } else {
-                        const index = parent.composite.nodes.indexOf(nodeNew);
-                        parent.composite.nodes[index] = decorated;
-                      }
-                      setAutoSelect(node, true);
-                      triggerRedrawLines(ref.current);
-                    };
-                  });
-                },
-                prependDecorator(nodeNew) {
-                  const action = trans("Prepend Decorator");
-                  const alias = getNodeAlias(trans, nodeNew);
-                  undoManager.execute(`${action} [${alias}]`, (redo) => {
-                    decorators.splice(index, 0, nodeNew);
-                    setAutoSelect(nodeNew, true);
-                    redo || refresh();
-                    return () => {
-                      decorators.splice(index, 1);
-                      setAutoSelect(node, true);
-                    };
-                  });
-                },
-              })}
-              node={node}
-            >
-              {node.alias}
-            </NodeSvgRender>
-          </DecoratorCard>
+                          if ("tree" in parent) {
+                            parent.tree.root = decorated;
+                            parent.refresh();
+                          } else {
+                            const index =
+                              parent.composite.nodes.indexOf(nodeNew);
+                            parent.composite.nodes[index] = decorated;
+                          }
+                          setAutoSelect(node, true);
+                          triggerRedrawLines(ref.current);
+                        };
+                      });
+                    },
+                    prependDecorator(nodeNew) {
+                      const action = trans("Prepend Decorator");
+                      const alias = getNodeAlias(trans, nodeNew);
+                      undoManager.execute(`${action} [${alias}]`, (redo) => {
+                        decorators.splice(index, 0, nodeNew);
+                        setAutoSelect(nodeNew, true);
+                        redo || refresh();
+                        return () => {
+                          decorators.splice(index, 1);
+                          setAutoSelect(node, true);
+                        };
+                      });
+                    },
+                  })}
+                >
+                  {node.alias}
+                </NodeSvgRender>
+              </DecoratorCard>
+            )}
+          </WithNodeStatus>
         ))
       )}
       <DecoratorNode>
         <AutoRender
           node={node}
+          status={status}
           locked={locked}
           trans={trans}
           btDefine={btDefine}

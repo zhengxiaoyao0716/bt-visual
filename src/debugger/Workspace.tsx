@@ -37,10 +37,11 @@ export default function Workspace({
     <LockerContext.Provider value={true}>
       <TreeRender
         tree={tree}
+        readonly={true}
+        animate={true}
         config={config}
         define={define?.value}
         trans={trans}
-        readonly={true}
       />
     </LockerContext.Provider>
   );

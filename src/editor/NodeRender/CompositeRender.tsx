@@ -7,6 +7,7 @@ import type { Composite, Node } from "../../behavior-tree/type";
 import { getNodeAlias } from "../../behavior-tree/utils";
 import { autoAttachKey } from "../../common/ExtValue";
 import { useRefresh } from "../../components/Refresh";
+import { WithNodeStatus } from "../../debugger/status";
 import { createAnchorDropProps, createNodeDropProps } from "../NodeDrop";
 import {
   getDeliverParent,
@@ -56,6 +57,7 @@ interface CompositeProps extends SubProps<Composite> {
 
 export default function CompositeRender({
   node,
+  status,
   locked,
   config,
   trans,
@@ -251,7 +253,7 @@ export default function CompositeRender({
           onClick={onSelected}
           {...baseProps}
           {...nodeDropProps}
-          node={node}
+          status={status}
         >
           {node.alias}
         </NodeSvgRender>
@@ -277,25 +279,34 @@ export default function CompositeRender({
         >
           <LineDropArea onMoved={onMoved} />
           {nodes.map((node, index) => (
-            <DecoratorRender
+            <WithNodeStatus
               key={autoAttachKey(node, node.type)}
+              defines={btDefine}
               node={node}
-              locked={locked}
-              config={config}
-              trans={trans}
-              btDefine={btDefine}
             >
-              <LineRender
-                locked={locked}
-                index={index}
-                total={nodes.length}
-                anchors={anchors}
-                onSwrap={onSwap}
-                redrawSig={refresh}
-                draggingRef={draggingRef}
-                {...svgSize}
-              />
-            </DecoratorRender>
+              {(status) => (
+                <DecoratorRender
+                  node={node}
+                  status={status}
+                  locked={locked}
+                  config={config}
+                  trans={trans}
+                  btDefine={btDefine}
+                >
+                  <LineRender
+                    status={status}
+                    locked={locked}
+                    index={index}
+                    total={nodes.length}
+                    anchors={anchors}
+                    onSwrap={onSwap}
+                    redrawSig={refresh}
+                    draggingRef={draggingRef}
+                    {...svgSize}
+                  />
+                </DecoratorRender>
+              )}
+            </WithNodeStatus>
           ))}
         </CompositeNodes>
       )}

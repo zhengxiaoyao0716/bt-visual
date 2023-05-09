@@ -118,6 +118,7 @@ export function createNodeDropProps({
     for (const item of nodes) {
       const node = "root" in item ? item.root : item;
       "fold" in node && delete node.fold; // 禁止折叠
+      console.log(node.type, getNodeType(node.type));
       switch (getNodeType(node.type)) {
         case "Composite":
           const composite = node as Composite;
@@ -129,6 +130,7 @@ export function createNodeDropProps({
           prependDecorator?.(node as Decorator);
           break;
         case "Action":
+        default:
           const action = node as Action;
           if (!action.deck) action.deck = [];
           appendAction?.(action);

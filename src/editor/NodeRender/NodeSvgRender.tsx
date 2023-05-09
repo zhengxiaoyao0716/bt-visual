@@ -12,7 +12,7 @@ import rough from "roughjs";
 import { BTDefines } from "../../behavior-tree/Define";
 import type { Composite, Decorator, Node } from "../../behavior-tree/type";
 import { getNodeType } from "../../behavior-tree/utils";
-import { useNodeStatus } from "../../debugger";
+import { Status } from "../../debugger/status";
 import Config from "../../storage/Config";
 import { TransFunction } from "../../storage/Locale";
 import { boxSelectEventKey } from "../NodeSelector";
@@ -40,13 +40,11 @@ const nodeTypeMapper = {
       '<path d="M15.49 9.63c-.18-2.79-1.31-5.51-3.43-7.63-2.14 2.14-3.32 4.86-3.55 7.63 1.28.68 2.46 1.56 3.49 2.63 1.03-1.06 2.21-1.94 3.49-2.63zm-6.5 2.65c-.14-.1-.3-.19-.45-.29.15.11.31.19.45.29zm6.42-.25c-.13.09-.27.16-.4.26.13-.1.27-.17.4-.26zM12 15.45C9.85 12.17 6.18 10 2 10c0 5.32 3.36 9.82 8.03 11.49.63.23 1.29.4 1.97.51.68-.12 1.33-.29 1.97-.51C18.64 19.82 22 15.32 22 10c-4.18 0-7.85 2.17-10 5.45z"></path>',
   },
   Unknown: {
-    // color: "#FFEE00",
-    color: "#CCCCCC",
+    color: "#AAAAAA",
     fillStyle: "solid",
     shape: treeShape,
   },
   Root: {
-    // color: "#666666",
     color: "#EE99CC",
     fillStyle: "solid",
     shape: treeShape,
@@ -61,7 +59,10 @@ export interface Props {
   children?: JSX.Element;
 }
 
-export type SubProps<N extends Node> = Props & { node: N };
+export type SubProps<N extends Node> = Props & {
+  node: N;
+  status: Status.Value;
+};
 
 export function troggleNodeFoldHandler(
   node: Composite | Decorator,
@@ -129,7 +130,7 @@ export default function NodeSvgRender({
   onDragEnter,
   onDragOver,
   onDrop,
-  node,
+  status,
 }: {
   locked: boolean;
   trans: TransFunction;
@@ -143,10 +144,9 @@ export default function NodeSvgRender({
   onDragEnter?: DragEventHandler;
   onDragOver?: DragEventHandler;
   onDrop?: DragEventHandler;
-  node?: Node;
+  status?: Status.Value;
 }) {
   const nodeType = getNodeType(type);
-  const status = useNodeStatus(btDefine, node);
   const {
     color,
     fillStyle,
@@ -170,7 +170,7 @@ export default function NodeSvgRender({
     const $svg = ref.current;
     if ($svg == null) return;
     const options = {
-      stroke: status.color || color,
+      stroke: status?.color || color,
       strokeLineDash: nodeType === "Decorator" ? [16, 8] : undefined,
       strokeWidth: 2,
       fill: palette.background.paper,
@@ -204,14 +204,16 @@ export default function NodeSvgRender({
     ref.current,
     size.width,
     size.height,
-    status.color,
+    status?.color,
     fold,
     color,
     fillStyle,
     palette.mode,
   ]);
 
-  const textPrimaryColor = status.color || palette.text.primary;
+  const bgColor =
+    status?.color && `${status.color}${palette.mode === "light" ? "55" : "bb"}`;
+  const textPrimaryColor = palette.text.primary;
   const textSecondaryColor = palette.text.secondary;
   const alias =
     children == null
@@ -232,6 +234,11 @@ export default function NodeSvgRender({
       onDragOver={locked ? undefined : onDragOver}
       onDrop={locked ? undefined : onDrop}
       className={`${selected ? "selected node" : "node"}`}
+      style={{
+        background: bgColor
+          ? `radial-gradient(${bgColor}, transparent 80%)`
+          : "none",
+      }}
     >
       {alias ? (
         size.height <= 30 ? (

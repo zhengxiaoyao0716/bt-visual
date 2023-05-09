@@ -7,8 +7,9 @@ import NodeRender from "./NodeRender";
 import NodeSelector from "./NodeSelector";
 
 interface Props {
-  readonly?: true;
   tree: Tree;
+  readonly?: true;
+  animate?: true;
   config: ReturnType<typeof Config.use>;
   define: BTDefines | undefined;
   trans: TransFunction;
@@ -16,16 +17,18 @@ interface Props {
 
 export default function TreeRender({
   tree,
+  readonly,
+  animate,
   config,
   define,
   trans,
-  readonly,
 }: Props) {
   return (
     <NodeSelector>
       <DraftPaper key={tree.name} readonly={readonly}>
         <NodeRender
           tree={tree}
+          animate={animate}
           config={config}
           trans={trans}
           btDefine={define}

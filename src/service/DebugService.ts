@@ -1,5 +1,5 @@
+import createForest, { ForestManifest } from "../behavior-tree/Forest";
 import { Tree } from "../behavior-tree/type";
-import { defaultRootNode } from "../behavior-tree/utils";
 import Socket, {
   MockedSession,
   MockedSocket,
@@ -103,14 +103,18 @@ function mockRecvTreeGroups(ms: MockedSocket) {
   ms.mockText(`/tree/groups/${JSON.stringify(groups)}`);
 }
 
-function mockLoadTree(
+async function mockLoadTree(
   ms: MockedSession<Tree>,
   groupId: string,
   treeId: string
 ) {
+  const manifest = await ForestManifest.load();
+  const Forest = createForest(manifest[0].name || "");
+  const forest = await Forest.load();
+  const tree = forest.trees[0];
+
   ms.mockDone({
+    ...tree,
     name: `mock://${groupId}/${treeId}`,
-    desc: "",
-    root: defaultRootNode(),
   });
 }

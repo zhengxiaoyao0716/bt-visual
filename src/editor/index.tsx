@@ -92,10 +92,10 @@ function ReadonlyForestRender() {
           <LockerContext.Provider value={true}>
             <TreeRender
               tree={tree}
+              readonly={true}
               config={config}
               define={define?.value}
               trans={trans}
-              readonly={true}
             />
           </LockerContext.Provider>
         );
