@@ -17,7 +17,7 @@ export interface TreeGroup {
 
 export interface ServiceState {
   treeGroups?: TreeGroup[];
-  tree?: Tree;
+  treeLoaded?: { trees: NonNullable<TreeGroup["trees"]>; tree: Tree };
 }
 
 export type ServiceManager = Manager;
@@ -54,15 +54,13 @@ class Manager {
   ) {}
 
   async loadTree(groupId: string, treeId: string) {
-    const session = this.socket.request<Tree>("/tree/load/", {
-      groupId,
-      treeId,
-    });
+    const session = this.socket.request<ServiceState["treeLoaded"]>(
+      "/tree/load/",
+      { groupId, treeId }
+    );
 
-    mockSession(session, mockLoadTree, groupId, treeId);
-
-    const tree = await session.done();
-    this.dispatch({ tree });
+    mockSession(session, mockLoadTree, treeId);
+    this.dispatch({ treeLoaded: await session.done() });
   }
 }
 
@@ -104,17 +102,17 @@ function mockRecvTreeGroups(ms: MockedSocket) {
 }
 
 async function mockLoadTree(
-  ms: MockedSession<Tree>,
-  groupId: string,
+  ms: MockedSession<ServiceState["treeLoaded"]>,
   treeId: string
 ) {
   const manifest = await ForestManifest.load();
   const Forest = createForest(manifest[0].name || "");
   const forest = await Forest.load();
-  const tree = forest.trees[0];
-
-  ms.mockDone({
-    ...tree,
-    name: `mock://${groupId}/${treeId}`,
-  });
+  const trees = forest.trees.map(({ name }, index) => ({
+    id: `tree${index}`,
+    name,
+  }));
+  const treeIndex = trees.findIndex(({ id }) => id === treeId);
+  const tree = forest.trees[treeIndex];
+  ms.mockDone({ trees, tree: tree });
 }

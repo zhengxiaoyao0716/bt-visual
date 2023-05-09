@@ -35,8 +35,8 @@ export default class Socket {
     this.socket = new Socket(address, onMessage);
   }
 
-  send(text: string) {
-    return this.socket.send(`${this.identity}${text}`);
+  send(prefix: string, text: string) {
+    return this.socket.send(`${this.identity}${prefix}${text}`);
   }
 
   read(prefix: string, handler: (text: string) => void): () => void {
@@ -131,7 +131,7 @@ abstract class AbsSession {
   }
 
   async sendText(text: string, flag: ">" | "-" | "<"): Promise<void> {
-    return this.socket.send(`${this.secret}${flag}${text}`);
+    return this.socket.send(`${this.secret}${flag}`, text);
   }
 
   readonly read = async (timeout: number = 3000): Promise<string> => {
