@@ -53,7 +53,7 @@ export default function DecoratorRender({
   children,
   status,
   ...baseProps
-}: SubProps<Composite | Action> & { status: Status.Value }) {
+}: SubProps<Composite | Action>) {
   const decorators = node.deck || [];
   setDecoratedNode(decorators, node);
 
@@ -87,7 +87,12 @@ export default function DecoratorRender({
                 ]
               : decorators
             ).map((node, index) => (
-              <WithNodeStatus key={index} defines={btDefine} node={node}>
+              <WithNodeStatus.Exist
+                key={index}
+                defines={btDefine}
+                node={node}
+                status={index > 0 ? undefined : status}
+              >
                 {(status) => (
                   <NodeSvgRender
                     status={status}
@@ -102,16 +107,17 @@ export default function DecoratorRender({
                     {node.alias}
                   </NodeSvgRender>
                 )}
-              </WithNodeStatus>
+              </WithNodeStatus.Exist>
             ))}
           </DecoratorCard>
         </>
       ) : (
         decorators.map((node, index) => (
-          <WithNodeStatus
+          <WithNodeStatus.Exist
             key={autoAttachKey(node, node.type)}
             defines={btDefine}
             node={node}
+            status={index > 0 ? undefined : status}
           >
             {(status) => (
               <DecoratorCard
@@ -196,18 +202,27 @@ export default function DecoratorRender({
                 </NodeSvgRender>
               </DecoratorCard>
             )}
-          </WithNodeStatus>
+          </WithNodeStatus.Exist>
         ))
       )}
       <DecoratorNode>
-        <AutoRender
+        <WithNodeStatus.Exist
+          key={autoAttachKey(node, node.type)}
+          defines={btDefine}
           node={node}
-          status={status}
-          locked={locked}
-          trans={trans}
-          btDefine={btDefine}
-          {...baseProps}
-        />
+          status={decorators.length > 0 ? undefined : status}
+        >
+          {(status) => (
+            <AutoRender
+              node={node}
+              status={status}
+              locked={locked}
+              trans={trans}
+              btDefine={btDefine}
+              {...baseProps}
+            />
+          )}
+        </WithNodeStatus.Exist>
       </DecoratorNode>
       {children}
     </DecoratorContainer>

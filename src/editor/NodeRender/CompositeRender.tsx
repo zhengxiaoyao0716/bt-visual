@@ -282,7 +282,7 @@ export default function CompositeRender({
             <WithNodeStatus
               key={autoAttachKey(node, node.type)}
               defines={btDefine}
-              node={node}
+              node={WithNodeStatus.DeckOrNode(node)}
             >
               {(status) => (
                 <DecoratorRender

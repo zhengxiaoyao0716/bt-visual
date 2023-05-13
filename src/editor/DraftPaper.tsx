@@ -3,7 +3,14 @@ import FullscreenIcon from "@mui/icons-material/Fullscreen";
 import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
 import IconButton from "@mui/material/IconButton";
 import { styled, useTheme } from "@mui/material/styles";
-import { MouseEvent, useEffect, useRef, useState, WheelEvent } from "react";
+import {
+  MouseEvent,
+  ReactNode,
+  WheelEvent,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 import { useDragMoving } from "../components/DragMoving";
 import Fullscreen from "../components/Fullscreen";
@@ -13,7 +20,7 @@ import { useTrans } from "../storage/Locale";
 
 interface Props {
   readonly?: true;
-  children?: JSX.Element;
+  children?: ReactNode;
 }
 
 const gridBackground = (size: number, color: string) => {

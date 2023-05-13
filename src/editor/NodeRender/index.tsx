@@ -5,6 +5,7 @@ import type { Action, Composite, Tree } from "../../behavior-tree/type";
 import { getNodeAlias, getNodeType } from "../../behavior-tree/utils";
 import { useRefresh } from "../../components/Refresh";
 import { useNodeStatus } from "../../debugger";
+import { WithNodeStatus } from "../../debugger/status";
 import { createNodeDropProps } from "../NodeDrop";
 import {
   isSelected,
@@ -25,15 +26,15 @@ const RootContainer = styled("div")`
   position: relative;
   text-align: center;
 
-  & .${lineContainerClass} g.line > path {
-    stroke-dasharray: 12 20;
+  &.animate .${lineContainerClass} g.animate > path {
+    animation: line-dash 0.5s linear;
   }
-  &.animate .${lineContainerClass} g.line.animate > path {
-    animation: line-dash 1s infinite linear;
+  &.animate .${lineContainerClass} g.animate.infinite > path {
+    animation-iteration-count: infinite;
   }
   @keyframes line-dash {
     to {
-      stroke-dashoffset: -64;
+      stroke-dashoffset: 64;
     }
   }
 `;
@@ -81,7 +82,10 @@ export default function NodeRender({
   });
 
   const locked = useContext(LockerContext);
-  const status = useNodeStatus(props.btDefine, tree.root);
+  const status = useNodeStatus(
+    props.btDefine,
+    WithNodeStatus.DeckOrNode(tree.root)
+  );
 
   return (
     <RootContainer className={animate ? "animate" : undefined}>

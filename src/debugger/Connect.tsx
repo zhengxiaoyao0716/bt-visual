@@ -50,9 +50,15 @@ export default function Connect({ connect }: Props) {
       return;
     }
     if (value && value.match(`^${hostPattern}$`) === null) {
-      const { host } = parseAddress(value) ?? { host: value };
-      console.log(value, parseAddress(value), host); // TODO
-      setAddress(host);
+      const { schema, host, port, path } = parseAddress(value) ?? {
+        schema: "",
+        host: value,
+        port: "",
+        path: "",
+      };
+      setAddress(
+        `${schema ? `${schema}://` : ""}${host}${port ? `:${port}` : ""}${path}`
+      );
       return;
     }
     const { schema, port, path } = parsed ?? parseAddress("")!;

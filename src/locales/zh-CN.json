@@ -82,6 +82,9 @@
   "Node.Action.desc": "动作节点，可以添加在复合节点下面",
   "Node.Group.swarm": "群体 AI",
   "Found invalid nodes, please check and fix them": "发现非法节点，请检查并修正",
+  "Start play": "开始播放",
+  "Pause play": "暂停播放",
+  "Stop play": "停止播放",
 
   "// 节点列表": "",
   "$Selector": "$选择执行",

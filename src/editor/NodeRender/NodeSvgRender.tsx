@@ -16,7 +16,7 @@ import { Status } from "../../debugger/status";
 import Config from "../../storage/Config";
 import { TransFunction } from "../../storage/Locale";
 import { boxSelectEventKey } from "../NodeSelector";
-import { triggerRedrawLines } from "./LineRender";
+import { lineContainerClass, triggerRedrawLines } from "./LineRender";
 
 const treeShape =
   '<path d="M22 11V3h-7v3H9V3H2v8h7V8h2v10h4v3h7v-8h-7v3h-2V8h2v3z" />';
@@ -171,7 +171,8 @@ export default function NodeSvgRender({
     if ($svg == null) return;
     const options = {
       stroke: status?.color || color,
-      strokeLineDash: nodeType === "Decorator" ? [16, 8] : undefined,
+      strokeLineDash:
+        nodeType === "Decorator" || status?.dash ? [20, 12] : undefined,
       strokeWidth: 2,
       fill: palette.background.paper,
       fillStyle,
@@ -194,6 +195,7 @@ export default function NodeSvgRender({
         : nodeType === "Decorator"
         ? rough.svg($svg).polygon(polygonPoints(width, height), options)
         : rough.svg($svg).rectangle(0, 0, width, height, options);
+    status && shape.classList.add(...status.class);
     onClick && $svg.addEventListener(boxSelectEventKey, onClick);
     $svg.prepend(shape);
     return () => {
@@ -233,7 +235,7 @@ export default function NodeSvgRender({
       onDragEnter={locked ? undefined : onDragEnter}
       onDragOver={locked ? undefined : onDragOver}
       onDrop={locked ? undefined : onDrop}
-      className={`${selected ? "selected node" : "node"}`}
+      className={`${selected ? "selected node" : "node"} ${lineContainerClass}`}
       style={{
         background: bgColor
           ? `radial-gradient(${bgColor}, transparent 80%)`

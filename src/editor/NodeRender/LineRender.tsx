@@ -109,14 +109,13 @@ export default function LineRender({
       point0[0] * 0.2 + point3[0] * 0.8,
       point0[1] * 0.3 + point3[1] * 0.7,
     ];
-    const $line = rough.svg($svg).curve([point0, point2, point3], {
+    const $line = rough.svg($svg).curve([point3, point2, point0], {
       strokeWidth: status.color ? 3 : 1,
       roughness: 0,
-      // strokeLineDash: [8, 16],
+      strokeLineDash: [12, 20],
       stroke: strokeColor,
     });
-    $line.classList.add("line");
-    status.color && $line.classList.add("animate");
+    $line.classList.add(...status.class);
     $svg.appendChild($line);
 
     return () => {

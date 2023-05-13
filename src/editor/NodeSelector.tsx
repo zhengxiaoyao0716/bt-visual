@@ -10,6 +10,7 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import Box from "@mui/material/Box";
 import Divider from "@mui/material/Divider";
 import IconButton from "@mui/material/IconButton";
+import { styled } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
 import {
   createContext,
@@ -22,7 +23,6 @@ import {
   useRef,
 } from "react";
 
-import { styled } from "@mui/material/styles";
 import type {
   Action,
   Composite,
@@ -43,6 +43,9 @@ import clipboard, {
   exportSelectedCapture,
 } from "../components/clipboard";
 import { useDragMoving } from "../components/DragMoving";
+import FloatButtonGroup, {
+  FloatButtonLabel,
+} from "../components/FloatButtonGroup";
 import { addHotkeyListener } from "../components/Hotkey";
 import { useRefresh } from "../components/Refresh";
 import Snack from "../components/Snack";
@@ -662,21 +665,10 @@ function NodeMenus({
   };
 
   return (
-    <Box
-      sx={({ palette }) => ({
-        position: "absolute",
-        right: "2em",
-        top: "2em",
-        display: "flex",
-        width: "fit-content",
-        border: `1px solid ${palette.divider}`,
-        borderRadius: 1,
-        backdropFilter: "blur(3px)",
-        "& hr": {
-          borderLeft: `1px solid ${palette.divider}`,
-        },
-      })}
-    >
+    <FloatButtonGroup right="2em">
+      <FloatButtonLabel>
+        {`${trans("Selected")} [${selectedAlias}]`}
+      </FloatButtonLabel>
       {locked || vertical == null ? null : (
         <>
           <IconButton
@@ -738,19 +730,7 @@ function NodeMenus({
       <IconButton onClick={cancel}>
         <CloseIcon />
       </IconButton>
-      <Typography
-        fontSize="small"
-        color={({ palette }) => palette.text.secondary}
-        sx={{
-          position: "absolute",
-          right: 0,
-          top: "-1.5em",
-          whiteSpace: "nowrap",
-        }}
-      >
-        {`${trans("Selected")} [${selectedAlias}]`}
-      </Typography>
-    </Box>
+    </FloatButtonGroup>
   );
 }
 

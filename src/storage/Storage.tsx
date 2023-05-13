@@ -44,8 +44,9 @@ function computePathPromise<T extends {}>(
   cached: PathDataCache,
   options: Options
 ): PromiseLike<[T, boolean]> {
-  if (cached.value != null)
+  if (cached.value != null) {
     return Promise.resolve(cached.value as [T, boolean]);
+  }
   if (cached.promise != null) return cached.promise as Promise<[T, boolean]>;
   const promise = init.then(async (init) =>
     (await getStorage(options)).load(path, init).then(

@@ -7,43 +7,59 @@ import Breadcrumbs from "@mui/material/Breadcrumbs";
 import Button from "@mui/material/Button";
 import Container from "@mui/material/Container";
 import Typography from "@mui/material/Typography";
-import { useState } from "react";
-import { ServiceManager, TreeGroup } from "../service/DebugService";
+import { useEffect, useState } from "react";
+import { TreeGroup } from "../common/service/DebugService";
 import { TransFunction, useTrans } from "../storage/Locale";
 
 interface Props {
   treeGroups: TreeGroup[];
-  select(groupId: string, treeId: string): void;
+  loadGroup(parentId: string, groupId: string): void;
+  loadTree(groupId: string, treeId: string): void;
 }
 
-export default function TreeSelector({ treeGroups, select }: Props) {
+export default function TreeSelector({
+  treeGroups,
+  loadGroup,
+  loadTree,
+}: Props) {
   const trans = useTrans();
-  const [parents, setParants] = useState<TreeGroup[]>([
+  const [state, setState] = useState(
+    null as { parents: TreeGroup[]; group?: TreeGroup } | null
+  );
+  useEffect(() => {
+    if (state != null) setState(null);
+  }, [treeGroups]);
+  const parents = state?.parents ?? [
     {
       id: "",
       label: trans("ALL"),
     },
-  ]);
-  const [group, setGroup] = useState(null as TreeGroup | null);
-  const groups = group == null ? treeGroups : group.groups || [];
+  ];
+  const group = state?.group;
+  const groups = group == null ? treeGroups : group.groups;
+  const trees = group?.trees;
 
   const selectParent = (index: number) => {
     if (index <= 0) {
-      setParants([parents[0]]);
-      setGroup(null);
-      return;
+      loadGroup("", "");
+    } else if (index === 1) {
+      setState({ parents: [parents[0]] });
+    } else {
+      setState({ parents: parents.slice(0, index), group: parents[index - 1] });
     }
-    const group = parents[index];
-    setParants(parents.slice(0, index + 1));
-    setGroup(group);
   };
   const selectGroup = (groupId: string) => {
-    const group = groups.find((g) => g.id === groupId);
-    if (group == null) return;
-    setGroup(group);
-    setParants([...parents, group]);
+    if (groups == null) return;
+    const found = groups.find((g) => g.id === groupId);
+    if (found == null) return;
+    if (found.groups == null && found.trees == null) {
+      // 没有子分组也没有子树，尝试加载分组
+      loadGroup(group?.id ?? "", groupId);
+    } else {
+      setState({ parents: [...parents, found], group: found });
+    }
   };
-  const selectTree = group && ((treeId: string) => select(group.id, treeId));
+  const selectTree = trees && ((treeId: string) => loadTree(group.id, treeId));
 
   return (
     <>
@@ -52,17 +68,17 @@ export default function TreeSelector({ treeGroups, select }: Props) {
           <Button
             variant="text"
             key={index}
-            color={index < parents.length - 1 ? "primary" : "inherit"}
+            color="primary"
             onClick={() => selectParent(index)}
           >
-            {group.label}
+            {trans(group.label)}
           </Button>
         ))}
       </Breadcrumbs>
       <Container>
         <GroupsRender trans={trans} select={selectGroup} groups={groups} />
-        {group && selectTree && (
-          <TreesRender trans={trans} select={selectTree} trees={group?.trees} />
+        {selectTree && (
+          <TreesRender trans={trans} select={selectTree} trees={trees} />
         )}
       </Container>
     </>
@@ -126,13 +142,13 @@ function GroupsRender({
   trans,
   select,
   groups,
-}: BaseRenderProps & { groups: TreeGroup[] }) {
+}: BaseRenderProps & { groups: TreeGroup["groups"] }) {
   return (
     <AccordionRender
       trans={trans}
       select={select}
       label={trans("Select Groups")}
-      items={groups}
+      items={groups ?? []}
     >
       {({ label }) => <Typography>{label}</Typography>}
     </AccordionRender>
@@ -142,14 +158,14 @@ function GroupsRender({
 function TreesRender({
   trans,
   select,
-  trees = [],
+  trees,
 }: BaseRenderProps & { trees: TreeGroup["trees"] }) {
   return (
     <AccordionRender
       trans={trans}
       select={select}
       label={trans("Select Trees")}
-      items={trees}
+      items={trees ?? []}
     >
       {({ name }) => <Typography>{name}</Typography>}
     </AccordionRender>

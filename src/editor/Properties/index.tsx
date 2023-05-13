@@ -30,10 +30,10 @@ import type {
   Tree,
 } from "../../behavior-tree/type";
 import { getNodeType } from "../../behavior-tree/utils";
+import DebugService from "../../common/service/DebugService";
 import { useDragMoving } from "../../components/DragMoving";
 import VerticalScrollPanel from "../../components/VerticalScrollPanel";
 import WidthController from "../../components/WidthController";
-import DebugService from "../../service/DebugService";
 import Config from "../../storage/Config";
 import { TransFunction } from "../../storage/Locale";
 import { createTypeDropProps } from "../NodeDrop";

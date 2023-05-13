@@ -1,3 +1,4 @@
+import { ReactNode } from "react";
 import { BTDefines } from "../behavior-tree/Define";
 import type { Tree } from "../behavior-tree/type";
 import Config from "../storage/Config";
@@ -13,6 +14,7 @@ interface Props {
   config: ReturnType<typeof Config.use>;
   define: BTDefines | undefined;
   trans: TransFunction;
+  children?: ReactNode;
 }
 
 export default function TreeRender({
@@ -22,6 +24,7 @@ export default function TreeRender({
   config,
   define,
   trans,
+  children,
 }: Props) {
   return (
     <NodeSelector>
@@ -34,6 +37,7 @@ export default function TreeRender({
           btDefine={define}
         />
       </DraftPaper>
+      {children}
     </NodeSelector>
   );
 }
