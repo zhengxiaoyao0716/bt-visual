@@ -1,3 +1,10 @@
+import CloseIcon from "@mui/icons-material/Close";
+import AppBar from "@mui/material/AppBar";
+import Dialog from "@mui/material/Dialog";
+import IconButton from "@mui/material/IconButton";
+import Slide from "@mui/material/Slide";
+import Toolbar from "@mui/material/Toolbar";
+import { TransitionProps } from "@mui/material/transitions";
 import {
   ComponentType,
   forwardRef,
@@ -6,15 +13,6 @@ import {
   Ref,
   useState,
 } from "react";
-import { TransitionProps } from "@mui/material/transitions";
-import Slide from "@mui/material/Slide";
-import Dialog from "@mui/material/Dialog";
-import AppBar from "@mui/material/AppBar";
-import Toolbar from "@mui/material/Toolbar";
-import IconButton from "@mui/material/IconButton";
-import CloseIcon from "@mui/icons-material/Close";
-
-import Snack from "./Snack";
 
 const Transition = forwardRef(function Transition(
   props: TransitionProps & {

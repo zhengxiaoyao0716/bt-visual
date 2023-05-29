@@ -7,12 +7,12 @@ import { useRefresh } from "../components/Refresh";
 import { Composite } from "../behavior-tree/type";
 import { Action } from "../behavior-tree/type";
 
-const statusMapper = {
+export const statusMapper = Object.freeze({
   success: { color: "#00cd00", dash: true, class: ["animate"] },
   failure: { color: "#ee0212", dash: true, class: ["animate"] },
   running: { color: "#0288ee", dash: true, class: ["animate", "infinite"] },
   none: { color: "", dash: false, class: [] },
-};
+});
 export module Status {
   export type Key = keyof typeof statusMapper;
   export type Value = (typeof statusMapper)[Key];
@@ -98,18 +98,18 @@ const attachKeySymbol = Symbol("attachKey");
 const pausingSymbol = Symbol("pausing");
 
 interface AttachNodesDict {
-  [nodeKey: string]: Node;
+  [nodeKey: string | number]: Node;
 }
 export interface NodeStatusDict {
-  [nodeKey: string]: Status.Key;
+  [nodeKey: string | number]: Status.Key;
 }
 
-function* iterAllNodes(node: any): Generator<Node> {
-  yield node;
+export function* iterAllNodes(node: any): Generator<Node> {
   const deck = node.deck ?? [];
   for (const node of deck) {
     yield node;
   }
+  yield node;
   const nodes = node.nodes ?? [];
   for (const node of nodes) {
     yield* iterAllNodes(node);
@@ -123,13 +123,12 @@ export function linkTreeNodes(tree: Tree, attachKey: string) {
   const nodesDict: AttachNodesDict = {};
   for (const node of iterAllNodes(tree.root)) {
     const key = (node as any)[attachKey];
-    if (key == null) continue;
-    nodesDict[key] = node;
+    if (key != null) nodesDict[key] = node;
   }
   ExtValue.setValue(tree, attachKeySymbol, nodesDict);
 }
 
-export function resumeTreeNodeStatus(tree: Tree) {
+export function resumeTreeNodeStatus(tree: Tree): boolean {
   const pauseDict: NodeStatusDict | undefined = ExtValue.getValue(
     tree,
     pausingSymbol
@@ -137,6 +136,7 @@ export function resumeTreeNodeStatus(tree: Tree) {
   if (pauseDict == null) return false;
   ExtValue.setValue(tree, pausingSymbol, undefined);
   setTreeNodeStatus(tree, pauseDict);
+  return true;
 }
 
 export function pauseTreeNodeStatus(tree: Tree) {

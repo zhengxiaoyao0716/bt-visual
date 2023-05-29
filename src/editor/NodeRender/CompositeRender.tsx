@@ -35,7 +35,6 @@ const CompositeContainer = styled("div")`
   position: relative;
   pointer-events: none;
   margin: 0 8px;
-  height: fit-content;
 `;
 const CompositeCard = styled("div")`
   position: relative;

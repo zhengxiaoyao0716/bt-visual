@@ -57,7 +57,7 @@ interface Share {
   // pywebview 不支持浏览器 fullscreen api，留个接口
   troggleFullscreen?: () => Promise</*isFullscreen*/ boolean>;
   // pywebview 不支持在 webview 内直接打开新标签，留个接口
-  openNewTab?: (url: string) => void;
+  openNewTab?: (url: string, size?: { width: number; height: number }) => void;
   // 统一存储接口
   storage?: PromiseLike<StorageLike>;
   // 调试时默认采用 websocket 通信，可以通过这个接口替换
@@ -65,19 +65,27 @@ interface Share {
   // pywebview 关闭窗口前回调该方法以判定是否需要警告
   closingConfirm?: () => string;
   datasourceDriver?: DatasourceDriver;
+  // 内置翻译页面说实话不太好用，暂时留接口交给外部编辑器
+  externalEditor?: (path: string) => Promise</*ok*/ boolean>;
 }
 
 const share = (window as any)["bt-visual-share"] as Share | undefined;
 export default share;
 
-export function openNewTab(url: string, width: number, height: number) {
-  const open =
-    share?.openNewTab ??
-    ((url) =>
-      window.open(
-        url,
-        "_blank",
-        `location=no,menubar=no,status=no,toolbar=no,width=${width},height=${height}`
-      ));
-  open(url);
+export function openNewTab(
+  url: string,
+  size?: { width: number; height: number }
+) {
+  const open = share?.openNewTab;
+  if (open != null) {
+    open(url, size);
+    return;
+  }
+  const sizeFeat =
+    size && `,width=${size.width ?? ""},height=${size.height ?? ""}`;
+  window.open(
+    url,
+    "_blank",
+    `location=no,menubar=no,status=no,toolbar=no${sizeFeat}`
+  );
 }

@@ -31,11 +31,18 @@ export default function createLocale(language: string): Storage<Locale> {
   return Storage;
 }
 
-export function useLocale(): ContextValue<Locale> {
+function useLocaleStorage() {
   const config = Config.use();
   const language = config?.value?.language ?? defaultLanguage;
-  const Storage = LocalStorages[language];
-  return Storage.use();
+  return LocalStorages[language];
+}
+
+export function useLocalePath(): string {
+  return useLocaleStorage().path;
+}
+
+export function useLocale(): ContextValue<Locale> {
+  return useLocaleStorage().use();
 }
 
 export interface TransFunction {

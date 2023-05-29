@@ -2,6 +2,7 @@ import { useCallback, useState } from "react";
 import SearchIcon from "@mui/icons-material/Search";
 import Input from "@mui/material/Input";
 import InputAdornment from "@mui/material/InputAdornment";
+import InputLabel from "@mui/material/InputLabel";
 
 export function useFilterKeyword() {
   const [filterKeyword, setFilterKeyword] = useState("");
@@ -11,15 +12,18 @@ export function useFilterKeyword() {
       setFilterKeyword(keyword);
     };
     return (
-      <Input
-        fullWidth
-        startAdornment={
-          <InputAdornment position="start">
-            <SearchIcon />
-          </InputAdornment>
-        }
-        onChange={(event) => onChange(event.target.value)}
-      />
+      <InputLabel sx={{ width: "100%" }}>
+        <Input
+          fullWidth
+          aria-label="Filter keyword"
+          startAdornment={
+            <InputAdornment position="start">
+              <SearchIcon />
+            </InputAdornment>
+          }
+          onChange={(event) => onChange(event.target.value)}
+        />
+      </InputLabel>
     );
   }, []);
   return [filterKeyword, FilterKeyword] as const;

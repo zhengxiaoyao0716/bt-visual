@@ -99,7 +99,8 @@ export interface Props<T> {
 export interface Storage<T> {
   (props: Props<T>): JSX.Element;
   use(): ContextValue<T>;
-  displayName: string;
+  readonly displayName: string;
+  readonly path: string;
   load(): Promise<T>;
   save(data: T): Promise<void>;
 }
@@ -157,6 +158,7 @@ export function createStorage<T extends {}>(
   }
   Storage.use = () => useContext(Context);
   Storage.displayName = name;
+  Storage.path = path;
   Storage.load = async () => {
     const storage = await getStorage(options);
     return await storage.load(path, initData);

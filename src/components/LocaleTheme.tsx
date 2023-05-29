@@ -1,4 +1,5 @@
 import DarkModeIcon from "@mui/icons-material/DarkMode";
+import EditIcon from "@mui/icons-material/Edit";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import PublicIcon from "@mui/icons-material/Public";
 import SettingsIcon from "@mui/icons-material/Settings";
@@ -13,9 +14,10 @@ import * as locales from "@mui/material/locale";
 import { createTheme, useTheme } from "@mui/material/styles";
 import { MouseEvent, useMemo, useState } from "react";
 
+import share from "../common/share";
 import { useTranslator } from "../locales/Translator";
 import Config from "../storage/Config";
-import { defaultLanguage, useTrans } from "../storage/Locale";
+import { defaultLanguage, useLocalePath, useTrans } from "../storage/Locale";
 
 function ThemeHandler({
   config,
@@ -30,16 +32,18 @@ function ThemeHandler({
   const handleClose = () => setAnchorEl(null);
 
   const changeLocale = async (key: string) => {
-    if (config?.value == null || config.saving || key === language) return;
+    if (config?.value == null || config.saving) return;
     handleClose();
     await config.update({ ...config.value, language: key });
   };
 
   const translator = useTranslator();
+  const localePath = useLocalePath();
   const editLocale = async (key: string) => {
     if (config?.value == null || config.saving) return;
     handleClose();
-    await changeLocale(key);
+    const editor = share?.externalEditor;
+    if (editor && (await editor(localePath))) return;
     translator.show();
   };
   const languaes = config?.value?.languages ?? {};
@@ -73,11 +77,16 @@ function ThemeHandler({
       </IconButton>
       <Menu open={anchorEl != null} anchorEl={anchorEl} onClose={handleClose}>
         {Object.keys(languaes).map((key, index) => (
-          <MenuItem key={index}>
-            <ListItemIcon onClick={() => editLocale(key)}>
-              <PublicIcon />
+          <MenuItem
+            key={index}
+            onClick={
+              key === language ? () => editLocale(key) : () => changeLocale(key)
+            }
+          >
+            <ListItemIcon>
+              {key === language ? <EditIcon /> : <PublicIcon />}
             </ListItemIcon>
-            <ListItemText onClick={() => changeLocale(key)}>{key}</ListItemText>
+            <ListItemText>{key}</ListItemText>
           </MenuItem>
         ))}
         <Divider />

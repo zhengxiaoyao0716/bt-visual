@@ -31,11 +31,8 @@ function useShowTree() {
   const navigate = useNavigate();
   return (forest: string, treeIndex: number, readonly?: true) => {
     if (readonly) {
-      openNewTab(
-        `${EditorRoutes.routeReadonly}/${forest}/${treeIndex}`,
-        800,
-        600
-      );
+      const size = { width: 800, height: 600 };
+      openNewTab(`${EditorRoutes.routeReadonly}/${forest}/${treeIndex}`, size);
     } else {
       navigate(`${EditorRoutes.routeMain}/${forest}/${treeIndex}`);
     }
@@ -43,7 +40,7 @@ function useShowTree() {
 }
 
 function pinnedLibs(type: string, width: number, height: number) {
-  openNewTab(`${EditorRoutes.routeLibarary}/${type}`, width, height);
+  openNewTab(`${EditorRoutes.routeLibarary}/${type}`, { width, height });
 }
 
 function ForestRender() {

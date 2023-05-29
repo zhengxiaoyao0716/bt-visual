@@ -288,7 +288,7 @@ export async function mockSocket<A extends any[]>(
   handle: (ms: MockedSocket, ...args: A) => void,
   ...args: A
 ): Promise<void> {
-  if (!import.meta.env.DEV) return;
+  // if (!import.meta.env.DEV) return;
   if (socket.address !== "/test") return; // 连接地址不是 /test，不 mock
 
   const mocked = (socket as any)[mockSymbol];
@@ -323,6 +323,7 @@ export async function mockSocket<A extends any[]>(
 }
 
 export interface MockedSession {
+  once(path: string, text: string): void;
   read(text: string): void;
   done(text: string): void;
 }
@@ -340,8 +341,10 @@ export async function mockSession<R, A extends any[]>(
   if (secret == null) return;
 
   mockSocket(socket, (mockedSocket) => {
+    const once = (path: string, text: string) =>
+      mockedSocket.read(`${secret}|`, `${path}${text}`);
     const read = (text: string) => mockedSocket.read(`${secret}-`, text);
     const done = (text: string) => mockedSocket.read(`${secret}<`, text);
-    handle({ read, done }, ...args);
+    handle({ once, read, done }, ...args);
   });
 }

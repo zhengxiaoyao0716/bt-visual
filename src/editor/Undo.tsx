@@ -193,8 +193,8 @@ export default function Undo({
   useEffect(() => {
     toolBarSlot("Editor", "Undo", 2, [
       <IconButton
-        disabled={locked || (!undoDesc && !redoDesc)}
-        title={`${trans("History")} - ⌃H`}
+        disabled={locked}
+        title={`${trans("History")} - Ctrl+H`}
         onClick={historyEditor.show}
       >
         <HistoryToggleOffIcon />

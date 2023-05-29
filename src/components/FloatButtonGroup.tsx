@@ -7,7 +7,6 @@ const FloatButtonGroup = styled(Box)(({ theme: { palette } }) => ({
   position: "absolute",
   top: "2em",
   display: "flex",
-  width: "fit-content",
   border: `1px solid ${palette.divider}`,
   borderRadius: 1,
   backdropFilter: "blur(3px)",
