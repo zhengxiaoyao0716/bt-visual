@@ -138,14 +138,19 @@ function invalidInputType(
   switch (valueType) {
     case "number":
       if (inputType === "number") return [];
+      break;
     case "string":
       if (inputType === "string" && (input as string)[0] === "`") return [];
+      break;
     case "dict":
       if (inputType === "string" && (input as string)[0] === "{") return [];
+      break;
     case "list":
       if (inputType === "string" && (input as string)[0] === "[") return [];
+      break;
     case "boolean":
       if (inputType === "boolean") return [];
+      break;
     case "unknown":
       return [];
   }

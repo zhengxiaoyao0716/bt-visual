@@ -11,7 +11,6 @@ import Box from "@mui/material/Box";
 import Divider from "@mui/material/Divider";
 import IconButton from "@mui/material/IconButton";
 import { styled } from "@mui/material/styles";
-import Typography from "@mui/material/Typography";
 import {
   createContext,
   MouseEvent,

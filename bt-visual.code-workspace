@@ -5,9 +5,6 @@
 		}
 	],
 	"settings": {
-		"files.exclude": {
-			"**/node_modules": true
-		},
 		"npm.packageManager": "pnpm",
 		"[javascript]": {
 			"editor.defaultFormatter": "esbenp.prettier-vscode",
@@ -62,8 +59,8 @@
 	},
 	"extensions": {
 		"recommendations": [
-			"anthonycjw.vscode-styled-components-cre-edition",
-			"esbenp.prettier-vscode"
+			"esbenp.prettier-vscode",
+			"styled-components.vscode-styled-components"
 		]
 	}
 }

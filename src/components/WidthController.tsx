@@ -1,4 +1,4 @@
-import { Theme, styled } from "@mui/material/styles";
+import { styled } from "@mui/material/styles";
 
 export default styled("div")`
   position: absolute;

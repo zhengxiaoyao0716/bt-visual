@@ -39,11 +39,14 @@ function ThemeHandler({
 
   const translator = useTranslator();
   const localePath = useLocalePath();
-  const editLocale = async (key: string) => {
+  const editLocale = async (event: MouseEvent) => {
     if (config?.value == null || config.saving) return;
     handleClose();
-    const editor = share?.externalEditor;
-    if (editor && (await editor(localePath))) return;
+    if (event.ctrlKey || event.shiftKey) {
+      const editor = share?.externalEditor;
+      if (editor && (await editor(localePath))) return;
+      console.info("open external editor failed");
+    }
     translator.show();
   };
   const languaes = config?.value?.languages ?? {};
@@ -80,7 +83,9 @@ function ThemeHandler({
           <MenuItem
             key={index}
             onClick={
-              key === language ? () => editLocale(key) : () => changeLocale(key)
+              key === language
+                ? (event) => editLocale(event)
+                : () => changeLocale(key)
             }
           >
             <ListItemIcon>
