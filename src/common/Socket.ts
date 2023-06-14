@@ -332,7 +332,7 @@ export async function mockSession<R, A extends any[]>(
   handle: (ms: MockedSession, ...args: A) => void,
   ...args: A
 ): Promise<void> {
-  if (!import.meta.env.DEV) return;
+  // if (!import.meta.env.DEV) return;
   // @ts-ignore
   const socket = (session as AbsSession).socket;
   if (socket == null) return;
