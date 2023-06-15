@@ -34,26 +34,18 @@
 		"configurations": [
 			// 启动开发服务器
 			{
-				"name": "vite dev",
+				"name": "tauri dev",
 				"type": "node",
 				"request": "launch",
 				"cwd": "${workspaceFolder}",
 				"runtimeExecutable": "pnpm",
 				"runtimeArgs": [
-					"dev"
+					"tauri:dev"
 				],
 				"skipFiles": [
 					"<node_internals>/**"
 				],
 				"console": "integratedTerminal"
-			},
-			// 打开浏览器页面
-			{
-				"name": "Launch Edge",
-				"request": "launch",
-				"type": "msedge",
-				"url": "http://localhost:3000",
-				"webRoot": "${workspaceFolder}"
 			}
 		]
 	},
