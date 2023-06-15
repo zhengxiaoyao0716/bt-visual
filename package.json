@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite --port 3000",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "neu:dev": "tsc && vite build && neu run",
+    "neu:build": "tsc && vite build && neu build --release"
   },
   "dependencies": {
     "@emotion/react": "^11.11.0",
@@ -20,6 +22,7 @@
     "roughjs": "^4.5.2"
   },
   "devDependencies": {
+    "@neutralinojs/neu": "^9.6.0",
     "@types/react": "^18.2.6",
     "@types/react-dom": "^18.2.4",
     "@vitejs/plugin-react": "^3.1.0",

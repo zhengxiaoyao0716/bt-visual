@@ -1,0 +1,30 @@
+{
+  "applicationId": "bt-visual",
+  "version": "1.0.0",
+  "defaultMode": "window",
+  "documentRoot": "/res/",
+  "url": "/",
+  "enableServer": true,
+  "enableNativeAPI": true,
+  "nativeAllowList": [
+    "app.*"
+  ],
+  "modes": {
+    "window": {
+      "title": "BT Visual",
+      "width": 800,
+      "height": 500,
+      "minWidth": 400,
+      "minHeight": 200,
+      "icon": "/src/favicon.svg",
+      "enableInspector": true
+    }
+  },
+  "cli": {
+    "binaryName": "bt-visual",
+    "resourcesPath": "/res/",
+    "extensionsPath": "/extensions/",
+    "binaryVersion": "4.12.0",
+    "clientVersion": "3.8.2"
+  }
+}
