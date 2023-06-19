@@ -64,4 +64,4 @@ export default function Debugger() {
     </DebugService>
   );
 }
-Debugger.route = "/debugger";
+Debugger.route = `${import.meta.env.BASE_URL}debugger`;

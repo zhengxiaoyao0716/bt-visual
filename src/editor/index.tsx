@@ -275,6 +275,7 @@ export function EditorRoutes(
     </>
   );
 }
-EditorRoutes.routeMain = "/editor";
-EditorRoutes.routeReadonly = "/editor-r";
-EditorRoutes.routeLibarary = "/editor-l";
+const BASE_URL = import.meta.env.BASE_URL;
+EditorRoutes.routeMain = `${BASE_URL}editor`;
+EditorRoutes.routeReadonly = `${BASE_URL}editor-r`;
+EditorRoutes.routeLibarary = `${BASE_URL}editor-l`;

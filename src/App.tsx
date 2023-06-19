@@ -113,7 +113,7 @@ function AppRoutes() {
     <Config>
       <Snack>
         <Routes>
-          <Route path="/">
+          <Route path={import.meta.env.BASE_URL}>
             <Route index element={<Navigate to={EditorRoutes.routeMain} />} />
             {EditorRoutes((children, noFrame) => (
               <App noFrame={noFrame}>
@@ -152,7 +152,7 @@ function AppRoutes() {
 //   />
 // );
 export default (
-  <BrowserRouter>
+  <BrowserRouter /*basename={import.meta.env.BASE_URL}*/>
     <AppRoutes />
   </BrowserRouter>
 );
