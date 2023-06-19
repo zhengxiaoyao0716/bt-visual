@@ -1,7 +1,9 @@
 import TextField from "@mui/material/TextField";
+
 import { useDialogConfirm } from "../../components/DialogConfirm";
 import { useRefresh } from "../../components/Refresh";
 import { TransFunction } from "../../storage/Locale";
+import Box from "@mui/material/Box";
 
 interface Props {
   trans: TransFunction;
@@ -27,16 +29,16 @@ export default function UnkownProps({ trans, node, unknownProps }: Props) {
       {unknownProps
         .filter(([name]) => name in node)
         .map(([name, value]) => (
-          <TextField
-            key={name}
-            label={name}
-            fullWidth
-            value={JSON.stringify(value)}
-            disabled
-            onClick={remove.bind(null, name)}
-            size="small"
-            sx={{ mb: 1 }}
-          />
+          <Box key={name} onClick={remove.bind(null, name)}>
+            <TextField
+              label={name}
+              fullWidth
+              value={JSON.stringify(value)}
+              disabled
+              size="small"
+              sx={{ mb: 1 }}
+            />
+          </Box>
         ))}
       {dialog}
     </>
