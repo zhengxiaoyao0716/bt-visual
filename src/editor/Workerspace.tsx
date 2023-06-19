@@ -221,7 +221,7 @@ export default function Workspace({
     },
     createComponentOption(StorePreset, {
       trans,
-      scope: ".",
+      prefix: ".",
       read() {
         return tree.store || {};
       },

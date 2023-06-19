@@ -6,6 +6,7 @@ import DialogContentText from "@mui/material/DialogContentText";
 import DialogTitle from "@mui/material/DialogTitle";
 import TextField from "@mui/material/TextField";
 import { ReactNode, useMemo, useState } from "react";
+import { inputOnKeyDown } from "./Hotkey";
 
 export type Props = {
   cancel?: string;
@@ -41,6 +42,10 @@ export function useDialogPrompt() {
       open={showing}
       onClose={state?.cancel}
       sx={{ backdropFilter: "blur(3px)" }}
+      onKeyDown={inputOnKeyDown({
+        onCancel: state?.cancel,
+        onSubmit: state?.submit && (() => state.submit(values)),
+      })}
     >
       {props?.title && (
         <DialogTitle sx={{ minWidth: "16em" }}>{props.title}</DialogTitle>

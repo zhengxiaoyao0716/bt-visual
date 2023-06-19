@@ -43,17 +43,17 @@ export function inputOnKeyDown({
   onCancel,
   onSubmit,
 }: {
-  onCancel: () => void;
-  onSubmit: () => void;
+  onCancel?: () => void;
+  onSubmit?: () => void;
 }) {
   return (event: ReactKeyboardEvent) => {
     if (event.ctrlKey || event.shiftKey || event.altKey) return;
     switch (event.key) {
       case "Enter":
-        onSubmit();
+        onSubmit && onSubmit();
         break;
       case "Escape":
-        onCancel();
+        onCancel && onCancel();
         break;
       default:
         return; // 其他按键继续传递

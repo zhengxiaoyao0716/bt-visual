@@ -473,7 +473,7 @@ export function nodeItemOption(
     case "StorePreset": {
       return createComponentOption(StorePreset, {
         trans,
-        scope: `${name}.`,
+        prefix: `${name}.`,
         read,
         save,
         storeScopes,

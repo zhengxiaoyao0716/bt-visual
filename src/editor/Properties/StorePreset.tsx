@@ -12,7 +12,7 @@ import StoreReader from "./StoreReader";
 
 interface Props {
   trans: TransFunction;
-  scope: string;
+  prefix: string;
   read(): undefined | { [key: string]: Store.Reader | undefined };
   save(preset: undefined | { [key: string]: Store.Reader | undefined }): void;
   storeScopes: { label: string; value: string }[];
@@ -20,7 +20,7 @@ interface Props {
 
 export default function StorePreset({
   trans,
-  scope,
+  prefix,
   read,
   save,
   storeScopes,
@@ -38,7 +38,7 @@ export default function StorePreset({
         return null;
       }
       const presets = read();
-      const storeKey = `${scope}${name}`;
+      const storeKey = name;
       if (presets && storeKey in presets) {
         snack.show(trans("Duplicate store key"));
         return null;
@@ -89,7 +89,7 @@ export default function StorePreset({
       >
         <StoreReader
           trans={trans}
-          name={name}
+          name={`${prefix}${name}`}
           read={() => value}
           save={(value) => change(index, value || "")}
           item={{ valueType: "unknown" }}
