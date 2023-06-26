@@ -189,17 +189,16 @@ export default function NodeSvgRender({
     const width = maxTextWidth;
     const height = $svg.clientHeight;
     $svg.setAttribute("width", String(width));
-    const shape =
+    const $shape =
       nodeType === "Action"
         ? rough.svg($svg).ellipse(width / 2, height / 2, width, height, options)
         : nodeType === "Decorator"
         ? rough.svg($svg).polygon(polygonPoints(width, height), options)
         : rough.svg($svg).rectangle(0, 0, width, height, options);
-    status && shape.classList.add(...status.class);
     onClick && $svg.addEventListener(boxSelectEventKey, onClick);
-    $svg.prepend(shape);
+    $svg.prepend($shape);
     return () => {
-      $svg.removeChild(shape);
+      $svg.removeChild($shape);
       onClick && $svg.removeEventListener(boxSelectEventKey, onClick);
     };
   }, [
@@ -212,6 +211,16 @@ export default function NodeSvgRender({
     fillStyle,
     palette.mode,
   ]);
+
+  useEffect(() => {
+    const cls = status?.aniCls;
+    if (!cls) return;
+    const $svg = ref.current;
+    if ($svg == null) return;
+    const $shape = $svg.children[0];
+    if ($shape == null) return;
+    $shape.setAttribute("class", cls);
+  }, [status?.aniCls]);
 
   const bgColor =
     status?.color && `${status.color}${palette.mode === "light" ? "55" : "bb"}`;

@@ -115,7 +115,7 @@ export default function LineRender({
       strokeLineDash: [12, 20],
       stroke: strokeColor,
     });
-    $line.classList.add(...status.class);
+    status?.aniCls && $line.classList.add(status.aniCls);
     $svg.appendChild($line);
 
     return () => {
@@ -130,6 +130,7 @@ export default function LineRender({
     rect?.top,
     rect?.width,
     rect?.height,
+    status?.aniCls,
     rfc,
     refresh,
     index,

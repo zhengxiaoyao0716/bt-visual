@@ -26,13 +26,21 @@ const RootContainer = styled("div")`
   position: relative;
   text-align: center;
 
-  &.animate .${lineContainerClass} g.animate > path {
-    animation: line-dash 0.5s linear;
+  &.animate .${lineContainerClass} g.animate-1 > path {
+    animation: line-dash-1 0.5s linear;
   }
-  &.animate .${lineContainerClass} g.animate.infinite > path {
-    animation-iteration-count: infinite;
+  &.animate .${lineContainerClass} g.animate-2 > path {
+    animation: line-dash-2 0.5s linear;
   }
-  @keyframes line-dash {
+  &.animate .${lineContainerClass} g.animate-inf > path {
+    animation: line-dash-1 0.5s linear infinite;
+  }
+  @keyframes line-dash-1 {
+    to {
+      stroke-dashoffset: 64;
+    }
+  }
+  @keyframes line-dash-2 {
     to {
       stroke-dashoffset: 64;
     }

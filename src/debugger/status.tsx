@@ -1,24 +1,22 @@
-import { Dispatch, useEffect } from "react";
+import { Dispatch, useEffect, useState } from "react";
 
 import { BTDefines } from "../behavior-tree/Define";
 import { Node, Tree } from "../behavior-tree/type";
 import ExtValue from "../common/ExtValue";
-import { useRefresh } from "../components/Refresh";
 import { Composite } from "../behavior-tree/type";
 import { Action } from "../behavior-tree/type";
 
 export const statusMapper = Object.freeze({
-  success: { color: "#00cd00", dash: true, class: ["animate"] },
-  failure: { color: "#ee0212", dash: true, class: ["animate"] },
-  running: { color: "#0288ee", dash: true, class: ["animate", "infinite"] },
-  none: { color: "", dash: false, class: [] },
+  success: { color: "#00cd00", dash: true, aniCls: "animate-1" },
+  failure: { color: "#ee0212", dash: true, aniCls: "animate-2" },
+  running: { color: "#0288ee", dash: true, aniCls: "animate-inf" },
+  none: { color: "", dash: false, aniCls: undefined },
 });
 export module Status {
   export type Key = keyof typeof statusMapper;
   export type Value = (typeof statusMapper)[Key];
 }
 
-const debugStatusExtKey = Symbol("debug.status");
 const debugDefinesExtKey = Symbol("debug.defines");
 const debugSetStatusExtKey = Symbol("debug.setStatus");
 
@@ -26,7 +24,10 @@ export function useNodeStatus(
   defines: BTDefines | undefined,
   node: Node | undefined
 ): Status.Value {
-  const [, refresh] = useRefresh();
+  const [[statusKey, aniCls], setStatus] = useState([
+    "none" as Status.Key,
+    undefined as string | undefined,
+  ] as const);
 
   useEffect(() => {
     if (node == null || defines == null) return;
@@ -41,21 +42,26 @@ export function useNodeStatus(
     ExtValue.setValue(
       node,
       debugSetStatusExtKey,
-      (status: Status.Key | undefined) => {
-        if (status == ExtValue.getValue(node, debugStatusExtKey)) return;
-        ExtValue.setValue(node, debugStatusExtKey, status);
-        refresh();
-      }
+      (statusKey: Status.Key | undefined) =>
+        setStatus(([oldKey, oldCls]) => {
+          if (!statusKey || statusKey === "none") return ["none", undefined];
+          const status = statusMapper[statusKey];
+          if (oldKey !== statusKey || status.aniCls === "inf") {
+            return [
+              statusKey,
+              oldCls === "animate-inf" ? undefined : status.aniCls,
+            ];
+          }
+          const aniCls = oldCls === "animate-1" ? "animate-2" : "animate-1";
+          return [statusKey, aniCls];
+        })
     );
     return () => {
       ExtValue.setValue(node, debugSetStatusExtKey, undefined);
     };
-  }, [node, refresh]);
+  }, [node]);
 
-  const status =
-    (node && (ExtValue.getValue(node, debugStatusExtKey) as Status.Key)) ??
-    "none";
-  return statusMapper[status];
+  return { ...statusMapper[statusKey], aniCls };
 }
 
 export function getBTDefines(node: Node): BTDefines | undefined {
