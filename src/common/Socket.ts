@@ -156,6 +156,7 @@ abstract class AbsSession implements Session {
               reject("read session timeout");
               this.close(); // 长时间未收到回复，关闭会话
             }, timeout);
+      // TODO FIXME 缺少了超时触发 session close 机制。有状态 session 设计过于复杂了，还是改成无状态消息机制吧。
       this.resolvers.push((text: string) => {
         tid && clearTimeout(tid);
         resolve(text);
