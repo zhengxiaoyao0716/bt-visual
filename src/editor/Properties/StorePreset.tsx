@@ -51,7 +51,7 @@ export default function StorePreset({
     cancel: trans("CANCEL"),
     submit: trans("APPEND"),
     title: trans("Append Item"),
-    message: trans("Please the key of the store item"),
+    message: trans("Please input the key of the store item"),
     values: [""],
   }) as () => Promise<[string, Store.Value] | null>;
 

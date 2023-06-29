@@ -128,7 +128,7 @@
   "Duplicate store key": "黑板键冲突",
   "Invalid input": "无效的输入",
   "Duplicate id": "id 冲突",
-  "Please the key of the store item": "请输入要添加的黑板键",
+  "Please input the key of the store item": "请输入黑板键",
   "Node Properties": "节点属性",
   "Node Alias": "节点别名",
   "Props List": "属性列表",
@@ -178,6 +178,7 @@
   "Select Groups": "选择分组",
   "Select Trees": "选择行为树",
   "Please select:": "请选择：",
+  "Evaluate Store Value": "计算黑板值",
 
   "// 其他": ""
 }

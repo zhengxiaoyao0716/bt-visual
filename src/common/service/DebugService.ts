@@ -118,6 +118,11 @@ export class Manager {
       await session.send("stop");
       mockSession(session, debugStopPlay, tree);
     };
+    const query = async (bind: string): Promise<string> => {
+      await session.send("query");
+      await session.send(bind);
+      return await session.read(6000);
+    };
     const done = async () => {
       await session.send("close");
       mockSession(session, debugClose, tree);
@@ -127,7 +132,7 @@ export class Manager {
       const statusDict = JSON.parse(text);
       setTreeNodeStatus(tree, statusDict);
     });
-    return { start, pause, stop, done };
+    return { start, pause, stop, query, done };
   }
 }
 
